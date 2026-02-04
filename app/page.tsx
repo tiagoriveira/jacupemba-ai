@@ -231,52 +231,57 @@ export default function Page() {
       onTouchEnd={handleTouchEnd}
     >
       {/* Header */}
-      <header className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-6 w-6 text-zinc-900 dark:text-white" />
-            <h1 className="text-xl font-semibold text-zinc-900 dark:text-white">
+      <header className="glass sticky top-0 z-40 border-b border-white/10">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/20">
+              <MapPin className="h-5 w-5 text-white" />
+            </div>
+            <h1 className="text-lg font-semibold tracking-tight text-white">
               Assistente Local
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setVitrineOpen(true)}
-              className="relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="glass-button relative flex h-9 w-9 items-center justify-center rounded-xl text-lg shadow-lg transition-all duration-300 hover:scale-105"
             >
-              <span className="text-lg">🏪</span>
+              <span>🏪</span>
               {newPostsCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-[10px] font-bold text-white animate-pulse">
+                <span className="glow-green absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 text-[10px] font-bold text-white animate-pulse">
                   {newPostsCount}
                 </span>
               )}
             </button>
             <Link 
               href="/historico"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="glass-button flex h-9 items-center gap-2 rounded-xl px-3 shadow-lg transition-all duration-300 hover:scale-105"
             >
-              <History className="h-5 w-5" />
-              <span className="hidden sm:inline">Histórico</span>
+              <History className="h-4 w-4 text-zinc-300" />
+              <span className="hidden text-sm text-zinc-300 sm:inline">Histórico</span>
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Tutorial Overlay */}
+      {/* Tutorial Hint */}
       {showTutorial && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 flex max-w-sm flex-col items-center rounded-2xl bg-white p-6 dark:bg-zinc-900">
-            <div className="mb-4 text-6xl animate-bounce">👉</div>
-            <p className="text-balance text-center text-lg font-semibold text-zinc-900 dark:text-white">
-              Deslize aqui para ver ofertas do bairro!
-            </p>
+        <div className="pointer-events-none fixed right-4 top-20 z-50 animate-fade-in-right">
+          <div className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3 shadow-2xl">
+            <div className="flex flex-col items-end gap-1">
+              <p className="text-pretty text-right text-sm font-medium text-white">
+                Deslize para ver ofertas
+              </p>
+              <p className="text-xs text-zinc-400">🏪 Vitrine do Bairro</p>
+            </div>
+            <div className="text-2xl animate-bounce-x">👈</div>
           </div>
         </div>
       )}
 
       {/* Green Border Hint */}
       {newPostsCount > 0 && !vitrineOpen && (
-        <div className="pointer-events-none fixed right-0 top-0 z-20 h-full w-1 bg-gradient-to-b from-transparent via-green-500 to-transparent opacity-50" />
+        <div className="glow-green pointer-events-none fixed right-0 top-0 z-20 h-full w-1 bg-gradient-to-b from-transparent via-green-400 to-transparent opacity-60 animate-pulse" />
       )}
 
       {/* Chat Area */}
@@ -305,16 +310,16 @@ export default function Page() {
                     <button
                       key={index}
                       onClick={() => handleSuggestionClick(suggestion.text)}
-                      className="group flex items-start gap-3 rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                      className="glass-card group flex items-start gap-3 rounded-2xl p-4 text-left shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
                     >
-                      <div className="rounded-lg bg-zinc-100 p-2 dark:bg-zinc-800">
-                        <Icon className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-600/20 ring-1 ring-green-500/20">
+                        <Icon className="h-5 w-5 text-green-400" />
                       </div>
                       <div className="flex-1">
-                        <div className="mb-1 text-xs font-medium text-zinc-500 dark:text-zinc-500">
+                        <div className="mb-1 text-xs font-medium text-zinc-400">
                           {suggestion.category}
                         </div>
-                        <div className="text-sm text-zinc-900 dark:text-zinc-100">
+                        <div className="text-sm text-zinc-100">
                           {suggestion.text}
                         </div>
                       </div>
@@ -337,10 +342,10 @@ export default function Page() {
                     className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 ${
                         isUser
-                          ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                          : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                          ? 'glass-card bg-gradient-to-br from-green-500/90 to-emerald-600/90 text-white'
+                          : 'glass-card text-zinc-100'
                       }`}
                     >
                       {images.length > 0 && (
@@ -363,28 +368,28 @@ export default function Page() {
                     </div>
                     
                     {!isUser && (
-                      <div className="mt-2 flex gap-1">
+                      <div className="mt-2 flex gap-2">
                         <button
                           onClick={() => handleRating(message.id, 'up')}
-                          className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm transition-colors ${
+                          className={`glass-button flex items-center gap-1 rounded-xl px-3 py-1.5 text-sm shadow-md transition-all duration-300 hover:scale-105 ${
                             messageRatings[message.id] === 'up'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                              ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
+                              : 'text-zinc-400 hover:text-green-400'
                           }`}
                           aria-label="Resposta útil"
                         >
-                          <ThumbsUp className="h-4 w-4" />
+                          <ThumbsUp className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => handleRating(message.id, 'down')}
-                          className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm transition-colors ${
+                          className={`glass-button flex items-center gap-1 rounded-xl px-3 py-1.5 text-sm shadow-md transition-all duration-300 hover:scale-105 ${
                             messageRatings[message.id] === 'down'
-                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                              ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30'
+                              : 'text-zinc-400 hover:text-red-400'
                           }`}
                           aria-label="Resposta não útil"
                         >
-                          <ThumbsDown className="h-4 w-4" />
+                          <ThumbsDown className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     )}
@@ -410,27 +415,27 @@ export default function Page() {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mx-auto max-w-4xl px-4 py-4">
+      <div className="glass border-t border-white/10">
+        <div className="mx-auto max-w-4xl px-5 py-5">
           <form onSubmit={handleSubmit} className="relative space-y-3">
             {selectedImage && (
               <div className="relative inline-block">
                 <img
                   src={selectedImage || "/placeholder.svg"}
                   alt="Preview"
-                  className="h-24 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700"
+                  className="glass-card h-24 rounded-xl object-cover shadow-lg"
                 />
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900"
+                  className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg transition-all duration-300 hover:scale-110"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
             
-            <div className="flex items-end gap-2 rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="glass-input flex items-end gap-2 rounded-3xl shadow-xl">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -442,7 +447,7 @@ export default function Page() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
-                className="m-2 ml-3 flex h-10 w-10 items-center justify-center rounded-full text-zinc-500 transition-all hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="m-2 ml-3 flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-400 transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <ImagePlus className="h-5 w-5" />
               </button>
@@ -453,12 +458,12 @@ export default function Page() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Digite sua pergunta ou envie uma foto..."
                 disabled={isLoading}
-                className="flex-1 resize-none bg-transparent py-4 text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                className="flex-1 resize-none bg-transparent py-4 text-[15px] text-zinc-100 placeholder:text-zinc-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={isLoading || (!input.trim() && !selectedImage)}
-                className="m-2 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="m-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-green-500/30 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -468,7 +473,7 @@ export default function Page() {
               </button>
             </div>
           </form>
-          <p className="mt-2 text-center text-xs text-zinc-400 dark:text-zinc-600">
+          <p className="mt-3 text-center text-xs text-zinc-500">
             A IA pode cometer erros. Verifique informações importantes.
           </p>
         </div>
