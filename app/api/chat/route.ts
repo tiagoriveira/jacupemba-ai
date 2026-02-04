@@ -200,20 +200,8 @@ Use estas informações para responder as perguntas dos usuários de forma preci
     },
   })
 
-  // Add business data to response metadata
-  const businessMap = businesses.reduce((acc: any, b: any) => {
-    acc[b.id] = {
-      name: b.business_name,
-      whatsapp: b.whatsapp,
-      phone: b.phone,
-      is_verified: b.is_verified,
-    }
-    return acc
-  }, {})
-
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     consumeSseStream: consumeStream,
-    data: { businesses: businessMap },
   })
 }

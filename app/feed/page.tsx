@@ -35,16 +35,16 @@ export default function FeedPage() {
       const items: FeedItem[] = []
 
       // Get featured business first
-      const { data: featuredBusiness } = await supabase
+      const { data: featuredBusinesses } = await supabase
         .from('businesses')
         .select('*')
         .eq('is_active', true)
         .eq('is_featured', true)
-        .gte('featured_until', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
 
+      const featuredBusiness = featuredBusinesses?.[0]
+      
       if (featuredBusiness) {
         items.push({
           id: featuredBusiness.id,

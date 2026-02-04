@@ -18,6 +18,9 @@ export interface Business {
   address_state?: string
   address_zipcode?: string
   is_active: boolean
+  is_verified: boolean
+  is_featured: boolean
+  featured_until?: string
   created_at: string
   updated_at: string
 }
@@ -106,4 +109,27 @@ export interface ChatHistory {
   business_context?: Record<string, any>
   intent?: string
   created_at: string
+}
+
+export interface ChatRating {
+  id: string
+  message_id: string
+  rating: 'up' | 'down'
+  user_identifier?: string
+  feedback_text?: string
+  created_at: string
+}
+
+export interface Promotion {
+  id: string
+  business_id: string
+  title: string
+  description: string
+  discount_text?: string
+  start_date: string
+  end_date: string
+  terms?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }

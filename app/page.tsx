@@ -48,7 +48,7 @@ export default function Page() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  const { messages, sendMessage, status, data } = useChat({
+  const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
   })
 
@@ -224,7 +224,7 @@ export default function Page() {
                       {text && (
                         <MessageContent 
                           text={text} 
-                          businesses={data?.businesses || {}} 
+                          businesses={{}} 
                         />
                       )}
                       {!isUser && message.id && (
