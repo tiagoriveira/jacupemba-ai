@@ -136,7 +136,7 @@ export function VitrineBairro({ isOpen, onClose }: VitrineBairroProps) {
 
               <button
                 onClick={() => handleWhatsApp(selectedPost)}
-                className="w-full rounded-xl bg-green-500 py-4 text-center font-semibold text-white transition-colors hover:bg-green-600"
+                className="w-full rounded-lg border border-white/20 bg-white/10 py-3.5 text-center font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
               >
                 Chamar no WhatsApp
               </button>
