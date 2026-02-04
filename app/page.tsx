@@ -2,10 +2,10 @@
 
 import React from "react"
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, ImagePlus, X, Settings } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -51,43 +51,6 @@ export default function Page() {
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
-
-  // Save to history when conversation is complete
-  useEffect(() => {
-    if (messages.length >= 2 && !isLoading) {
-      const lastUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0]
-      const lastAssistantMessage = messages.filter(m => m.role === 'assistant').slice(-1)[0]
-      
-      if (lastUserMessage && lastAssistantMessage) {
-        const userText = getMessageText(lastUserMessage.parts)
-        const assistantText = getMessageText(lastAssistantMessage.parts)
-        
-        if (userText && assistantText) {
-          const historyItem = {
-            id: Date.now().toString(),
-            question: userText,
-            answer: assistantText,
-            timestamp: new Date().toISOString()
-          }
-          
-          const savedHistory = localStorage.getItem('chat-history')
-          const history = savedHistory ? JSON.parse(savedHistory) : []
-          
-          // Check if this item already exists (avoid duplicates)
-          const exists = history.some((item: any) => 
-            item.question === userText && item.answer === assistantText
-          )
-          
-          if (!exists) {
-            history.unshift(historyItem)
-            // Keep only last 50 items
-            if (history.length > 50) history.pop()
-            localStorage.setItem('chat-history', JSON.stringify(history))
-          }
-        }
-      }
-    }
-  }, [messages, isLoading])
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -158,15 +121,15 @@ export default function Page() {
           <div className="flex items-center gap-2">
             <MapPin className="h-6 w-6 text-zinc-900 dark:text-white" />
             <h1 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              Assistente Local
+              Jacupemba AI
             </h1>
           </div>
           <Link 
-            href="/historico"
+            href="/admin"
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            <History className="h-5 w-5" />
-            <span className="hidden sm:inline">Histórico</span>
+            <Settings className="h-5 w-5" />
+            <span className="hidden sm:inline">Painel Admin</span>
           </Link>
         </div>
       </header>
