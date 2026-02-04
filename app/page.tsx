@@ -5,8 +5,10 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ThumbsUp, ThumbsDown, Rss } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ThumbsUp, ThumbsDown } from 'lucide-react'
 import Link from 'next/link'
+import { VitrineBairro } from '@/components/vitrine-bairro'
+import { SHOWCASE_POSTS } from '@/lib/showcase-data'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -45,13 +47,48 @@ export default function Page() {
   const [input, setInput] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [messageRatings, setMessageRatings] = useState<Record<string, 'up' | 'down' | null>>({})
+  const [vitrineOpen, setVitrineOpen] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
+  const [newPostsCount, setNewPostsCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const touchStartX = useRef(0)
+  const touchEndX = useRef(0)
   
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
+
+  // Tutorial and new posts counter
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('vitrine-tutorial-seen')
+    if (!hasSeenTutorial) {
+      setShowTutorial(true)
+      setTimeout(() => {
+        setShowTutorial(false)
+        localStorage.setItem('vitrine-tutorial-seen', 'true')
+      }, 3000)
+    }
+
+    // Count new posts (not viewed)
+    const viewedPosts = localStorage.getItem('viewed-showcase-posts')
+    const viewed = viewedPosts ? new Set(JSON.parse(viewedPosts)) : new Set()
+    
+    const recentPosts = SHOWCASE_POSTS.filter(post => {
+      const hoursDiff = (Date.now() - post.postedAt.getTime()) / (1000 * 60 * 60)
+      return hoursDiff <= 48
+    })
+    
+    const newCount = recentPosts.filter(post => !viewed.has(post.id)).length
+    setNewPostsCount(newCount)
+
+    // Clear new posts badge when vitrine is visited
+    if (vitrineOpen && newCount > 0) {
+      const timer = setTimeout(() => setNewPostsCount(0), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [vitrineOpen])
 
   // Save to history when conversation is complete
   useEffect(() => {
@@ -126,6 +163,24 @@ export default function Page() {
     localStorage.setItem('message-ratings', JSON.stringify(allRatings))
   }
 
+  // Swipe gesture handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current - touchEndX.current > 50) {
+      // Swipe left (open vitrine)
+      setVitrineOpen(true)
+    }
+    touchStartX.current = 0
+    touchEndX.current = 0
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if ((!input.trim() && !selectedImage) || isLoading) return
@@ -169,7 +224,12 @@ export default function Page() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
+    <div 
+      className="relative flex h-screen flex-col bg-white dark:bg-zinc-950"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Header */}
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
@@ -180,13 +240,17 @@ export default function Page() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <Link 
-              href="/feed"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            <button
+              onClick={() => setVitrineOpen(true)}
+              className="relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
-              <Rss className="h-5 w-5" />
-              <span className="hidden sm:inline">Feed</span>
-            </Link>
+              <span className="text-lg">🏪</span>
+              {newPostsCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-[10px] font-bold text-white animate-pulse">
+                  {newPostsCount}
+                </span>
+              )}
+            </button>
             <Link 
               href="/historico"
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -197,6 +261,23 @@ export default function Page() {
           </div>
         </div>
       </header>
+
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 flex max-w-sm flex-col items-center rounded-2xl bg-white p-6 dark:bg-zinc-900">
+            <div className="mb-4 text-6xl animate-bounce">👉</div>
+            <p className="text-balance text-center text-lg font-semibold text-zinc-900 dark:text-white">
+              Deslize aqui para ver ofertas do bairro!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Green Border Hint */}
+      {newPostsCount > 0 && !vitrineOpen && (
+        <div className="pointer-events-none fixed right-0 top-0 z-20 h-full w-1 bg-gradient-to-b from-transparent via-green-500 to-transparent opacity-50" />
+      )}
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto">
@@ -392,6 +473,9 @@ export default function Page() {
           </p>
         </div>
       </div>
+
+      {/* Vitrine do Bairro */}
+      <VitrineBairro isOpen={vitrineOpen} onClose={() => setVitrineOpen(false)} />
     </div>
   )
 }
