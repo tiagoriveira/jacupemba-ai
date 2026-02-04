@@ -10,7 +10,8 @@ import {
   Briefcase, 
   Calendar, 
   Users,
-  LayoutDashboard
+  LayoutDashboard,
+  Tag
 } from 'lucide-react'
 
 const navItems = [
@@ -38,6 +39,11 @@ const navItems = [
     title: 'Produtos',
     href: '/admin/products',
     icon: Package,
+  },
+  {
+    title: 'Promoções',
+    href: '/admin/promotions',
+    icon: Tag,
   },
   {
     title: 'Eventos',

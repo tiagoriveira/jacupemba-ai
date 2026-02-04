@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2 } from 'lucide-react'
 import type { Business } from '@/lib/types/database'
 
@@ -62,6 +63,8 @@ export function BusinessForm({ business, userId }: BusinessFormProps) {
     address_state: business?.address_state || '',
     address_zipcode: business?.address_zipcode || '',
     is_active: business?.is_active ?? true,
+    is_verified: business?.is_verified ?? false,
+    is_featured: business?.is_featured ?? false,
   })
 
   function formatCNPJ(value: string) {
@@ -328,6 +331,53 @@ export function BusinessForm({ business, userId }: BusinessFormProps) {
               onChange={(e) => setFormData({ ...formData, address_city: e.target.value })}
               disabled={loading}
             />
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold mb-4">Configurações</h3>
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is_active"
+              checked={formData.is_active}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_active: !!checked })
+              }
+              disabled={loading}
+            />
+            <Label htmlFor="is_active" className="cursor-pointer">
+              Negócio ativo (visível para usuários)
+            </Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is_verified"
+              checked={formData.is_verified}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_verified: !!checked })
+              }
+              disabled={loading}
+            />
+            <Label htmlFor="is_verified" className="cursor-pointer">
+              Negócio verificado (exibe badge de verificação)
+            </Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is_featured"
+              checked={formData.is_featured}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_featured: !!checked })
+              }
+              disabled={loading}
+            />
+            <Label htmlFor="is_featured" className="cursor-pointer">
+              Negócio em destaque (aparece em posição especial)
+            </Label>
           </div>
         </div>
       </div>

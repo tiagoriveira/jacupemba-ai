@@ -172,6 +172,7 @@ INSTRUÇÕES IMPORTANTES:
 - Use APENAS os dados reais fornecidos abaixo - NUNCA invente informações
 - Se não houver dados relevantes para a pergunta, informe educadamente que não há informações cadastradas no momento
 - Quando listar estabelecimentos ou profissionais, organize as informações de forma clara
+- Para cada negócio recomendado, inclua ao final da descrição: [BUSINESS_ID:uuid_do_negocio]
 - Se o usuário perguntar sobre algo que não existe nos dados, sugira categorias similares que existem
 
 ANÁLISE DE IMAGENS:
@@ -199,8 +200,20 @@ Use estas informações para responder as perguntas dos usuários de forma preci
     },
   })
 
+  // Add business data to response metadata
+  const businessMap = businesses.reduce((acc: any, b: any) => {
+    acc[b.id] = {
+      name: b.business_name,
+      whatsapp: b.whatsapp,
+      phone: b.phone,
+      is_verified: b.is_verified,
+    }
+    return acc
+  }, {})
+
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     consumeSseStream: consumeStream,
+    data: { businesses: businessMap },
   })
 }

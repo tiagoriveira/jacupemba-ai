@@ -5,8 +5,10 @@ import React from "react"
 import { useState, useRef } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, ImagePlus, X, Settings } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, ImagePlus, X, Settings, Rss } from 'lucide-react'
 import Link from 'next/link'
+import { RatingButtons } from '@/components/rating-buttons'
+import { MessageContent } from '@/components/message-content'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -46,7 +48,7 @@ export default function Page() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, data } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
   })
 
@@ -124,13 +126,22 @@ export default function Page() {
               Jacupemba AI
             </h1>
           </div>
-          <Link 
-            href="/admin"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            <Settings className="h-5 w-5" />
-            <span className="hidden sm:inline">Painel Admin</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/feed"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <Rss className="h-5 w-5" />
+              <span className="hidden sm:inline">Feed</span>
+            </Link>
+            <Link 
+              href="/admin"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <Settings className="h-5 w-5" />
+              <span className="hidden sm:inline">Admin</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -211,9 +222,13 @@ export default function Page() {
                         </div>
                       )}
                       {text && (
-                        <div className="whitespace-pre-wrap text-[15px] leading-relaxed">
-                          {text}
-                        </div>
+                        <MessageContent 
+                          text={text} 
+                          businesses={data?.businesses || {}} 
+                        />
+                      )}
+                      {!isUser && message.id && (
+                        <RatingButtons messageId={message.id} />
                       )}
                     </div>
                   </div>
