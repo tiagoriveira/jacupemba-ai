@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ThumbsUp, ThumbsDown, Rss } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -44,6 +44,7 @@ const SUGGESTED_QUESTIONS = [
 export default function Page() {
   const [input, setInput] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [messageRatings, setMessageRatings] = useState<Record<string, 'up' | 'down' | null>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const { messages, sendMessage, status } = useChat({
@@ -108,6 +109,23 @@ export default function Page() {
     }
   }
 
+  const handleRating = (messageId: string, rating: 'up' | 'down') => {
+    setMessageRatings(prev => ({
+      ...prev,
+      [messageId]: prev[messageId] === rating ? null : rating
+    }))
+    
+    // Save rating to localStorage for analytics
+    const ratings = localStorage.getItem('message-ratings')
+    const allRatings = ratings ? JSON.parse(ratings) : []
+    allRatings.push({
+      messageId,
+      rating,
+      timestamp: new Date().toISOString()
+    })
+    localStorage.setItem('message-ratings', JSON.stringify(allRatings))
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if ((!input.trim() && !selectedImage) || isLoading) return
@@ -161,13 +179,22 @@ export default function Page() {
               Assistente Local
             </h1>
           </div>
-          <Link 
-            href="/historico"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            <History className="h-5 w-5" />
-            <span className="hidden sm:inline">Histórico</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/feed"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <Rss className="h-5 w-5" />
+              <span className="hidden sm:inline">Feed</span>
+            </Link>
+            <Link 
+              href="/historico"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <History className="h-5 w-5" />
+              <span className="hidden sm:inline">Histórico</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -226,7 +253,7 @@ export default function Page() {
                 return (
                   <div
                     key={message.id}
-                    className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                    className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                   >
                     <div
                       className={`max-w-[85%] rounded-2xl px-4 py-3 ${
@@ -253,6 +280,33 @@ export default function Page() {
                         </div>
                       )}
                     </div>
+                    
+                    {!isUser && (
+                      <div className="mt-2 flex gap-1">
+                        <button
+                          onClick={() => handleRating(message.id, 'up')}
+                          className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm transition-colors ${
+                            messageRatings[message.id] === 'up'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                          }`}
+                          aria-label="Resposta útil"
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleRating(message.id, 'down')}
+                          className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm transition-colors ${
+                            messageRatings[message.id] === 'down'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                          }`}
+                          aria-label="Resposta não útil"
+                        >
+                          <ThumbsDown className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               })}
