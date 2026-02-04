@@ -63,29 +63,21 @@ export function VitrineBairro({ isOpen, onClose }: VitrineBairroProps) {
 
       {/* Drawer */}
       <div
-        className={`fixed right-0 top-0 z-50 h-full w-full bg-white transition-transform duration-300 dark:bg-zinc-950 sm:w-[500px] ${
+        className={`fixed right-0 top-0 z-50 h-full w-full bg-black transition-transform duration-300 sm:w-[500px] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-4 dark:border-zinc-800">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🏪</span>
-            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              Vitrine do Bairro
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          >
-            <X className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-          </button>
-        </div>
+        {/* Close Button - Posicionado sobre o grid */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm"
+        >
+          <X className="h-6 w-6 text-white" />
+        </button>
 
-        {/* Grid - Estilo Instagram Explorar */}
-        <div className="h-[calc(100%-73px)] overflow-y-auto p-1">
-          <div className="grid grid-cols-3 gap-1">
+        {/* Grid - Estilo Instagram Explorar - Fullscreen */}
+        <div className="h-full w-full overflow-y-auto">
+          <div className="grid grid-cols-3">
             {recentPosts.map((post) => (
               <button
                 key={post.id}
@@ -95,7 +87,7 @@ export function VitrineBairro({ isOpen, onClose }: VitrineBairroProps) {
                 <img
                   src={post.imageUrl}
                   alt={post.productName}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                 />
               </button>
             ))}
