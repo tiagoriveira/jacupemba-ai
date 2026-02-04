@@ -86,7 +86,7 @@ export function VitrineBairro({ isOpen, onClose }: VitrineBairroProps) {
         {/* Header */}
         <div className="glass flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 ring-1 ring-amber-500/30 text-xl">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/50 ring-1 ring-gray-700 text-xl">
               🏪
             </div>
             <h2 className="text-lg font-semibold tracking-tight text-white">
@@ -221,7 +221,7 @@ export function VitrineBairro({ isOpen, onClose }: VitrineBairroProps) {
 
               <button
                 onClick={() => handleWhatsApp(recentPosts[selectedPostIndex])}
-                className="glow-green w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 py-4 text-center font-semibold text-white shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:from-green-400 hover:to-emerald-500"
+                className="w-full rounded-2xl bg-black py-4 text-center font-semibold text-white shadow-2xl shadow-black/50 transition-all duration-300 hover:scale-[1.02] ring-1 ring-gray-700"
               >
                 Chamar no WhatsApp
               </button>

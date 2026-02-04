@@ -71,7 +71,7 @@ export default function HistoricoPage() {
               <ArrowLeft className="h-5 w-5 text-zinc-300" />
             </Link>
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/20">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black shadow-lg shadow-black/50">
                 <Clock className="h-5 w-5 text-white" />
               </div>
               <h1 className="text-lg font-semibold tracking-tight text-white">
@@ -83,10 +83,10 @@ export default function HistoricoPage() {
           {history.length > 0 && (
             <button
               onClick={clearHistory}
-              className="glass-button flex items-center gap-2 rounded-xl px-3 py-2 text-sm shadow-lg transition-all duration-300 hover:scale-105 hover:bg-red-500/20 hover:text-red-400"
+              className="glass-button flex items-center gap-2 rounded-xl px-3 py-2 text-sm shadow-lg transition-all duration-300 hover:scale-105 hover:bg-red-500/20 hover:text-red-300"
             >
-              <Trash2 className="h-4 w-4 text-red-400" />
-              <span className="hidden text-red-400 sm:inline">Limpar</span>
+              <Trash2 className="h-4 w-4 text-gray-300" />
+              <span className="hidden text-gray-300 sm:inline">Limpar</span>
             </button>
           )}
         </div>
@@ -109,7 +109,7 @@ export default function HistoricoPage() {
               </p>
               <Link
                 href="/"
-                className="rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/20 transition-all duration-300 hover:scale-105"
+                className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-black/50 transition-all duration-300 hover:scale-105 ring-1 ring-gray-700"
               >
                 Fazer uma consulta
               </Link>

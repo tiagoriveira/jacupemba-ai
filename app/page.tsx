@@ -234,7 +234,7 @@ export default function Page() {
       <header className="glass sticky top-0 z-40 border-b border-white/10">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black shadow-lg shadow-black/50">
               <MapPin className="h-5 w-5 text-white" />
             </div>
             <h1 className="text-lg font-semibold tracking-tight text-white">
@@ -248,7 +248,7 @@ export default function Page() {
             >
               <span>🏪</span>
               {newPostsCount > 0 && (
-                <span className="glow-green absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 text-[10px] font-bold text-white animate-pulse">
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white animate-pulse ring-2 ring-gray-700">
                   {newPostsCount}
                 </span>
               )}
@@ -281,7 +281,7 @@ export default function Page() {
 
       {/* Green Border Hint */}
       {newPostsCount > 0 && !vitrineOpen && (
-        <div className="glow-green pointer-events-none fixed right-0 top-0 z-20 h-full w-1 bg-gradient-to-b from-transparent via-green-400 to-transparent opacity-60 animate-pulse" />
+        <div className="pointer-events-none fixed right-0 top-0 z-20 h-full w-1 bg-gradient-to-b from-transparent via-gray-600 to-transparent opacity-60 animate-pulse" />
       )}
 
       {/* Chat Area */}
@@ -312,8 +312,8 @@ export default function Page() {
                       onClick={() => handleSuggestionClick(suggestion.text)}
                       className="glass-card group flex items-start gap-3 rounded-2xl p-4 text-left shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-600/20 ring-1 ring-green-500/20">
-                        <Icon className="h-5 w-5 text-green-400" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/40 ring-1 ring-gray-700">
+                        <Icon className="h-5 w-5 text-gray-300" />
                       </div>
                       <div className="flex-1">
                         <div className="mb-1 text-xs font-medium text-zinc-400">
@@ -344,7 +344,7 @@ export default function Page() {
                     <div
                       className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 ${
                         isUser
-                          ? 'glass-card bg-gradient-to-br from-green-500/90 to-emerald-600/90 text-white'
+                          ? 'glass-card bg-black text-white'
                           : 'glass-card text-zinc-100'
                       }`}
                     >
@@ -373,8 +373,8 @@ export default function Page() {
                           onClick={() => handleRating(message.id, 'up')}
                           className={`glass-button flex items-center gap-1 rounded-xl px-3 py-1.5 text-sm shadow-md transition-all duration-300 hover:scale-105 ${
                             messageRatings[message.id] === 'up'
-                              ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
-                              : 'text-zinc-400 hover:text-green-400'
+                              ? 'bg-gray-700/50 text-gray-100 ring-1 ring-gray-600/50'
+                              : 'text-zinc-400 hover:text-gray-200'
                           }`}
                           aria-label="Resposta útil"
                         >
@@ -428,7 +428,7 @@ export default function Page() {
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg transition-all duration-300 hover:scale-110"
+                  className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black text-white shadow-lg transition-all duration-300 hover:scale-110 ring-2 ring-gray-700"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -463,7 +463,7 @@ export default function Page() {
               <button
                 type="submit"
                 disabled={isLoading || (!input.trim() && !selectedImage)}
-                className="m-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-green-500/30 disabled:cursor-not-allowed disabled:opacity-30"
+                className="m-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-black text-white shadow-lg shadow-black/50 transition-all duration-300 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-30 ring-1 ring-gray-700"
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
