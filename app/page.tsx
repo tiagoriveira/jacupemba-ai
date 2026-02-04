@@ -222,10 +222,7 @@ export default function Page() {
                         </div>
                       )}
                       {text && (
-                        <MessageContent 
-                          text={text} 
-                          businesses={{}} 
-                        />
+                        <MessageContent text={text} />
                       )}
                       {!isUser && message.id && (
                         <RatingButtons messageId={message.id} />
