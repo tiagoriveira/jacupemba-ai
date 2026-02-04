@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2 } from 'lucide-react'
 import type { Business } from '@/lib/types/database'
 
@@ -339,13 +338,15 @@ export function BusinessForm({ business, userId }: BusinessFormProps) {
         <h3 className="text-lg font-semibold mb-4">Configurações</h3>
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
-            <Checkbox
+            <input
+              type="checkbox"
               id="is_active"
               checked={formData.is_active}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, is_active: !!checked })
+              onChange={(e) =>
+                setFormData({ ...formData, is_active: e.target.checked })
               }
               disabled={loading}
+              className="h-4 w-4 rounded border-gray-300"
             />
             <Label htmlFor="is_active" className="cursor-pointer">
               Negócio ativo (visível para usuários)
@@ -353,13 +354,15 @@ export function BusinessForm({ business, userId }: BusinessFormProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
+            <input
+              type="checkbox"
               id="is_verified"
               checked={formData.is_verified}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, is_verified: !!checked })
+              onChange={(e) =>
+                setFormData({ ...formData, is_verified: e.target.checked })
               }
               disabled={loading}
+              className="h-4 w-4 rounded border-gray-300"
             />
             <Label htmlFor="is_verified" className="cursor-pointer">
               Negócio verificado (exibe badge de verificação)
@@ -367,13 +370,15 @@ export function BusinessForm({ business, userId }: BusinessFormProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
+            <input
+              type="checkbox"
               id="is_featured"
               checked={formData.is_featured}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, is_featured: !!checked })
+              onChange={(e) =>
+                setFormData({ ...formData, is_featured: e.target.checked })
               }
               disabled={loading}
+              className="h-4 w-4 rounded border-gray-300"
             />
             <Label htmlFor="is_featured" className="cursor-pointer">
               Negócio em destaque (aparece em posição especial)

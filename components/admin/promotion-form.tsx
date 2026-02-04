@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2 } from 'lucide-react'
 
@@ -155,13 +154,15 @@ export function PromotionForm({ businessId }: PromotionFormProps) {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Checkbox
+          <input
+            type="checkbox"
             id="is_active"
             checked={formData.is_active}
-            onCheckedChange={(checked) =>
-              setFormData({ ...formData, is_active: !!checked })
+            onChange={(e) =>
+              setFormData({ ...formData, is_active: e.target.checked })
             }
             disabled={loading}
+            className="h-4 w-4 rounded border-gray-300"
           />
           <Label htmlFor="is_active" className="cursor-pointer">
             Promoção ativa
