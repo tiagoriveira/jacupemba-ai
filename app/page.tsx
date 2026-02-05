@@ -50,30 +50,6 @@ export default function Page() {
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
   const [trendingTopics, setTrendingTopics] = useState<Array<{category: string, count: number}>>([])
-  const [isDarkMode, setIsDarkMode] = useState(false)
-
-  useEffect(() => {
-    // Check system preference and saved preference
-    const savedTheme = localStorage.getItem('theme')
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark)
-    setIsDarkMode(shouldBeDark)
-    if (shouldBeDark) {
-      document.documentElement.classList.add('dark')
-    }
-  }, [])
-
-  const toggleDarkMode = () => {
-    const newMode = !isDarkMode
-    setIsDarkMode(newMode)
-    if (newMode) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
-    }
-  }
 
   const CATEGORY_LABELS: Record<string, string> = {
     comercio: 'Comercio',
@@ -379,16 +355,16 @@ export default function Page() {
                     <button
                       key={index}
                       onClick={() => handleSuggestionClick(suggestion.text)}
-                      className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-sm active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                      className="group flex items-start gap-2.5 rounded-xl border border-zinc-200 bg-white p-3 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-sm active:scale-[0.99]"
                     >
-                      <div className="rounded-lg bg-zinc-100 p-2 transition-colors group-hover:bg-zinc-200 dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                        <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                      <div className="rounded-lg bg-zinc-100 p-1.5 transition-colors group-hover:bg-zinc-200">
+                        <Icon className="h-4 w-4 text-zinc-600" />
                       </div>
                       <div className="flex-1">
-                        <div className="mb-0.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+                        <div className="mb-0.5 text-xs font-medium text-zinc-400">
                           {suggestion.category}
                         </div>
-                        <div className="text-sm text-zinc-700 dark:text-zinc-200">
+                        <div className="text-sm text-zinc-700">
                           {suggestion.text}
                         </div>
                       </div>
