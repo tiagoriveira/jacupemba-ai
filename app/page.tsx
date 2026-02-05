@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, Megaphone } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -218,7 +218,7 @@ export default function Page() {
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
               title="Relatar algo do bairro"
             >
-              <Megaphone className="h-5 w-5" />
+              <span className="text-lg">💬</span>
               <span className="hidden sm:inline">Contribuir</span>
             </button>
             <Link 
@@ -255,6 +255,28 @@ export default function Page() {
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
                   💡 Você também pode enviar uma foto e eu recomendo quem faz ou vende o que aparece na imagem
                 </p>
+              </div>
+
+              {/* Trending Topics */}
+              <div className="w-full max-w-3xl mb-6">
+                <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 dark:border-zinc-800 dark:from-orange-950/30 dark:to-amber-950/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">📈</span>
+                    <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos do Momento</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => handleSuggestionClick('Quais são os tópicos mais comentados pelos vizinhos agora?')}
+                      className="group flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-medium text-zinc-700 shadow-sm transition-all hover:shadow-md hover:scale-[1.02] dark:bg-zinc-900 dark:text-zinc-200"
+                    >
+                      <span className="text-base">🔥</span>
+                      <span className="flex-1">Ver todos os assuntos em alta</span>
+                      <svg className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Suggestion Cards */}
