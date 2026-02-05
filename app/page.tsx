@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -51,6 +51,9 @@ export default function Page() {
   const [input, setInput] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [reportText, setReportText] = useState('')
+  const [reportSubmitted, setReportSubmitted] = useState(false)
   
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
@@ -156,6 +159,41 @@ export default function Page() {
       .join('')
   }
 
+  const handleCloseReportModal = () => {
+    if (reportText.trim() && !reportSubmitted) {
+      const confirmClose = window.confirm('Você tem texto digitado. Deseja descartar e fechar?')
+      if (!confirmClose) return
+    }
+    setIsReportModalOpen(false)
+    setReportText('')
+    setReportSubmitted(false)
+  }
+
+  const handleSubmitReport = () => {
+    if (!reportText.trim()) return
+    
+    // Salvar no localStorage para o painel admin
+    const savedReports = localStorage.getItem('anonymous-reports')
+    const reports = savedReports ? JSON.parse(savedReports) : []
+    
+    const newReport = {
+      id: Date.now().toString(),
+      text: reportText,
+      timestamp: new Date().toISOString(),
+      status: 'pendente'
+    }
+    
+    reports.unshift(newReport)
+    localStorage.setItem('anonymous-reports', JSON.stringify(reports))
+    
+    setReportSubmitted(true)
+    setTimeout(() => {
+      setIsReportModalOpen(false)
+      setReportText('')
+      setReportSubmitted(false)
+    }, 2000)
+  }
+
   return (
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
       {/* Header */}
@@ -168,6 +206,13 @@ export default function Page() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <MessageSquare className="h-5 w-5" />
+              <span className="hidden sm:inline">Conte algo</span>
+            </button>
             <Link 
               href="/vitrine"
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -378,6 +423,86 @@ export default function Page() {
           </p>
         </div>
       </div>
+
+      {/* Modal de Relato Anônimo */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800">
+            {/* Header do Modal */}
+            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-6 py-4">
+              <div>
+                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+                  Conte algo do bairro
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                  Seu relato é 100% anônimo
+                </p>
+              </div>
+              <button
+                onClick={handleCloseReportModal}
+                className="rounded-full p-2 text-zinc-500 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6">
+              {reportSubmitted ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                    <svg className="h-8 w-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                    Relato enviado com sucesso!
+                  </h3>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center">
+                    Obrigado por compartilhar. Sua informação será analisada.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    value={reportText}
+                    onChange={(e) => setReportText(e.target.value)}
+                    placeholder="Digite aqui o que você quer relatar sobre o bairro... (problema, reclamação, sugestão, etc.)"
+                    className="w-full min-h-[200px] rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-800"
+                  />
+                  
+                  <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 dark:bg-amber-950/30 dark:border-amber-900">
+                    <div className="flex gap-2">
+                      <svg className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <p className="text-xs text-amber-800 dark:text-amber-200">
+                        <strong>Importante:</strong> Este relato é anônimo. Use para relatar problemas, reclamações ou sugestões sobre o bairro. Evite incluir dados pessoais.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex gap-3">
+                    <button
+                      onClick={handleCloseReportModal}
+                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSubmitReport}
+                      disabled={!reportText.trim()}
+                      className="flex-1 rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    >
+                      Enviar Relato
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
