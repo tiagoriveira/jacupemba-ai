@@ -7,6 +7,7 @@ import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Settings } from 'lucide-react'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -81,40 +82,43 @@ export default function Page() {
 
   const isLoading = status === 'streaming' || status === 'submitted'
 
-  // Calculate trending topics from localStorage
+  // Calculate trending topics from Supabase
   useEffect(() => {
-    const calculateTrendingTopics = () => {
-      const savedReports = localStorage.getItem('anonymous-reports')
-      if (!savedReports) {
-        setTrendingTopics([])
-        return
-      }
-
-      const reports = JSON.parse(savedReports)
-      const now = Date.now()
-      const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
-
-      // Filter reports from last 48 hours
-      const recentReports = reports.filter((report: any) => {
-        const reportTime = new Date(report.timestamp).getTime()
-        return (now - reportTime) <= FORTY_EIGHT_HOURS
-      })
-
-      // Group by category and count
-      const categoryCount: Record<string, number> = {}
-      recentReports.forEach((report: any) => {
-        if (report.category) {
-          categoryCount[report.category] = (categoryCount[report.category] || 0) + 1
+    const calculateTrendingTopics = async () => {
+      try {
+        // Get reports from last 48 hours
+        const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+        
+        const { data: reports, error } = await supabase
+          .from('anonymous_reports')
+          .select('category')
+          .gte('created_at', fortyEightHoursAgo)
+        
+        if (error) {
+          console.error('[v0] Error fetching reports:', error)
+          setTrendingTopics([])
+          return
         }
-      })
 
-      // Get top reported categories (no minimum required)
-      const trending = Object.entries(categoryCount)
-        .map(([category, count]) => ({ category, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5) // Top 5 most reported
+        // Group by category and count
+        const categoryCount: Record<string, number> = {}
+        reports?.forEach((report) => {
+          if (report.category) {
+            categoryCount[report.category] = (categoryCount[report.category] || 0) + 1
+          }
+        })
 
-      setTrendingTopics(trending)
+        // Get top reported categories (no minimum required)
+        const trending = Object.entries(categoryCount)
+          .map(([category, count]) => ({ category, count: count as number }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5) // Top 5 most reported
+
+        setTrendingTopics(trending)
+      } catch (error) {
+        console.error('[v0] Error calculating trending topics:', error)
+        setTrendingTopics([])
+      }
     }
 
     calculateTrendingTopics()
@@ -232,31 +236,35 @@ export default function Page() {
     setReportSubmitted(false)
   }
 
-  const handleSubmitReport = () => {
+  const handleSubmitReport = async () => {
     if (!reportText.trim() || !reportCategory) return
     
-    // Salvar no localStorage para o painel admin
-    const savedReports = localStorage.getItem('anonymous-reports')
-    const reports = savedReports ? JSON.parse(savedReports) : []
-    
-    const newReport = {
-      id: Date.now().toString(),
-      text: reportText,
-      category: reportCategory,
-      timestamp: new Date().toISOString(),
-      status: 'pendente'
+    try {
+      // Salvar no Supabase
+      const { error } = await supabase
+        .from('anonymous_reports')
+        .insert([{
+          text: reportText,
+          category: reportCategory
+        }])
+      
+      if (error) {
+        console.error('[v0] Error submitting report:', error)
+        alert('Erro ao enviar relato. Tente novamente.')
+        return
+      }
+      
+      setReportSubmitted(true)
+      setTimeout(() => {
+        setIsReportModalOpen(false)
+        setReportText('')
+        setReportCategory('')
+        setReportSubmitted(false)
+      }, 2000)
+    } catch (error) {
+      console.error('[v0] Error submitting report:', error)
+      alert('Erro ao enviar relato. Tente novamente.')
     }
-    
-    reports.unshift(newReport)
-    localStorage.setItem('anonymous-reports', JSON.stringify(reports))
-    
-    setReportSubmitted(true)
-    setTimeout(() => {
-      setIsReportModalOpen(false)
-      setReportText('')
-      setReportCategory('')
-      setReportSubmitted(false)
-    }, 2000)
   }
 
   return (
