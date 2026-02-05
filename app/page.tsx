@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, Moon, Sun } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -50,6 +50,30 @@ export default function Page() {
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
   const [trendingTopics, setTrendingTopics] = useState<Array<{category: string, count: number}>>([])
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // Check system preference and saved preference
+    const savedTheme = localStorage.getItem('theme')
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark)
+    setIsDarkMode(shouldBeDark)
+    if (shouldBeDark) {
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode
+    setIsDarkMode(newMode)
+    if (newMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }
 
   const CATEGORY_LABELS: Record<string, string> = {
     comercio: 'Comercio',
@@ -263,7 +287,8 @@ export default function Page() {
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
       {/* Header */}
       <header className="bg-zinc-50 border-b border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
-        <div className="mx-auto flex max-w-4xl items-center justify-center px-4 py-4">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
+          <div className="flex-1" />
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsReportModalOpen(true)}
@@ -288,6 +313,15 @@ export default function Page() {
               <span>Historico</span>
             </Link>
           </div>
+          <div className="flex-1 flex justify-end">
+            <button
+              onClick={toggleDarkMode}
+              className="flex items-center justify-center rounded-lg p-2.5 text-zinc-600 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              title={isDarkMode ? 'Modo claro' : 'Modo escuro'}
+            >
+              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -297,20 +331,20 @@ export default function Page() {
           {messages.length === 0 ? (
             /* Welcome Screen */
             <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-8">
-              <div className="mb-8 text-center">
-                <h2 className="mb-3 text-3xl font-semibold text-zinc-900 dark:text-white">
+              <div className="mb-12 text-center">
+                <h2 className="mb-2 text-2xl font-semibold text-zinc-900 dark:text-white">
                   Olá! Sou seu assistente local
                 </h2>
-                <p className="text-lg text-zinc-600 dark:text-zinc-400">
+                <p className="text-base text-zinc-600 dark:text-zinc-400">
                   Como posso ajudar?
                 </p>
-                <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-500">
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
                   Pergunte sobre serviços, comercios, vagas ou eventos do bairro
                 </p>
               </div>
 
               {/* Trending Topics */}
-              <div className="w-full max-w-3xl mb-6">
+              <div className="w-full max-w-3xl mb-10">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
                   <div className="mb-3">
                     <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos mais relatados nas ultimas 48h</h3>
