@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Settings } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -310,6 +310,14 @@ export default function Page() {
             >
               <History className="h-4 w-4" />
               <span>Historico</span>
+            </Link>
+            <Link 
+              href="/admin"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              title="Painel Administrativo"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Admin</span>
             </Link>
           </div>
         </div>
