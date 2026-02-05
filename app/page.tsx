@@ -41,6 +41,12 @@ const SUGGESTED_QUESTIONS = [
   },
 ]
 
+const TRENDING_TOPICS = [
+  { id: 1, topic: "Falta de luz na região", message: "Me conte mais sobre: Falta de luz na região" },
+  { id: 2, topic: "Movimentação na Praça", message: "Me conte mais sobre: Movimentação na Praça" },
+  { id: 3, topic: "Coleta de lixo atrasada", message: "Me conte mais sobre: Coleta de lixo atrasada" }
+]
+
 export default function Page() {
   const [input, setInput] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -196,6 +202,33 @@ export default function Page() {
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
                   💡 Você também pode enviar uma foto e eu recomendo quem faz ou vende o que aparece na imagem
                 </p>
+              </div>
+
+              </div>
+
+              {/* Trending Topics */}
+              <div className="w-full max-w-3xl mb-6">
+                <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 dark:border-zinc-800 dark:from-orange-950/30 dark:to-amber-950/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">📈</span>
+                    <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos do Momento</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {TRENDING_TOPICS.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleSuggestionClick(item.message)}
+                        className="group flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-medium text-zinc-700 shadow-sm transition-all hover:shadow-md hover:scale-[1.02] dark:bg-zinc-900 dark:text-zinc-200"
+                      >
+                        <span className="text-base">🔥</span>
+                        <span className="flex-1">{item.topic}</span>
+                        <svg className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Suggestion Cards */}
