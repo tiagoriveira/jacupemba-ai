@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -49,6 +49,16 @@ export default function Page() {
   const [reportText, setReportText] = useState('')
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
+  const [trendingTopics, setTrendingTopics] = useState<Array<{category: string, count: number}>>([])
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    comercio: 'Comercio',
+    seguranca: 'Seguranca',
+    transito: 'Transito',
+    convivencia: 'Convivencia',
+    eventos: 'Eventos',
+    outro: 'Outro'
+  }
 
   const REPORT_CATEGORIES = [
     { value: 'comercio', label: 'Comercio', placeholder: 'Descreva algo sobre comercio local...' },
@@ -64,6 +74,49 @@ export default function Page() {
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
+
+  // Calculate trending topics from localStorage
+  useEffect(() => {
+    const calculateTrendingTopics = () => {
+      const savedReports = localStorage.getItem('anonymous-reports')
+      if (!savedReports) {
+        setTrendingTopics([])
+        return
+      }
+
+      const reports = JSON.parse(savedReports)
+      const now = Date.now()
+      const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
+
+      // Filter reports from last 48 hours
+      const recentReports = reports.filter((report: any) => {
+        const reportTime = new Date(report.timestamp).getTime()
+        return (now - reportTime) <= FORTY_EIGHT_HOURS
+      })
+
+      // Group by category and count
+      const categoryCount: Record<string, number> = {}
+      recentReports.forEach((report: any) => {
+        if (report.category) {
+          categoryCount[report.category] = (categoryCount[report.category] || 0) + 1
+        }
+      })
+
+      // Filter categories with 2+ reports and sort by count
+      const trending = Object.entries(categoryCount)
+        .filter(([_, count]) => count >= 2)
+        .map(([category, count]) => ({ category, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3) // Top 3
+
+      setTrendingTopics(trending)
+    }
+
+    calculateTrendingTopics()
+    // Recalculate when modal closes (new report might have been added)
+    const interval = setInterval(calculateTrendingTopics, 30000) // Every 30s
+    return () => clearInterval(interval)
+  }, [isReportModalOpen])
 
   // Save to history when conversation is complete
   useEffect(() => {
@@ -218,7 +271,7 @@ export default function Page() {
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
               title="Relatar algo do bairro"
             >
-              <span className="text-lg">💬</span>
+              <MessageSquare className="h-5 w-5" />
               <span className="hidden sm:inline">Contribuir</span>
             </button>
             <Link 
@@ -258,26 +311,35 @@ export default function Page() {
               </div>
 
               {/* Trending Topics */}
-              <div className="w-full max-w-3xl mb-6">
-                <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 dark:border-zinc-800 dark:from-orange-950/30 dark:to-amber-950/30">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">📈</span>
-                    <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos do Momento</span>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => handleSuggestionClick('Quais são os tópicos mais comentados pelos vizinhos agora?')}
-                      className="group flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-medium text-zinc-700 shadow-sm transition-all hover:shadow-md hover:scale-[1.02] dark:bg-zinc-900 dark:text-zinc-200"
-                    >
-                      <span className="text-base">🔥</span>
-                      <span className="flex-1">Ver todos os assuntos em alta</span>
-                      <svg className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
+              {trendingTopics.length > 0 && (
+                <div className="w-full max-w-3xl mb-6">
+                  <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 dark:border-zinc-800 dark:from-orange-950/30 dark:to-amber-950/30">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">📈</span>
+                      <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos do Momento</span>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">(ultimas 48h)</span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {trendingTopics.map((topic) => (
+                        <button
+                          key={topic.category}
+                          onClick={() => handleSuggestionClick(`Me conte sobre os relatos de ${CATEGORY_LABELS[topic.category]} que os vizinhos estao compartilhando`)}
+                          className="group flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-medium text-zinc-700 shadow-sm transition-all hover:shadow-md hover:scale-[1.02] dark:bg-zinc-900 dark:text-zinc-200"
+                        >
+                          <span className="text-base">🔥</span>
+                          <span className="flex-1">{CATEGORY_LABELS[topic.category]}</span>
+                          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                            {topic.count} relatos
+                          </span>
+                          <svg className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Suggestion Cards */}
               <div className="grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2">
