@@ -1,15 +1,75 @@
 import { consumeStream, convertToModelMessages, streamText, UIMessage } from 'ai'
+import { supabase } from '@/lib/supabase'
 
 export const maxDuration = 30
 
+async function getBairroContext() {
+  try {
+    // Buscar relatos das ultimas 48h
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    const { data: reports } = await supabase
+      .from('anonymous_reports')
+      .select('*')
+      .gte('created_at', fortyEightHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    // Buscar comercios e servicos verificados
+    const { data: businesses } = await supabase
+      .from('local_businesses')
+      .select('*')
+      .eq('verified', true)
+      .order('name')
+
+    // Buscar posts da vitrine validos
+    const { data: vitrinePosts } = await supabase
+      .from('vitrine_posts')
+      .select('*')
+      .gte('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+
+    return { reports: reports || [], businesses: businesses || [], vitrinePosts: vitrinePosts || [] }
+  } catch (error) {
+    console.error('[v0] Error fetching bairro context:', error)
+    return { reports: [], businesses: [], vitrinePosts: [] }
+  }
+}
+
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json()
+
+  // Buscar dados reais do bairro
+  const { reports, businesses, vitrinePosts } = await getBairroContext()
+
+  // Montar contexto dinamico
+  const reportsContext = reports.length > 0 
+    ? `\n\nRELATOS RECENTES DO BAIRRO (ultimas 48h):\n${reports.map(r => `- [${r.category}] ${r.text}`).join('\n')}`
+    : ''
+
+  const businessesContext = businesses.length > 0
+    ? `\n\nCOMERCIOS E SERVICOS LOCAIS VERIFICADOS:\n${businesses.map(b => 
+        `- ${b.name} (${b.category})\n  Tel: ${b.phone || 'N/A'} | WhatsApp: ${b.whatsapp || 'N/A'}\n  ${b.address || 'Endereco nao informado'}\n  Horario: ${b.hours || 'Consultar'}\n  ${b.description || ''}`
+      ).join('\n\n')}`
+    : ''
+
+  const vitrineContext = vitrinePosts.length > 0
+    ? `\n\nANUNCIOS NA VITRINE (validos por 48h):\n${vitrinePosts.map(v => 
+        `- ${v.title} - R$ ${v.price}\n  Vendedor: ${v.seller_name} | Tel: ${v.seller_phone}\n  ${v.description || ''}`
+      ).join('\n\n')}`
+    : ''
 
   const result = streamText({
     model: 'xai/grok-beta',
     system: `Você é o Assistente Local, um assistente conversacional que ajuda moradores do bairro a encontrar serviços, comércios, vagas de emprego e eventos locais.
 
+DADOS REAIS DO BAIRRO:${reportsContext}${businessesContext}${vitrineContext}
+
 INSTRUÇÕES IMPORTANTES:
+- Sempre responda em português brasileiro de forma natural e amigável
+- Use APENAS os dados reais fornecidos acima - NAO invente informacoes
+- Quando listar estabelecimentos, use os telefones e enderecos exatos do banco de dados
+- Se nao houver dados sobre algo, seja honesto e diga que nao tem essa informacao no momento
+- Quando perguntarem sobre "assuntos do momento" ou "o que esta acontecendo", analise os relatos recentes por categoria
 - Sempre responda em português brasileiro de forma natural e amigável
 - Foque em informações locais do bairro
 - Quando listar estabelecimentos ou profissionais, organize as informações de forma clara com:
