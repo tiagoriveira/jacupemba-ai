@@ -108,12 +108,11 @@ export default function Page() {
         }
       })
 
-      // Filter categories with 3+ reports and sort by count
+      // Get top reported categories (no minimum required)
       const trending = Object.entries(categoryCount)
-        .filter(([_, count]) => count >= 3)
         .map(([category, count]) => ({ category, count }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 5) // Top 5
+        .slice(0, 5) // Top 5 most reported
 
       setTrendingTopics(trending)
     }
