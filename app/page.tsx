@@ -263,35 +263,29 @@ export default function Page() {
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
       {/* Header */}
       <header className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-4xl items-center justify-center px-4 py-4">
           <div className="flex items-center gap-2">
-            <MapPin className="h-6 w-6 text-zinc-900 dark:text-white" />
-            <h1 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              Assistente Local
-            </h1>
-          </div>
-          <div className="flex items-center gap-1">
             <button
               onClick={() => setIsReportModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
               title="Relatar algo do bairro"
             >
               <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Contribuir</span>
+              <span>Contribuir</span>
             </button>
             <Link 
               href="/vitrine"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
               <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Vitrine</span>
+              <span>Vitrine</span>
             </Link>
             <Link 
               href="/historico"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
               <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Historico</span>
+              <span>Historico</span>
             </Link>
           </div>
         </div>
@@ -304,14 +298,15 @@ export default function Page() {
             /* Welcome Screen */
             <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-8">
               <div className="mb-8 text-center">
-                <h2 className="mb-2 text-3xl font-semibold text-zinc-900 dark:text-white">
-                  Olá! Como posso ajudar?
+                <h2 className="mb-3 text-3xl font-semibold text-zinc-900 dark:text-white flex items-center justify-center gap-2">
+                  <MapPin className="h-7 w-7 text-zinc-600 dark:text-zinc-400" />
+                  Olá! Sou seu assistente local
                 </h2>
-                <p className="text-zinc-600 dark:text-zinc-400">
-                  Pergunte sobre serviços, comércios, vagas ou eventos do bairro
+                <p className="text-lg text-zinc-600 dark:text-zinc-400">
+                  Como posso ajudar?
                 </p>
-                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
-                  💡 Você também pode enviar uma foto e eu recomendo quem faz ou vende o que aparece na imagem
+                <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-500">
+                  Pergunte sobre serviços, comercios, vagas ou eventos do bairro
                 </p>
               </div>
 
@@ -319,7 +314,7 @@ export default function Page() {
               <div className="w-full max-w-3xl mb-6">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm">📈</span>
+                    <span className="text-sm">⚡</span>
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Assuntos do Momento</span>
                   </div>
                   {trendingTopics.length > 0 ? (
