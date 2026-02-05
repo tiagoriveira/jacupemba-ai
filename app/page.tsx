@@ -262,7 +262,7 @@ export default function Page() {
   return (
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
       {/* Header */}
-      <header className="border-b border-zinc-200 dark:border-zinc-800">
+      <header className="bg-zinc-50 border-b border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
         <div className="mx-auto flex max-w-4xl items-center justify-center px-4 py-4">
           <div className="flex items-center gap-2">
             <button
@@ -298,8 +298,7 @@ export default function Page() {
             /* Welcome Screen */
             <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-8">
               <div className="mb-8 text-center">
-                <h2 className="mb-3 text-3xl font-semibold text-zinc-900 dark:text-white flex items-center justify-center gap-2">
-                  <MapPin className="h-7 w-7 text-zinc-600 dark:text-zinc-400" />
+                <h2 className="mb-3 text-3xl font-semibold text-zinc-900 dark:text-white">
                   Olá! Sou seu assistente local
                 </h2>
                 <p className="text-lg text-zinc-600 dark:text-zinc-400">
@@ -313,9 +312,8 @@ export default function Page() {
               {/* Trending Topics */}
               <div className="w-full max-w-3xl mb-6">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm">⚡</span>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Assuntos do Momento</span>
+                  <div className="mb-3">
+                    <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos mais relatados nas ultimas 48h</h3>
                   </div>
                   {trendingTopics.length > 0 ? (
                     <div className="flex flex-col gap-1.5">
