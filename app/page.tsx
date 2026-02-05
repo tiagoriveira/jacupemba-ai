@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, Megaphone } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -41,19 +41,23 @@ const SUGGESTED_QUESTIONS = [
   },
 ]
 
-const TRENDING_TOPICS = [
-  { id: 1, topic: "Falta de luz na região", message: "Me conte mais sobre: Falta de luz na região" },
-  { id: 2, topic: "Movimentação na Praça", message: "Me conte mais sobre: Movimentação na Praça" },
-  { id: 3, topic: "Coleta de lixo atrasada", message: "Me conte mais sobre: Coleta de lixo atrasada" }
-]
-
 export default function Page() {
   const [input, setInput] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [reportText, setReportText] = useState('')
+  const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
+
+  const REPORT_CATEGORIES = [
+    { value: 'comercio', label: 'Comercio', placeholder: 'Descreva algo sobre comercio local...' },
+    { value: 'seguranca', label: 'Seguranca', placeholder: 'Descreva o problema de seguranca...' },
+    { value: 'transito', label: 'Transito', placeholder: 'Descreva o problema de transito...' },
+    { value: 'convivencia', label: 'Convivencia', placeholder: 'Descreva o assunto de convivencia...' },
+    { value: 'eventos', label: 'Eventos', placeholder: 'Compartilhe informacoes sobre eventos...' },
+    { value: 'outro', label: 'Outro', placeholder: 'Compartilhe informacoes uteis sobre o bairro...' },
+  ]
   
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
@@ -161,16 +165,17 @@ export default function Page() {
 
   const handleCloseReportModal = () => {
     if (reportText.trim() && !reportSubmitted) {
-      const confirmClose = window.confirm('Você tem texto digitado. Deseja descartar e fechar?')
+      const confirmClose = window.confirm('Voce tem texto digitado. Deseja descartar e fechar?')
       if (!confirmClose) return
     }
     setIsReportModalOpen(false)
     setReportText('')
+    setReportCategory('')
     setReportSubmitted(false)
   }
 
   const handleSubmitReport = () => {
-    if (!reportText.trim()) return
+    if (!reportText.trim() || !reportCategory) return
     
     // Salvar no localStorage para o painel admin
     const savedReports = localStorage.getItem('anonymous-reports')
@@ -179,6 +184,7 @@ export default function Page() {
     const newReport = {
       id: Date.now().toString(),
       text: reportText,
+      category: reportCategory,
       timestamp: new Date().toISOString(),
       status: 'pendente'
     }
@@ -190,6 +196,7 @@ export default function Page() {
     setTimeout(() => {
       setIsReportModalOpen(false)
       setReportText('')
+      setReportCategory('')
       setReportSubmitted(false)
     }, 2000)
   }
@@ -209,9 +216,10 @@ export default function Page() {
             <button
               onClick={() => setIsReportModalOpen(true)}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              title="Relatar algo do bairro"
             >
-              <MessageSquare className="h-5 w-5" />
-              <span className="hidden sm:inline">Conte algo</span>
+              <Megaphone className="h-5 w-5" />
+              <span className="hidden sm:inline">Contribuir</span>
             </button>
             <Link 
               href="/vitrine"
@@ -247,31 +255,6 @@ export default function Page() {
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
                   💡 Você também pode enviar uma foto e eu recomendo quem faz ou vende o que aparece na imagem
                 </p>
-              </div>
-
-              {/* Trending Topics */}
-              <div className="w-full max-w-3xl mb-6">
-                <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 dark:border-zinc-800 dark:from-orange-950/30 dark:to-amber-950/30">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">📈</span>
-                    <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos do Momento</span>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {TRENDING_TOPICS.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => handleSuggestionClick(item.message)}
-                        className="group flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-medium text-zinc-700 shadow-sm transition-all hover:shadow-md hover:scale-[1.02] dark:bg-zinc-900 dark:text-zinc-200"
-                      >
-                        <span className="text-base">🔥</span>
-                        <span className="flex-1">{item.topic}</span>
-                        <svg className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               {/* Suggestion Cards */}
@@ -464,22 +447,39 @@ export default function Page() {
                 </div>
               ) : (
                 <>
+                  {/* Dropdown de Categoria */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Categoria
+                    </label>
+                    <select
+                      value={reportCategory}
+                      onChange={(e) => setReportCategory(e.target.value)}
+                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-600 dark:focus:ring-zinc-800"
+                    >
+                      <option value="">Selecione uma categoria...</option>
+                      {REPORT_CATEGORIES.map((cat) => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <textarea
                     value={reportText}
                     onChange={(e) => setReportText(e.target.value)}
-                    placeholder="Digite aqui o que você quer relatar sobre o bairro... (problema, reclamação, sugestão, etc.)"
-                    className="w-full min-h-[200px] rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-800"
+                    placeholder={
+                      reportCategory 
+                        ? REPORT_CATEGORIES.find(c => c.value === reportCategory)?.placeholder 
+                        : 'Selecione uma categoria acima para comecar...'
+                    }
+                    disabled={!reportCategory}
+                    className="w-full min-h-[180px] rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-800"
                   />
                   
-                  <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 dark:bg-amber-950/30 dark:border-amber-900">
-                    <div className="flex gap-2">
-                      <svg className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <p className="text-xs text-amber-800 dark:text-amber-200">
-                        <strong>Importante:</strong> Este relato é anônimo. Use para relatar problemas, reclamações ou sugestões sobre o bairro. Evite incluir dados pessoais.
-                      </p>
-                    </div>
+                  <div className="mt-4 rounded-lg bg-zinc-100 border border-zinc-200 p-3 dark:bg-zinc-800/50 dark:border-zinc-700">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                      Este relato e anonimo. Compartilhe informacoes uteis sobre o bairro. Evite incluir dados pessoais.
+                    </p>
                   </div>
 
                   <div className="mt-6 flex gap-3">
@@ -491,7 +491,7 @@ export default function Page() {
                     </button>
                     <button
                       onClick={handleSubmitReport}
-                      disabled={!reportText.trim()}
+                      disabled={!reportText.trim() || !reportCategory}
                       className="flex-1 rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
                     >
                       Enviar Relato

@@ -314,25 +314,25 @@ export function VitrineGrid() {
                 </p>
 
                 {/* Vendedor */}
-                <p className="text-white/70 text-sm mb-6">
+                <p className="text-white/70 text-sm mb-2">
                   Por: <span className="font-medium text-white">{selectedPost.sellerName}</span>
                 </p>
 
-                {/* Botão WhatsApp - Minimalista */}
-                <button
-                  onClick={() => handleWhatsAppClick(selectedPost)}
-                  className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-green-500 hover:border-green-500"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span>WhatsApp</span>
-                </button>
-
                 {/* Tempo restante */}
-                <p className="text-center text-white/50 text-xs mt-4">
-                  Este anúncio expira em {Math.round((new Date(selectedPost.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60))} horas
+                <p className="text-white/50 text-xs">
+                  Este anuncio expira em {Math.round((new Date(selectedPost.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60))} horas
                 </p>
               </div>
             </div>
+
+            {/* Botao WhatsApp Flutuante */}
+            <button
+              onClick={() => handleWhatsAppClick(selectedPost)}
+              className="absolute bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition-all hover:bg-green-600 hover:scale-110"
+              title="Contato via WhatsApp"
+            >
+              <MessageCircle className="h-6 w-6" />
+            </button>
           </div>
         </div>
       )}
