@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, Moon, Sun } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -287,8 +287,7 @@ export default function Page() {
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
       {/* Header */}
       <header className="bg-zinc-50 border-b border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <div className="flex-1" />
+        <div className="mx-auto flex max-w-4xl items-center justify-center px-4 py-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsReportModalOpen(true)}
@@ -313,15 +312,6 @@ export default function Page() {
               <span>Historico</span>
             </Link>
           </div>
-          <div className="flex-1 flex justify-end">
-            <button
-              onClick={toggleDarkMode}
-              className="flex items-center justify-center rounded-lg p-2.5 text-zinc-600 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-              title={isDarkMode ? 'Modo claro' : 'Modo escuro'}
-            >
-              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-          </div>
         </div>
       </header>
 
@@ -330,8 +320,8 @@ export default function Page() {
         <div className="mx-auto max-w-4xl px-4">
           {messages.length === 0 ? (
             /* Welcome Screen */
-            <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-8">
-              <div className="mb-12 text-center">
+            <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-16">
+              <div className="mb-16 text-center">
                 <h2 className="mb-2 text-2xl font-semibold text-zinc-900 dark:text-white">
                   Olá! Sou seu assistente local
                 </h2>
@@ -507,12 +497,12 @@ export default function Page() {
               <button
                 type="submit"
                 disabled={isLoading || (!input.trim() && !selectedImage)}
-                className="m-2 flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900 text-white transition-all duration-150 hover:bg-zinc-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="m-2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 text-white transition-all duration-150 hover:bg-zinc-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Send className="h-5 w-5" />
+                  <ArrowUp className="h-5 w-5" />
                 )}
               </button>
             </div>
