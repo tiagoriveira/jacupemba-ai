@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Settings } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -41,25 +41,87 @@ const SUGGESTED_QUESTIONS = [
   },
 ]
 
-const TRENDING_TOPICS = [
-  { id: 1, topic: "Falta de luz na região", message: "Me conte mais sobre: Falta de luz na região" },
-  { id: 2, topic: "Movimentação na Praça", message: "Me conte mais sobre: Movimentação na Praça" },
-  { id: 3, topic: "Coleta de lixo atrasada", message: "Me conte mais sobre: Coleta de lixo atrasada" }
-]
-
 export default function Page() {
   const [input, setInput] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [reportText, setReportText] = useState('')
+  const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
+  const [trendingTopics, setTrendingTopics] = useState<Array<{category: string, count: number}>>([])
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    comercio: 'Comercio',
+    seguranca: 'Seguranca',
+    transito: 'Transito',
+    convivencia: 'Convivencia',
+    eventos: 'Eventos',
+    outro: 'Outro'
+  }
+
+  const REPORT_CATEGORIES = [
+    { value: 'comercio', label: 'Comercio', placeholder: 'Descreva algo sobre comercio local...' },
+    { value: 'seguranca', label: 'Seguranca', placeholder: 'Descreva o problema de seguranca...' },
+    { value: 'transito', label: 'Transito', placeholder: 'Descreva o problema de transito...' },
+    { value: 'convivencia', label: 'Convivencia', placeholder: 'Descreva o assunto de convivencia...' },
+    { value: 'eventos', label: 'Eventos', placeholder: 'Compartilhe informacoes sobre eventos...' },
+    { value: 'outro', label: 'Outro', placeholder: 'Compartilhe informacoes uteis sobre o bairro...' },
+  ]
+
+  const getPopularityIndicator = (count: number): string => {
+    if (count >= 11) return '•••'
+    if (count >= 6) return '••'
+    return '•'
+  }
   
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
+
+  // Calculate trending topics from localStorage
+  useEffect(() => {
+    const calculateTrendingTopics = () => {
+      const savedReports = localStorage.getItem('anonymous-reports')
+      if (!savedReports) {
+        setTrendingTopics([])
+        return
+      }
+
+      const reports = JSON.parse(savedReports)
+      const now = Date.now()
+      const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
+
+      // Filter reports from last 48 hours
+      const recentReports = reports.filter((report: any) => {
+        const reportTime = new Date(report.timestamp).getTime()
+        return (now - reportTime) <= FORTY_EIGHT_HOURS
+      })
+
+      // Group by category and count
+      const categoryCount: Record<string, number> = {}
+      recentReports.forEach((report: any) => {
+        if (report.category) {
+          categoryCount[report.category] = (categoryCount[report.category] || 0) + 1
+        }
+      })
+
+      // Get top reported categories (no minimum required)
+      const trending = Object.entries(categoryCount)
+        .map(([category, count]) => ({ category, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5) // Top 5 most reported
+
+      setTrendingTopics(trending)
+    }
+
+    calculateTrendingTopics()
+    // Recalculate when modal closes (new report might have been added)
+    const interval = setInterval(calculateTrendingTopics, 30000) // Every 30s
+    return () => clearInterval(interval)
+  }, [isReportModalOpen])
 
   // Save to history when conversation is complete
   useEffect(() => {
@@ -161,16 +223,17 @@ export default function Page() {
 
   const handleCloseReportModal = () => {
     if (reportText.trim() && !reportSubmitted) {
-      const confirmClose = window.confirm('Você tem texto digitado. Deseja descartar e fechar?')
+      const confirmClose = window.confirm('Voce tem texto digitado. Deseja descartar e fechar?')
       if (!confirmClose) return
     }
     setIsReportModalOpen(false)
     setReportText('')
+    setReportCategory('')
     setReportSubmitted(false)
   }
 
   const handleSubmitReport = () => {
-    if (!reportText.trim()) return
+    if (!reportText.trim() || !reportCategory) return
     
     // Salvar no localStorage para o painel admin
     const savedReports = localStorage.getItem('anonymous-reports')
@@ -179,6 +242,7 @@ export default function Page() {
     const newReport = {
       id: Date.now().toString(),
       text: reportText,
+      category: reportCategory,
       timestamp: new Date().toISOString(),
       status: 'pendente'
     }
@@ -190,6 +254,7 @@ export default function Page() {
     setTimeout(() => {
       setIsReportModalOpen(false)
       setReportText('')
+      setReportCategory('')
       setReportSubmitted(false)
     }, 2000)
   }
@@ -197,35 +262,30 @@ export default function Page() {
   return (
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
       {/* Header */}
-      <header className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-6 w-6 text-zinc-900 dark:text-white" />
-            <h1 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              Assistente Local
-            </h1>
-          </div>
+      <header className="bg-zinc-50 border-b border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
+        <div className="mx-auto flex max-w-4xl items-center justify-center px-4 py-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsReportModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              title="Relatar algo do bairro"
             >
-              <MessageSquare className="h-5 w-5" />
-              <span className="hidden sm:inline">Conte algo</span>
+              <MessageSquare className="h-4 w-4" />
+              <span>Contribuir</span>
             </button>
             <Link 
               href="/vitrine"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
-              <ShoppingBag className="h-5 w-5" />
-              <span className="hidden sm:inline">Vitrine</span>
+              <ShoppingBag className="h-4 w-4" />
+              <span>Vitrine</span>
             </Link>
             <Link 
               href="/historico"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
-              <History className="h-5 w-5" />
-              <span className="hidden sm:inline">Histórico</span>
+              <History className="h-4 w-4" />
+              <span>Historico</span>
             </Link>
           </div>
         </div>
@@ -236,62 +296,67 @@ export default function Page() {
         <div className="mx-auto max-w-4xl px-4">
           {messages.length === 0 ? (
             /* Welcome Screen */
-            <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-8">
-              <div className="mb-8 text-center">
-                <h2 className="mb-2 text-3xl font-semibold text-zinc-900 dark:text-white">
-                  Olá! Como posso ajudar?
+            <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-16">
+              <div className="mb-16 text-center">
+                <h2 className="mb-2 text-2xl font-semibold text-zinc-900 dark:text-white">
+                  Olá! Sou seu assistente local
                 </h2>
-                <p className="text-zinc-600 dark:text-zinc-400">
-                  Pergunte sobre serviços, comércios, vagas ou eventos do bairro
+                <p className="text-base text-zinc-600 dark:text-zinc-400">
+                  Como posso ajudar?
                 </p>
-                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
-                  💡 Você também pode enviar uma foto e eu recomendo quem faz ou vende o que aparece na imagem
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
+                  Pergunte sobre serviços, comercios, vagas ou eventos do bairro
                 </p>
               </div>
 
               {/* Trending Topics */}
-              <div className="w-full max-w-3xl mb-6">
-                <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 dark:border-zinc-800 dark:from-orange-950/30 dark:to-amber-950/30">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">📈</span>
-                    <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos do Momento</span>
+              <div className="w-full max-w-3xl mb-10">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="mb-3">
+                    <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos mais relatados nas ultimas 48h</h3>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    {TRENDING_TOPICS.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => handleSuggestionClick(item.message)}
-                        className="group flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-medium text-zinc-700 shadow-sm transition-all hover:shadow-md hover:scale-[1.02] dark:bg-zinc-900 dark:text-zinc-200"
-                      >
-                        <span className="text-base">🔥</span>
-                        <span className="flex-1">{item.topic}</span>
-                        <svg className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    ))}
-                  </div>
+                  {trendingTopics.length > 0 ? (
+                    <div className="flex flex-col gap-1.5">
+                      {trendingTopics.map((topic) => (
+                        <button
+                          key={topic.category}
+                          onClick={() => handleSuggestionClick(`Me conte sobre os relatos de ${CATEGORY_LABELS[topic.category]} que os vizinhos estao compartilhando`)}
+                          className="group flex items-center gap-2 rounded-lg bg-white px-3 py-2.5 text-left text-sm text-zinc-600 transition-all duration-150 hover:bg-zinc-100 active:scale-[0.99] dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                        >
+                          <span className="text-zinc-400 dark:text-zinc-500 text-xs">{getPopularityIndicator(topic.count)}</span>
+                          <span className="flex-1 font-medium">{CATEGORY_LABELS[topic.category]}</span>
+                          <svg className="h-3.5 w-3.5 text-zinc-300 transition-transform duration-150 group-hover:translate-x-0.5 dark:text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-zinc-400 dark:text-zinc-500 py-2">
+                      Em breve aparecerao aqui os assuntos mais relatados nas ultimas 48h
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* Suggestion Cards */}
-              <div className="grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
                 {SUGGESTED_QUESTIONS.map((suggestion, index) => {
                   const Icon = suggestion.icon
                   return (
                     <button
                       key={index}
                       onClick={() => handleSuggestionClick(suggestion.text)}
-                      className="group flex items-start gap-3 rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                      className="group flex items-start gap-2.5 rounded-xl border border-zinc-200 bg-white p-3 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-sm active:scale-[0.99]"
                     >
-                      <div className="rounded-lg bg-zinc-100 p-2 dark:bg-zinc-800">
-                        <Icon className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+                      <div className="rounded-lg bg-zinc-100 p-1.5 transition-colors group-hover:bg-zinc-200">
+                        <Icon className="h-4 w-4 text-zinc-600" />
                       </div>
                       <div className="flex-1">
-                        <div className="mb-1 text-xs font-medium text-zinc-500 dark:text-zinc-500">
+                        <div className="mb-0.5 text-xs font-medium text-zinc-400">
                           {suggestion.category}
                         </div>
-                        <div className="text-sm text-zinc-900 dark:text-zinc-100">
+                        <div className="text-sm text-zinc-700">
                           {suggestion.text}
                         </div>
                       </div>
@@ -311,13 +376,13 @@ export default function Page() {
                 return (
                   <div
                     key={message.id}
-                    className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in-0 slide-in-from-bottom-2 duration-200`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                      className={`max-w-[85%] rounded-xl px-4 py-3 ${
                         isUser
-                          ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                          : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                          ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                          : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200'
                       }`}
                     >
                       {images.length > 0 && (
@@ -380,7 +445,7 @@ export default function Page() {
               </div>
             )}
             
-            <div className="flex items-end gap-2 rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-end gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 transition-colors focus-within:border-zinc-300 focus-within:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:focus-within:border-zinc-700">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -392,7 +457,7 @@ export default function Page() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
-                className="m-2 ml-3 flex h-10 w-10 items-center justify-center rounded-full text-zinc-500 transition-all hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="m-2 ml-3 flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 transition-all duration-150 hover:bg-zinc-200 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
               >
                 <ImagePlus className="h-5 w-5" />
               </button>
@@ -403,17 +468,17 @@ export default function Page() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Digite sua pergunta ou envie uma foto..."
                 disabled={isLoading}
-                className="flex-1 resize-none bg-transparent py-4 text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                className="flex-1 resize-none bg-transparent py-3.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
               <button
                 type="submit"
                 disabled={isLoading || (!input.trim() && !selectedImage)}
-                className="m-2 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="m-2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 text-white transition-all duration-150 hover:bg-zinc-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Send className="h-5 w-5" />
+                  <ArrowUp className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -426,75 +491,90 @@ export default function Page() {
 
       {/* Modal de Relato Anônimo */}
       {isReportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in-0 duration-150">
+          <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-150">
             {/* Header do Modal */}
-            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-5 py-4">
               <div>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                   Conte algo do bairro
                 </h2>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                  Seu relato é 100% anônimo
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Seu relato e anonimo
                 </p>
               </div>
               <button
                 onClick={handleCloseReportModal}
-                className="rounded-full p-2 text-zinc-500 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-lg p-2 text-zinc-400 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-600 active:scale-95 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Conteúdo do Modal */}
-            <div className="p-6">
+            {/* Conteudo do Modal */}
+            <div className="p-5">
               {reportSubmitted ? (
                 <div className="flex flex-col items-center justify-center py-8">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                    <svg className="h-8 w-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                    <svg className="h-6 w-6 text-zinc-600 dark:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-                    Relato enviado com sucesso!
+                  <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-1">
+                    Relato enviado
                   </h3>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center">
-                    Obrigado por compartilhar. Sua informação será analisada.
+                    Obrigado por compartilhar.
                   </p>
                 </div>
               ) : (
                 <>
+                  {/* Dropdown de Categoria */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+                      Categoria
+                    </label>
+                    <select
+                      value={reportCategory}
+                      onChange={(e) => setReportCategory(e.target.value)}
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 transition-colors focus:border-zinc-300 focus:bg-white focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:focus:border-zinc-600"
+                    >
+                      <option value="">Selecione...</option>
+                      {REPORT_CATEGORIES.map((cat) => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <textarea
                     value={reportText}
                     onChange={(e) => setReportText(e.target.value)}
-                    placeholder="Digite aqui o que você quer relatar sobre o bairro... (problema, reclamação, sugestão, etc.)"
-                    className="w-full min-h-[200px] rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-800"
+                    placeholder={
+                      reportCategory 
+                        ? REPORT_CATEGORIES.find(c => c.value === reportCategory)?.placeholder 
+                        : 'Selecione uma categoria acima...'
+                    }
+                    disabled={!reportCategory}
+                    className="w-full min-h-[160px] rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600"
                   />
                   
-                  <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 dark:bg-amber-950/30 dark:border-amber-900">
-                    <div className="flex gap-2">
-                      <svg className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <p className="text-xs text-amber-800 dark:text-amber-200">
-                        <strong>Importante:</strong> Este relato é anônimo. Use para relatar problemas, reclamações ou sugestões sobre o bairro. Evite incluir dados pessoais.
-                      </p>
-                    </div>
-                  </div>
+                  <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+                    Evite incluir dados pessoais no relato.
+                  </p>
 
-                  <div className="mt-6 flex gap-3">
+                  <div className="mt-5 flex gap-2">
                     <button
                       onClick={handleCloseReportModal}
-                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 transition-all duration-150 hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={handleSubmitReport}
-                      disabled={!reportText.trim()}
-                      className="flex-1 rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                      disabled={!reportText.trim() || !reportCategory}
+                      className="flex-1 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                     >
-                      Enviar Relato
+                      Enviar
                     </button>
                   </div>
                 </>

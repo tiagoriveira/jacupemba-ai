@@ -52,10 +52,20 @@ const MOCK_RELATOS: Relato[] = [
   }
 ]
 
+const CATEGORY_MAP: Record<string, string> = {
+  comercio: 'Comercio',
+  seguranca: 'Seguranca',
+  transito: 'Transito',
+  convivencia: 'Convivencia',
+  eventos: 'Eventos',
+  outro: 'Outro'
+}
+
 export function RelatosSection() {
   const [relatos, setRelatos] = useState<Relato[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('todos')
+  const [filterCategory, setFilterCategory] = useState<string>('todos')
 
   // Carregar relatos do localStorage
   useEffect(() => {
@@ -64,9 +74,9 @@ export function RelatosSection() {
       const reports = JSON.parse(savedReports)
       const formattedRelatos: Relato[] = reports.map((report: any) => ({
         id: report.id,
-        usuario: 'Anônimo',
+        usuario: 'Anonimo',
         mensagem: report.text,
-        categoria: 'Relato Anônimo',
+        categoria: CATEGORY_MAP[report.category] || 'Outro',
         status: report.status || 'pendente',
         data: report.timestamp,
         gravidade: 'media'
@@ -80,9 +90,12 @@ export function RelatosSection() {
   const filteredRelatos = relatos.filter(relato => {
     const matchesSearch = relato.mensagem.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          relato.usuario.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = filterStatus === 'todos' || relato.status === filterStatus
-    return matchesSearch && matchesFilter
+    const matchesStatus = filterStatus === 'todos' || relato.status === filterStatus
+    const matchesCategory = filterCategory === 'todos' || relato.categoria === filterCategory
+    return matchesSearch && matchesStatus && matchesCategory
   })
+
+  const uniqueCategories = Array.from(new Set(relatos.map(r => r.categoria)))
 
   const handleApprove = (id: string) => {
     const updatedRelatos = relatos.map(r => r.id === id ? { ...r, status: 'aprovado' as const } : r)
@@ -185,6 +198,18 @@ export function RelatosSection() {
               </button>
             ))}
           </div>
+
+          {/* Category Filter */}
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          >
+            <option value="todos">Todas categorias</option>
+            {uniqueCategories.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
       </div>
 
