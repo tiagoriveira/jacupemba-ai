@@ -52,6 +52,19 @@ const ChatPane = forwardRef(function ChatPane(
   const messages = Array.isArray(conversation.messages) ? conversation.messages : []
   const count = messages.length || conversation.messageCount || 0
 
+  // Assuntos do Momento - Tópicos em alta mockados
+  const trendingTopics = [
+    { id: 1, topic: "Falta de luz na região", summary: "Muitos vizinhos relataram queda de energia na região do Jacupemba nas últimas 6 horas, principalmente nas ruas próximas à Praça. A concessionária foi notificada e estima reparo até às 18h." },
+    { id: 2, topic: "Movimentação na Praça", summary: "Há uma feira de artesanato acontecendo na Praça do Jacupemba neste fim de semana, com vendedores locais oferecendo produtos artesanais, comidas típicas e apresentações musicais ao vivo." },
+    { id: 3, topic: "Coleta de lixo atrasada", summary: "A coleta de lixo está com atraso de 2 dias em algumas ruas do bairro. A prefeitura informou que houve problema com o caminhão e a coleta será normalizada a partir de amanhã." }
+  ]
+
+  async function handleTrendingTopicClick(topic) {
+    if (!onSend) return
+    const message = `Me conte mais sobre: ${topic.topic}`
+    await onSend(message)
+  }
+
   function startEdit(m) {
     setEditingId(m.id)
     setDraft(m.content)
@@ -94,8 +107,40 @@ const ChatPane = forwardRef(function ChatPane(
         </div>
 
         {messages.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 p-6 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-            No messages yet. Say hello to start.
+          <div className="space-y-4">
+            {/* Saudação */}
+            <div className="mb-2">
+              <p className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Olá!</p>
+              <p className="text-base text-zinc-600 dark:text-zinc-400 mt-1">Como posso ajudar você hoje?</p>
+            </div>
+            
+            {/* Assuntos do Momento */}
+            <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 dark:border-zinc-800 dark:from-orange-950/30 dark:to-amber-950/30">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">📈</span>
+                <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos do Momento</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {trendingTopics.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTrendingTopicClick(item)}
+                    className="group flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-medium text-zinc-700 shadow-sm transition-all hover:shadow-md hover:scale-[1.02] dark:bg-zinc-900 dark:text-zinc-200"
+                  >
+                    <span className="text-base transition-transform group-hover:scale-110">🔥</span>
+                    <span className="flex-1">{item.topic}</span>
+                    <svg className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sugestão */}
+            <div className="rounded-xl border border-dashed border-zinc-300 p-4 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              Ou digite sua pergunta abaixo para começar uma conversa...
+            </div>
           </div>
         ) : (
           <>
