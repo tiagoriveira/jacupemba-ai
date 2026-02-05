@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 
 const SUGGESTED_QUESTIONS = [
@@ -161,13 +161,22 @@ export default function Page() {
               Assistente Local
             </h1>
           </div>
-          <Link 
-            href="/historico"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            <History className="h-5 w-5" />
-            <span className="hidden sm:inline">Histórico</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/vitrine"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <ShoppingBag className="h-5 w-5" />
+              <span className="hidden sm:inline">Vitrine</span>
+            </Link>
+            <Link 
+              href="/historico"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <History className="h-5 w-5" />
+              <span className="hidden sm:inline">Histórico</span>
+            </Link>
+          </div>
         </div>
       </header>
 
