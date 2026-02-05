@@ -177,6 +177,16 @@ export default function AIAssistantUI() {
     setThinkingConvId(convId)
 
     const currentConvId = convId
+    
+    // Assuntos do Momento - Respostas inteligentes
+    const trendingTopics = {
+      "Me conte mais sobre: Falta de luz na região": "📊 **Sobre a falta de luz na região:**\n\nMuitos vizinhos do Jacupemba relataram queda de energia nas últimas 6 horas, principalmente nas ruas próximas à Praça Central. \n\n**Situação atual:**\n• Início: Hoje às 12h30\n• Áreas afetadas: Rua das Flores, Av. Principal e adjacências\n• Previsão de reparo: Até às 18h de hoje\n• Status: A concessionária já foi notificada e equipes estão a caminho\n\n💡 **Dica:** Se ainda estiver sem energia após às 18h, você pode ligar para 0800-XXX-XXXX para mais informações.",
+      
+      "Me conte mais sobre: Movimentação na Praça": "🎪 **Sobre a movimentação na Praça:**\n\nEstá acontecendo uma feira de artesanato na Praça do Jacupemba neste fim de semana!\n\n**Detalhes do evento:**\n• Quando: Sábado e Domingo, 10h às 20h\n• Local: Praça Central do Jacupemba\n• O que tem: Artesanato local, comidas típicas, e apresentações musicais ao vivo\n\n🎵 **Programação:**\n• 14h - Apresentação de violão\n• 16h - Coral da comunidade\n• 18h - Banda local\n\nÉ um ótimo programa para o fim de semana com a família!",
+      
+      "Me conte mais sobre: Coleta de lixo atrasada": "🚛 **Sobre o atraso na coleta de lixo:**\n\nA coleta de lixo está com atraso de 2 dias em algumas ruas do bairro.\n\n**O que aconteceu:**\n• Problema mecânico no caminhão de coleta\n• Ruas afetadas: Principalmente zona oeste do Jacupemba\n• Última coleta: Segunda-feira\n\n**Solução:**\n✅ A prefeitura já enviou caminhão reserva\n✅ Coleta será normalizada a partir de amanhã\n✅ Equipes farão coleta reforçada para compensar o atraso\n\n⚠️ **Importante:** Mantenha o lixo bem acondicionado até a coleta ser realizada."
+    }
+
     setTimeout(() => {
       // Always clear thinking state and generate response for this specific conversation
       setIsThinking(false)
@@ -184,7 +194,11 @@ export default function AIAssistantUI() {
       setConversations((prev) =>
         prev.map((c) => {
           if (c.id !== currentConvId) return c
-          const ack = `Got it — I'll help with that.`
+          
+          // Check if this is a trending topic query
+          const trendingResponse = trendingTopics[content]
+          const ack = trendingResponse || `Got it — I'll help with that.`
+          
           const asstMsg = {
             id: Math.random().toString(36).slice(2),
             role: "assistant",
