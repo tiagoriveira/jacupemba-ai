@@ -318,16 +318,13 @@ export function VitrineGrid() {
                   Por: <span className="font-medium text-white">{selectedPost.sellerName}</span>
                 </p>
 
-                {/* Botão WhatsApp */}
+                {/* Botão WhatsApp - Minimalista */}
                 <button
                   onClick={() => handleWhatsAppClick(selectedPost)}
-                  className="group flex w-full items-center justify-center gap-3 rounded-full bg-green-500 px-8 py-4 font-semibold text-white shadow-lg transition-all hover:bg-green-600 hover:shadow-xl hover:scale-[1.02]"
+                  className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-green-500 hover:border-green-500"
                 >
-                  <MessageCircle className="h-5 w-5" />
-                  <span>Entrar em contato via WhatsApp</span>
-                  <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <MessageCircle className="h-4 w-4" />
+                  <span>WhatsApp</span>
                 </button>
 
                 {/* Tempo restante */}
