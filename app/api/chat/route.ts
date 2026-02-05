@@ -25,6 +25,7 @@ async function getBairroContext() {
       .gte('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
 
+    console.log('[v0] Supabase data fetched:', { reports: reports?.length, businesses: businesses?.length, vitrinePosts: vitrinePosts?.length })
     return { reports: reports || [], businesses: businesses || [], vitrinePosts: vitrinePosts || [] }
   } catch (error) {
     console.error('[v0] Error fetching bairro context:', error)
@@ -35,7 +36,9 @@ async function getBairroContext() {
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json()
 
+  // Buscar dados reais do bairro
   const { reports, businesses, vitrinePosts } = await getBairroContext()
+  console.log('[v0] Context loaded - Reports:', reports.length, 'Businesses:', businesses.length, 'Vitrine:', vitrinePosts.length)
 
   const reportsContext = reports.length > 0 
     ? `\n\nRELATOS RECENTES DO BAIRRO (ultimas 48h):\n${reports.map(r => `- [${r.category}] ${r.text}`).join('\n')}`
