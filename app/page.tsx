@@ -204,8 +204,6 @@ export default function Page() {
                 </p>
               </div>
 
-              </div>
-
               {/* Trending Topics */}
               <div className="w-full max-w-3xl mb-6">
                 <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 dark:border-zinc-800 dark:from-orange-950/30 dark:to-amber-950/30">
