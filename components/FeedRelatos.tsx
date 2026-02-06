@@ -1,5 +1,6 @@
 'use client'
 
+// Feed de relatos do bairro com sistema de comentarios anonimos
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
