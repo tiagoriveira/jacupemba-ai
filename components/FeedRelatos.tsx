@@ -6,21 +6,21 @@ import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
 import { MessageSquare, Clock, X, Send, Loader2 } from 'lucide-react'
 
-type TimePeriod = '60min' | '24h' | '48h'
+type TimePeriod = '60min' | '24h' | '7d'
 
 const CATEGORY_INFO = {
-  'seguranca': { label: '🚨 Segurança', color: 'bg-red-100 text-red-800' },
-  'emergencia': { label: '🚑 Emergência', color: 'bg-red-200 text-red-900' },
-  'saude': { label: '🏥 Saúde', color: 'bg-blue-100 text-blue-800' },
-  'transito': { label: '🚗 Trânsito', color: 'bg-yellow-100 text-yellow-800' },
+  'seguranca': { label: '🚨 Seguranca', color: 'bg-red-100 text-red-800' },
+  'emergencia': { label: '🆘 Emergencia', color: 'bg-red-200 text-red-900' },
+  'saude': { label: '🏥 Saude', color: 'bg-blue-100 text-blue-800' },
+  'transito': { label: '🚦 Transito', color: 'bg-yellow-100 text-yellow-800' },
   'saneamento': { label: '💧 Saneamento', color: 'bg-cyan-100 text-cyan-800' },
-  'iluminacao': { label: '💡 Iluminação', color: 'bg-amber-100 text-amber-800' },
-  'convivencia': { label: '👥 Convivência', color: 'bg-purple-100 text-purple-800' },
-  'animais': { label: '🐾 Animais', color: 'bg-green-100 text-green-800' },
-  'eventos': { label: '🎉 Eventos', color: 'bg-pink-100 text-pink-800' },
-  'comercio': { label: '🏪 Comércio', color: 'bg-indigo-100 text-indigo-800' },
+  'iluminacao': { label: '💡 Iluminacao', color: 'bg-amber-100 text-amber-800' },
+  'convivencia': { label: '🤝 Comunidade', color: 'bg-purple-100 text-purple-800' },
+  'animais': { label: '🐕 Animais', color: 'bg-green-100 text-green-800' },
+  'eventos': { label: '🎪 Eventos', color: 'bg-pink-100 text-pink-800' },
+  'comercio': { label: '🏬 Comercio', color: 'bg-indigo-100 text-indigo-800' },
   'transporte': { label: '🚌 Transporte', color: 'bg-orange-100 text-orange-800' },
-  'outros': { label: '📌 Outros', color: 'bg-zinc-100 text-zinc-800' },
+  'outros': { label: '📍 Outros', color: 'bg-zinc-100 text-zinc-800' },
 }
 
 export function FeedRelatos() {
@@ -48,7 +48,7 @@ export function FeedRelatos() {
         ? new Date(now - 60 * 60 * 1000)
         : period === '24h'
         ? new Date(now - 24 * 60 * 60 * 1000)
-        : new Date(now - 48 * 60 * 60 * 1000)
+        : new Date(now - 7 * 24 * 60 * 60 * 1000)
 
       let query = supabase
         .from('anonymous_reports')
@@ -179,14 +179,14 @@ export function FeedRelatos() {
             Hoje
           </button>
           <button
-            onClick={() => setPeriod('48h')}
+            onClick={() => setPeriod('7d')}
             className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              period === '48h'
+              period === '7d'
                 ? 'bg-zinc-900 text-white'
                 : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
             }`}
           >
-            Esta Semana
+            Ultimos 7 Dias
           </button>
         </div>
       </div>
