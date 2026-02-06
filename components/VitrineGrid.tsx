@@ -161,14 +161,6 @@ export function VitrineGrid() {
                       className={`w-full object-cover ${aspect === 'tall' ? 'aspect-[3/4]' : 'aspect-square'}`}
                     />
                   )}
-
-                  {/* Always visible bottom info */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-3">
-                    <p className="text-white font-semibold text-sm line-clamp-2 mb-1">{post.title}</p>
-                    {post.price && (
-                      <p className="text-white font-bold text-base">R$ {Number(post.price).toFixed(2)}</p>
-                    )}
-                  </div>
                 </button>
               )
             })}
