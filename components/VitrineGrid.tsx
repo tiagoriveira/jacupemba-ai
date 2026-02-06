@@ -163,10 +163,10 @@ export function VitrineGrid() {
                   )}
 
                   {/* Always visible bottom info */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                    <p className="text-white font-medium text-xs line-clamp-1">{post.title}</p>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-3">
+                    <p className="text-white font-semibold text-sm line-clamp-2 mb-1">{post.title}</p>
                     {post.price && (
-                      <p className="text-green-400 font-bold text-xs">R$ {Number(post.price).toFixed(2)}</p>
+                      <p className="text-white font-bold text-base">R$ {Number(post.price).toFixed(2)}</p>
                     )}
                   </div>
                 </button>
