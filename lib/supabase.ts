@@ -7,11 +7,32 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export type Status = 'pendente' | 'aprovado' | 'rejeitado'
 
+export type ReportCategory = 
+  | 'seguranca' 
+  | 'emergencia' 
+  | 'saude' 
+  | 'transito' 
+  | 'saneamento' 
+  | 'iluminacao' 
+  | 'convivencia' 
+  | 'animais' 
+  | 'eventos' 
+  | 'comercio' 
+  | 'transporte' 
+  | 'outros'
+
 export type Report = {
   id: string
-  category: 'comercio' | 'seguranca' | 'transito' | 'convivencia' | 'eventos' | 'outro'
+  category: ReportCategory
   text: string
   status: Status
+  created_at: string
+}
+
+export type ReportComment = {
+  id: string
+  report_id: string
+  text: string
   created_at: string
 }
 

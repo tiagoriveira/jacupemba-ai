@@ -10,12 +10,12 @@ const xai = createXai({
 
 async function getBairroContext() {
   try {
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     const { data: reports } = await supabase
       .from('anonymous_reports')
       .select('*')
       .eq('status', 'aprovado')
-      .gte('created_at', fortyEightHoursAgo)
+      .gte('created_at', sevenDaysAgo)
       .order('created_at', { ascending: false })
       .limit(20)
 
@@ -48,8 +48,8 @@ export async function POST(req: Request) {
     const { reports, businesses, vitrinePosts } = await getBairroContext()
 
   const reportsContext = reports.length > 0 
-    ? `\n\nRELATOS RECENTES DO BAIRRO (ultimas 48h):\n${reports.map(r => `- [${r.category}] ${r.text}`).join('\n')}`
-    : '\n\nNenhum relato recente nas ultimas 48h.'
+    ? `\n\nRELATOS RECENTES DO BAIRRO (ultimos 7 dias):\n${reports.map(r => `- [${r.category}] ${r.text}`).join('\n')}`
+    : '\n\nNenhum relato recente nos ultimos 7 dias.'
 
   const businessesContext = businesses.length > 0
     ? `\n\nCOMERCIOS E SERVICOS LOCAIS VERIFICADOS:\n${businesses.map(b => 
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     : '\n\nNenhum comercio ou servico cadastrado no momento.'
 
   const vitrineContext = vitrinePosts.length > 0
-    ? `\n\nANUNCIOS NA VITRINE (validos por 48h):\n${vitrinePosts.map(v => 
+    ? `\n\nANUNCIOS NA VITRINE:\n${vitrinePosts.map(v => 
         `- ${v.title} - R$ ${v.price} | Vendedor: ${v.seller_name} | Tel: ${v.seller_phone} | ${v.description || ''}`
       ).join('\n')}`
     : '\n\nNenhum anuncio ativo na vitrine.'
