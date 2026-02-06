@@ -157,27 +157,36 @@ export function FeedRelatos() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h2 className="text-lg font-semibold text-zinc-900">Pulso do Bairro</h2>
         <div className="flex gap-2">
-          <Button
-            variant={period === '60min' ? 'default' : 'outline'}
-            size="sm"
+          <button
             onClick={() => setPeriod('60min')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              period === '60min'
+                ? 'bg-zinc-900 text-white'
+                : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
+            }`}
           >
-            Última Hora
-          </Button>
-          <Button
-            variant={period === '24h' ? 'default' : 'outline'}
-            size="sm"
+            Ultima Hora
+          </button>
+          <button
             onClick={() => setPeriod('24h')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              period === '24h'
+                ? 'bg-zinc-900 text-white'
+                : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
+            }`}
           >
             Hoje
-          </Button>
-          <Button
-            variant={period === '48h' ? 'default' : 'outline'}
-            size="sm"
+          </button>
+          <button
             onClick={() => setPeriod('48h')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              period === '48h'
+                ? 'bg-zinc-900 text-white'
+                : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
+            }`}
           >
             Esta Semana
-          </Button>
+          </button>
         </div>
       </div>
 
