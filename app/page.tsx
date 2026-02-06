@@ -53,21 +53,33 @@ export default function Page() {
   const [trendingTopics, setTrendingTopics] = useState<Array<{category: string, count: number}>>([])
 
   const CATEGORY_LABELS: Record<string, string> = {
-    comercio: 'Comercio',
-    seguranca: 'Seguranca',
-    transito: 'Transito',
-    convivencia: 'Convivencia',
-    eventos: 'Eventos',
-    outro: 'Outro'
+    'seguranca': 'Seguranca',
+    'emergencia': 'Emergencia',
+    'saude': 'Saude Publica',
+    'transito': 'Transito',
+    'saneamento': 'Saneamento',
+    'iluminacao': 'Iluminacao',
+    'convivencia': 'Convivencia',
+    'animais': 'Animais',
+    'eventos': 'Eventos',
+    'comercio': 'Comercio',
+    'transporte': 'Transporte',
+    'outros': 'Outros'
   }
 
   const REPORT_CATEGORIES = [
-    { value: 'comercio', label: 'Comercio', placeholder: 'Descreva algo sobre comercio local...' },
-    { value: 'seguranca', label: 'Seguranca', placeholder: 'Descreva o problema de seguranca...' },
-    { value: 'transito', label: 'Transito', placeholder: 'Descreva o problema de transito...' },
-    { value: 'convivencia', label: 'Convivencia', placeholder: 'Descreva o assunto de convivencia...' },
-    { value: 'eventos', label: 'Eventos', placeholder: 'Compartilhe informacoes sobre eventos...' },
-    { value: 'outro', label: 'Outro', placeholder: 'Compartilhe informacoes uteis sobre o bairro...' },
+    { value: 'seguranca', label: 'Seguranca', placeholder: 'Assaltos, violencia, areas perigosas...' },
+    { value: 'emergencia', label: 'Emergencia', placeholder: 'Acidentes, incendios, situacoes urgentes...' },
+    { value: 'saude', label: 'Saude Publica', placeholder: 'UBS, postos de saude, surtos...' },
+    { value: 'transito', label: 'Transito', placeholder: 'Buracos, semaforos, acidentes...' },
+    { value: 'saneamento', label: 'Saneamento', placeholder: 'Agua, esgoto, coleta de lixo...' },
+    { value: 'iluminacao', label: 'Iluminacao', placeholder: 'Postes queimados, falta de luz...' },
+    { value: 'convivencia', label: 'Convivencia', placeholder: 'Barulho, conflitos entre vizinhos...' },
+    { value: 'animais', label: 'Animais', placeholder: 'Cachorros soltos, maus-tratos...' },
+    { value: 'eventos', label: 'Eventos', placeholder: 'Festas, feiras, atividades locais...' },
+    { value: 'comercio', label: 'Comercio', placeholder: 'Novos negocios, reclamacoes...' },
+    { value: 'transporte', label: 'Transporte Publico', placeholder: 'Onibus, lotacao, atrasos...' },
+    { value: 'outros', label: 'Outros', placeholder: 'Outras informacoes uteis do bairro...' },
   ]
 
   const getPopularityIndicator = (count: number): string => {
@@ -296,6 +308,13 @@ export default function Page() {
               <MessageSquare className="h-4 w-4" />
               <span>Contribuir</span>
             </button>
+            <Link 
+              href="/relatos"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>Relatos</span>
+            </Link>
             <Link 
               href="/vitrine"
               className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
