@@ -51,6 +51,7 @@ export default function Page() {
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
   const [trendingTopics, setTrendingTopics] = useState<Array<{category: string, count: number}>>([])
+  const [vitrinePosts, setVitrinePosts] = useState<Array<{id: string, title: string, price: number, media_url: string, category: string}>>([])
 
   const CATEGORY_LABELS: Record<string, string> = {
     comercio: 'Comercio',
@@ -126,6 +127,28 @@ export default function Page() {
     const interval = setInterval(calculateTrendingTopics, 30000) // Every 30s
     return () => clearInterval(interval)
   }, [isReportModalOpen])
+
+  // Fetch vitrine preview posts
+  useEffect(() => {
+    async function fetchVitrinePreview() {
+      try {
+        const { data, error } = await supabase
+          .from('vitrine_posts')
+          .select('id, title, price, media_url, category')
+          .gte('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(3)
+
+        if (!error && data) {
+          setVitrinePosts(data)
+        }
+      } catch (err) {
+        console.error('[v0] Error fetching vitrine preview:', err)
+      }
+    }
+
+    fetchVitrinePreview()
+  }, [])
 
   // Save to history when conversation is complete
   useEffect(() => {
@@ -360,6 +383,40 @@ export default function Page() {
                   )}
                 </div>
               </div>
+
+              {/* Vitrine Preview */}
+              {vitrinePosts.length > 0 && (
+                <div className="w-full max-w-3xl mb-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-zinc-800">Na Vitrine do Bairro</h3>
+                    <Link href="/vitrine" className="text-xs text-zinc-500 hover:text-zinc-700 transition-colors">
+                      Ver tudo
+                    </Link>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                    {vitrinePosts.map((post) => (
+                      <Link
+                        key={post.id}
+                        href="/vitrine"
+                        className="relative flex-shrink-0 w-40 sm:w-48 overflow-hidden rounded-xl bg-zinc-200 aspect-[3/4] group"
+                      >
+                        <img
+                          src={post.media_url}
+                          alt={post.title}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          crossOrigin="anonymous"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3">
+                          <p className="text-white font-medium text-xs line-clamp-1">{post.title}</p>
+                          {post.price && (
+                            <p className="text-green-400 font-bold text-xs">R$ {Number(post.price).toFixed(2)}</p>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Suggestion Cards */}
               <div className="grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
