@@ -1,7 +1,12 @@
 import { consumeStream, convertToModelMessages, streamText, UIMessage } from 'ai'
 import { supabase } from '@/lib/supabase'
+import { createXai } from '@ai-sdk/xai'
 
 export const maxDuration = 30
+
+const xai = createXai({
+  apiKey: process.env.XAI_API_KEY || 'e01efaa2a73742e9ab21f3a94c3ba447'
+})
 
 async function getBairroContext() {
   try {
@@ -58,7 +63,7 @@ export async function POST(req: Request) {
     : '\n\nNenhum anuncio ativo na vitrine.'
 
   const result = streamText({
-    model: 'xai/grok-beta',
+    model: xai('grok-beta'),
     system: `Voce e o Assistente Local, um assistente conversacional que ajuda moradores do bairro a encontrar servicos, comercios, vagas de emprego e eventos locais.
 
 DADOS REAIS DO BAIRRO:${reportsContext}${businessesContext}${vitrineContext}
