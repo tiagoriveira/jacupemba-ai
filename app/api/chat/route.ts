@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     : '\n\nNenhum anuncio ativo na vitrine.'
 
   const result = streamText({
-    model: xai('grok-beta'),
+    model: xai('grok-3-mini-fast'),
     system: `Voce e o Assistente Local, um assistente conversacional que ajuda moradores do bairro a encontrar servicos, comercios, vagas de emprego e eventos locais.
 
 DADOS REAIS DO BAIRRO:${reportsContext}${businessesContext}${vitrineContext}
