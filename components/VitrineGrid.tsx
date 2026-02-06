@@ -36,6 +36,7 @@ export function VitrineGrid() {
         const { data, error } = await supabase
           .from('vitrine_posts')
           .select('*')
+          .eq('status', 'aprovado')
           .gte('expires_at', new Date().toISOString())
           .order('created_at', { ascending: false })
 

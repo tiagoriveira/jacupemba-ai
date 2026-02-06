@@ -92,6 +92,7 @@ export default function Page() {
         const { data: reports, error } = await supabase
           .from('anonymous_reports')
           .select('category')
+          .eq('status', 'aprovado')
           .gte('created_at', fortyEightHoursAgo)
         
         if (error) {

@@ -14,6 +14,7 @@ async function getBairroContext() {
     const { data: reports } = await supabase
       .from('anonymous_reports')
       .select('*')
+      .eq('status', 'aprovado')
       .gte('created_at', fortyEightHoursAgo)
       .order('created_at', { ascending: false })
       .limit(20)
@@ -21,12 +22,14 @@ async function getBairroContext() {
     const { data: businesses } = await supabase
       .from('local_businesses')
       .select('*')
+      .eq('status', 'aprovado')
       .eq('verified', true)
       .order('name')
 
     const { data: vitrinePosts } = await supabase
       .from('vitrine_posts')
       .select('*')
+      .eq('status', 'aprovado')
       .gte('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
 
