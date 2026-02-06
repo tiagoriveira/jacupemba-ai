@@ -5,7 +5,7 @@ import { createXai } from '@ai-sdk/xai'
 export const maxDuration = 30
 
 const xai = createXai({
-  apiKey: process.env.XAI_API_KEY || 'e01efaa2a73742e9ab21f3a94c3ba447'
+  apiKey: process.env.XAI_API_KEY!
 })
 
 async function getBairroContext() {

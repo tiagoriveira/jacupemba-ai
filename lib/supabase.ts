@@ -5,10 +5,13 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+export type Status = 'pendente' | 'aprovado' | 'rejeitado'
+
 export type Report = {
   id: string
   category: 'comercio' | 'seguranca' | 'transito' | 'convivencia' | 'eventos' | 'outro'
   text: string
+  status: Status
   created_at: string
 }
 
@@ -22,6 +25,7 @@ export type Business = {
   address: string | null
   hours: string | null
   verified: boolean
+  status: Status
   created_at: string
 }
 
@@ -38,5 +42,6 @@ export type VitrinePost = {
   expires_at: string
   views: number
   clicks: number
+  status: Status
   created_at: string
 }
