@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Shield, AlertTriangle, Store, Building2, LogOut, Users } from 'lucide-react'
-import { AdminLogin } from './AdminLogin'
+import { Shield, AlertTriangle, Store, Building2 } from 'lucide-react'
 import { RelatosSection } from './admin/RelatosSection'
 import { VitrineSection } from './admin/VitrineSection'
 import { EmpresasSection } from './admin/EmpresasSection'
@@ -10,12 +9,7 @@ import { EmpresasSection } from './admin/EmpresasSection'
 type Section = 'relatos' | 'vitrine' | 'empresas'
 
 export function AdminDashboard() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeSection, setActiveSection] = useState<Section>('relatos')
-
-  if (!isAuthenticated) {
-    return <AdminLogin onLogin={() => setIsAuthenticated(true)} />
-  }
 
   const sections = [
     {
@@ -37,11 +31,6 @@ export function AdminDashboard() {
       description: 'Gerenciar empresas locais'
     }
   ]
-
-  const handleLogout = () => {
-    setIsAuthenticated(false)
-    setActiveSection('relatos')
-  }
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
