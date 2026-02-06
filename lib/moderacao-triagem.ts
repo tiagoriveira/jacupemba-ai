@@ -1,0 +1,130 @@
+// Sistema de triagem inteligente para moderação de relatos
+
+export type NivelRisco = 'baixo' | 'medio' | 'alto'
+
+export interface ResultadoTriagem {
+  nivelRisco: NivelRisco
+  score: number // 0-100 (maior = mais sensível)
+  alertas: string[]
+  prioridade: number // 1 (baixo) a 3 (alto)
+}
+
+// Palavras que indicam situações sensíveis
+const PALAVRAS_ALTO_RISCO = [
+  'assalto', 'roubo', 'furto', 'arma', 'faca', 'tiro', 'bala',
+  'violência', 'violencia', 'agressão', 'agressao', 'briga', 'morte', 'morto',
+  'droga', 'tráfico', 'trafico', 'facção', 'faccao', 'crime',
+  'estupro', 'abuso', 'racismo', 'preconceito', 'ameaça', 'ameaca'
+]
+
+const PALAVRAS_MEDIO_RISCO = [
+  'perigo', 'perigoso', 'suspeito', 'sujeito', 'medo', 'inseguro',
+  'cuidado', 'atenção', 'atencao', 'policia', 'polícia', 'pm',
+  'barulho', 'briga', 'confusão', 'confusao', 'discussão', 'discussao'
+]
+
+export function analisarRelato(texto: string, categoria: string): ResultadoTriagem {
+  const textoLower = texto.toLowerCase()
+  let score = 0
+  const alertas: string[] = []
+
+  // 1. Verificar palavras sensíveis (peso alto)
+  const temPalavraAltoRisco = PALAVRAS_ALTO_RISCO.some(palavra => textoLower.includes(palavra))
+  if (temPalavraAltoRisco) {
+    score += 40
+    alertas.push('Contém termos sensíveis relacionados a crime/violência')
+  }
+
+  const temPalavraMedioRisco = PALAVRAS_MEDIO_RISCO.some(palavra => textoLower.includes(palavra))
+  if (temPalavraMedioRisco && !temPalavraAltoRisco) {
+    score += 20
+    alertas.push('Menciona situação de possível risco')
+  }
+
+  // 2. Categoria sensível (peso médio)
+  if (categoria === 'seguranca') {
+    score += 25
+    alertas.push('Categoria: Segurança - requer atenção especial')
+  } else if (categoria === 'convivencia') {
+    score += 10
+  }
+
+  // 3. Tamanho anormal
+  if (texto.length < 20) {
+    score += 15
+    alertas.push('Relato muito curto - pode ser spam')
+  }
+  if (texto.length > 400) {
+    score += 10
+    alertas.push('Relato extenso - verificar conteúdo')
+  }
+
+  // 4. CAPS LOCK excessivo (indica urgência/emotividade)
+  const capsCount = (texto.match(/[A-Z]/g) || []).length
+  const capsRatio = capsCount / texto.length
+  if (capsRatio > 0.3 && texto.length > 20) {
+    score += 15
+    alertas.push('Texto em CAPS LOCK - possível urgência/emotividade')
+  }
+
+  // 5. Pontuação excessiva (!!!, ???)
+  const excessivePunctuation = /[!?]{3,}/.test(texto)
+  if (excessivePunctuation) {
+    score += 10
+    alertas.push('Pontuação excessiva - possível tom alterado')
+  }
+
+  // 6. URLs ou telefones (pode ser spam comercial)
+  const hasUrl = /https?:\/\/|www\./i.test(texto)
+  const hasPhone = /\d{8,}/g.test(texto)
+  if (hasUrl || hasPhone) {
+    score += 5
+    alertas.push('Contém URL ou telefone - verificar spam')
+  }
+
+  // Determinar nível de risco baseado no score
+  let nivelRisco: NivelRisco
+  let prioridade: number
+
+  if (score >= 50) {
+    nivelRisco = 'alto'
+    prioridade = 3
+  } else if (score >= 25) {
+    nivelRisco = 'medio'
+    prioridade = 2
+  } else {
+    nivelRisco = 'baixo'
+    prioridade = 1
+  }
+
+  // Se não tem alertas, é baixo risco
+  if (alertas.length === 0) {
+    alertas.push('Relato padrão - sem indicadores de risco')
+  }
+
+  return {
+    nivelRisco,
+    score: Math.min(score, 100), // cap at 100
+    alertas,
+    prioridade
+  }
+}
+
+// Cores e labels para UI
+export const NIVEL_CONFIG = {
+  baixo: {
+    cor: 'bg-green-100 text-green-800 border-green-200',
+    label: 'Baixo Risco',
+    icon: '✓'
+  },
+  medio: {
+    cor: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    label: 'Atenção',
+    icon: '⚠'
+  },
+  alto: {
+    cor: 'bg-red-100 text-red-800 border-red-200',
+    label: 'Alto Risco',
+    icon: '🚨'
+  }
+}
