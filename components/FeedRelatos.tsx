@@ -3,10 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
-import { MessageSquare, Clock, X, Send } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
+import { MessageSquare, Clock, X, Send, Loader2 } from 'lucide-react'
 
 type TimePeriod = '60min' | '24h' | '48h'
 
@@ -245,18 +242,27 @@ export function FeedRelatos() {
       </div>
 
       {/* Modal de Comentários */}
-      <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedReport && (
-                <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${CATEGORY_INFO[selectedReport.category as keyof typeof CATEGORY_INFO]?.color}`}>
-                  {CATEGORY_INFO[selectedReport.category as keyof typeof CATEGORY_INFO]?.label}
-                </span>
-              )}
-            </DialogTitle>
-          </DialogHeader>
+      {selectedReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedReport(null)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white p-4 border-b border-zinc-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold text-zinc-900">Relato</h2>
+                {selectedReport && (
+                  <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${CATEGORY_INFO[selectedReport.category as keyof typeof CATEGORY_INFO]?.color}`}>
+                    {CATEGORY_INFO[selectedReport.category as keyof typeof CATEGORY_INFO]?.label}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedReport(null)}
+                className="p-1 rounded-lg hover:bg-zinc-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-zinc-500" />
+              </button>
+            </div>
 
+            <div className="p-4">
           {selectedReport && (
             <div className="space-y-4">
               {/* Relato Original */}
@@ -285,25 +291,36 @@ export function FeedRelatos() {
 
               {/* Adicionar Comentário */}
               <div className="space-y-2">
-                <Textarea
+                <textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Adicione um comentário anônimo..."
-                  className="min-h-[80px]"
+                  className="w-full min-h-[80px] p-3 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
                 />
-                <Button
+                <button
                   onClick={handleSubmitComment}
                   disabled={!commentText.trim() || submittingComment}
-                  className="w-full"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Send className="h-4 w-4 mr-2" />
-                  {submittingComment ? 'Enviando...' : 'Comentar'}
-                </Button>
+                  {submittingComment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Comentar
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
