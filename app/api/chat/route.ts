@@ -34,11 +34,12 @@ async function getBairroContext() {
 }
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json()
+  try {
+    const { messages }: { messages: UIMessage[] } = await req.json()
 
-  // Buscar dados reais do bairro
-  const { reports, businesses, vitrinePosts } = await getBairroContext()
-  console.log('[v0] Context loaded - Reports:', reports.length, 'Businesses:', businesses.length, 'Vitrine:', vitrinePosts.length)
+    // Buscar dados reais do bairro
+    const { reports, businesses, vitrinePosts } = await getBairroContext()
+    console.log('[v0] Context loaded - Reports:', reports.length, 'Businesses:', businesses.length, 'Vitrine:', vitrinePosts.length)
 
   const reportsContext = reports.length > 0 
     ? `\n\nRELATOS RECENTES DO BAIRRO (ultimas 48h):\n${reports.map(r => `- [${r.category}] ${r.text}`).join('\n')}`
@@ -76,8 +77,17 @@ INSTRUCOES:
     abortSignal: req.signal,
   })
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    consumeSseStream: consumeStream,
-  })
+    return result.toUIMessageStreamResponse({
+      originalMessages: messages,
+      consumeSseStream: consumeStream,
+    })
+  } catch (error) {
+    console.error('[v0] Error in chat API:', error)
+    return new Response(
+      JSON.stringify({ 
+        error: 'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.' 
+      }), 
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
 }

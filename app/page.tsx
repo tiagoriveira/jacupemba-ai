@@ -237,14 +237,28 @@ export default function Page() {
   }
 
   const handleSubmitReport = async () => {
-    if (!reportText.trim() || !reportCategory) return
+    // Validacoes
+    if (!reportText.trim() || !reportCategory) {
+      alert('Por favor, preencha todos os campos.')
+      return
+    }
+    
+    if (reportText.trim().length < 10) {
+      alert('O relato deve ter pelo menos 10 caracteres.')
+      return
+    }
+    
+    if (reportText.trim().length > 500) {
+      alert('O relato deve ter no maximo 500 caracteres.')
+      return
+    }
     
     try {
       // Salvar no Supabase
       const { error } = await supabase
         .from('anonymous_reports')
         .insert([{
-          text: reportText,
+          text: reportText.trim(),
           category: reportCategory
         }])
       
