@@ -1,14 +1,24 @@
-# Modern AI Chatbot Interface Template
+# Jacupemba AI - Assistente Local Inteligente
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+Assistente conversacional alimentado por IA que conecta moradores do bairro Jacupemba com informações locais em tempo real.
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/jet67048-9003s-projects/v0-modern-ai-chatbot-interface-tem)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/WmP1PODUpQH)
 
-## Overview
+## O que é?
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+Jacupemba AI é uma plataforma hiperlocal que permite aos moradores:
+- Relatar problemas do bairro (segurança, trânsito, convivência)
+- Encontrar comércios e serviços locais verificados
+- Anunciar produtos e serviços na vitrine comunitária (48h)
+- Conversar com IA que conhece o histórico e contexto do bairro
+
+## Tecnologias
+
+- **Frontend**: Next.js 15, TailwindCSS, shadcn/ui
+- **Backend**: Supabase (PostgreSQL)
+- **IA**: Grok via Vercel AI SDK
+- **Deploy**: Vercel
 
 ## Deployment
 
