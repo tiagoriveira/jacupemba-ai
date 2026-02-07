@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Shield, AlertTriangle, Store, Building2 } from 'lucide-react'
+import { Shield, AlertTriangle, Store, Building2, LogOut } from 'lucide-react'
 import { RelatosSection } from './admin/RelatosSection'
 import { VitrineSection } from './admin/VitrineSection'
 import { EmpresasSection } from './admin/EmpresasSection'
@@ -10,6 +10,11 @@ type Section = 'relatos' | 'vitrine' | 'empresas'
 
 export function AdminDashboard() {
   const [activeSection, setActiveSection] = useState<Section>('relatos')
+
+  const handleLogout = () => {
+    // TODO: Implement logout logic
+    console.log('[v0] Logout clicked')
+  }
 
   const sections = [
     {
