@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Store, Search, Check, X, Trash2, Clock, AlertTriangle } from 'lucide-react'
+import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Edit, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { VitrineUploadModal } from './VitrineUploadModal'
 
 interface VitrinePost {
   id: string
@@ -22,6 +24,9 @@ export function VitrineSection() {
   const [posts, setPosts] = useState<VitrinePost[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('pendente')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingPost, setEditingPost] = useState<VitrinePost | null>(null)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPosts()
@@ -48,16 +53,26 @@ export function VitrineSection() {
 
   const updateStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
     try {
+      setLoadingId(id)
       const { error } = await supabase
         .from('vitrine_posts')
         .update({ status })
         .eq('id', id)
 
       if (error) throw error
-      fetchPosts()
+      
+      toast.success(
+        status === 'aprovado' 
+          ? 'Post aprovado com sucesso!' 
+          : 'Post rejeitado com sucesso!'
+      )
+      
+      await fetchPosts()
     } catch (error) {
       console.error('[v0] Error updating status:', error)
-      alert('Erro ao atualizar status')
+      toast.error('Erro ao atualizar status')
+    } finally {
+      setLoadingId(null)
     }
   }
 
@@ -65,17 +80,31 @@ export function VitrineSection() {
     if (!confirm('Tem certeza que deseja deletar este post?')) return
     
     try {
+      setLoadingId(id)
       const { error } = await supabase
         .from('vitrine_posts')
         .delete()
         .eq('id', id)
 
       if (error) throw error
-      fetchPosts()
+      toast.success('Post deletado com sucesso!')
+      await fetchPosts()
     } catch (error) {
       console.error('[v0] Error deleting:', error)
-      alert('Erro ao deletar')
+      toast.error('Erro ao deletar')
+    } finally {
+      setLoadingId(null)
     }
+  }
+
+  const handleEdit = (post: VitrinePost) => {
+    setEditingPost(post)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setEditingPost(null)
   }
 
   const filteredPosts = posts.filter(post =>
@@ -104,6 +133,13 @@ export function VitrineSection() {
 
   return (
     <div className="h-full">
+      <VitrineUploadModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal}
+        onSuccess={fetchPosts}
+        editPost={editingPost}
+      />
+      
       {/* Header */}
       <div className="border-b border-zinc-200 bg-white px-8 py-6">
         <div className="flex items-center justify-between">
@@ -113,11 +149,23 @@ export function VitrineSection() {
               Modere posts comerciais da vitrine (48h)
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-700" />
-            <span className="text-sm font-semibold text-yellow-700">
-              {pendentesCount} pendentes
-            </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setEditingPost(null)
+                setIsModalOpen(true)
+              }}
+              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white transition-colors hover:bg-zinc-800"
+            >
+              <Plus className="h-5 w-5" />
+              Novo Post
+            </button>
+            <div className="flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-700" />
+              <span className="text-sm font-semibold text-yellow-700">
+                {pendentesCount} pendentes
+              </span>
+            </div>
           </div>
         </div>
 
@@ -197,23 +245,49 @@ export function VitrineSection() {
                       <>
                         <button
                           onClick={() => updateStatus(post.id, 'aprovado')}
-                          className="flex-1 rounded-lg bg-green-100 py-2 text-sm font-medium text-green-700 hover:bg-green-200"
+                          disabled={loadingId === post.id}
+                          className="flex-1 rounded-lg bg-green-100 py-2 text-sm font-medium text-green-700 hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <Check className="inline h-4 w-4" /> Aprovar
+                          {loadingId === post.id ? (
+                            <Loader2 className="inline h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="inline h-4 w-4" />
+                          )}
+                          {' '}Aprovar
                         </button>
                         <button
                           onClick={() => updateStatus(post.id, 'rejeitado')}
-                          className="flex-1 rounded-lg bg-red-100 py-2 text-sm font-medium text-red-700 hover:bg-red-200"
+                          disabled={loadingId === post.id}
+                          className="flex-1 rounded-lg bg-red-100 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <X className="inline h-4 w-4" /> Rejeitar
+                          {loadingId === post.id ? (
+                            <Loader2 className="inline h-4 w-4 animate-spin" />
+                          ) : (
+                            <X className="inline h-4 w-4" />
+                          )}
+                          {' '}Rejeitar
                         </button>
                       </>
                     )}
                     <button
-                      onClick={() => deletePost(post.id)}
-                      className="rounded-lg bg-zinc-100 p-2 text-zinc-700 hover:bg-zinc-200"
+                      onClick={() => handleEdit(post)}
+                      disabled={loadingId === post.id}
+                      className="rounded-lg bg-blue-100 p-2 text-blue-700 hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      title="Editar"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => deletePost(post.id)}
+                      disabled={loadingId === post.id}
+                      className="rounded-lg bg-zinc-100 p-2 text-zinc-700 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      title="Deletar"
+                    >
+                      {loadingId === post.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
