@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Tag, Wrench, ShoppingBag, User } from 'lucide-react'
+import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -18,9 +18,14 @@ interface VitrinePost {
   created_at: string
 }
 
-const CATEGORY_STYLES: Record<string, { bg: string; icon: typeof Tag }> = {
-  produto: { bg: 'from-zinc-800 to-zinc-600', icon: ShoppingBag },
-  servico: { bg: 'from-zinc-700 to-zinc-500', icon: Wrench },
+type CategoryType = 'vaga' | 'informativo' | 'servico' | 'produto' | 'comunicado'
+
+const CATEGORY_CONFIG: Record<CategoryType, { label: string; bg: string; icon: any }> = {
+  vaga: { label: 'Vaga', bg: 'from-blue-600 to-blue-400', icon: Briefcase },
+  informativo: { label: 'Informativo', bg: 'from-purple-600 to-purple-400', icon: Info },
+  servico: { label: 'Servico', bg: 'from-orange-600 to-orange-400', icon: Wrench },
+  produto: { label: 'Produto', bg: 'from-green-600 to-green-400', icon: ShoppingBag },
+  comunicado: { label: 'Comunicado', bg: 'from-red-600 to-red-400', icon: Megaphone },
 }
 
 function getHoursRemaining(expiresAt: string) {
@@ -36,7 +41,7 @@ export function VitrineGrid() {
   const [posts, setPosts] = useState<VitrinePost[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPost, setSelectedPost] = useState<VitrinePost | null>(null)
-  const [filter, setFilter] = useState<'todos' | 'produto' | 'servico'>('todos')
+  const [filter, setFilter] = useState<'todos' | CategoryType>('todos')
 
   useEffect(() => {
     async function fetchPosts() {
@@ -79,7 +84,7 @@ export function VitrineGrid() {
     window.open(`https://wa.me/?text=${encoded}`, '_blank')
   }
 
-  const catStyle = (cat: string) => CATEGORY_STYLES[cat] || CATEGORY_STYLES.produto
+  const getCatConfig = (cat: string) => CATEGORY_CONFIG[cat as CategoryType] || CATEGORY_CONFIG.produto
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -96,22 +101,21 @@ export function VitrineGrid() {
                 <span className="hidden sm:inline">Voltar</span>
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-zinc-900">Vitrine do Bairro</h1>
-                <p className="text-xs text-zinc-500">Anuncios expiram em 48h</p>
+                <h1 className="text-xl font-bold text-zinc-900">Explorar</h1>
+                <p className="text-xs text-zinc-500">Comunidade local</p>
               </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span>{posts.length} ativos</span>
             </div>
           </div>
 
           {/* Filter Tabs */}
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             {([
               { value: 'todos', label: 'Todos' },
-              { value: 'produto', label: 'Produtos' },
+              { value: 'vaga', label: 'Vagas' },
+              { value: 'informativo', label: 'Informativos' },
               { value: 'servico', label: 'Servicos' },
+              { value: 'produto', label: 'Produtos' },
+              { value: 'comunicado', label: 'Comunicados' },
             ] as const).map(tab => (
               <button
                 key={tab.value}
@@ -141,84 +145,29 @@ export function VitrineGrid() {
           <p className="text-zinc-400 text-xs mt-1">Os anuncios expiram em 48h</p>
         </div>
       ) : (
-        <div className="mx-auto max-w-5xl px-4 py-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto max-w-6xl px-2 py-2">
+          {/* Masonry Grid - Instagram Explore Style */}
+          <div className="columns-2 gap-2 sm:columns-3 lg:columns-4">
             {filteredPosts.map((post) => {
-              const style = catStyle(post.category)
-              const CatIcon = style.icon
-              const hoursLeft = getHoursRemaining(post.expires_at)
+              const config = getCatConfig(post.category)
 
               return (
                 <button
                   key={post.id}
                   onClick={() => setSelectedPost(post)}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white text-left shadow-sm transition-all duration-200 hover:shadow-lg hover:border-zinc-300 hover:-translate-y-0.5"
+                  className="group relative mb-2 w-full break-inside-avoid overflow-hidden rounded-lg transition-all duration-200 hover:opacity-90"
                 >
-                  {/* Visual Area */}
                   {post.image_url ? (
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={post.image_url}
-                        alt={post.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                      {/* Price Badge */}
-                      <div className="absolute bottom-3 left-3 z-10">
-                        <span className="rounded-xl bg-white px-3.5 py-2 text-base font-bold text-zinc-900 shadow-lg">
-                          {formatPrice(post.price)}
-                        </span>
-                      </div>
-                    </div>
+                    <img
+                      src={post.image_url}
+                      alt={post.title}
+                      className="w-full object-cover"
+                    />
                   ) : (
-                    <div className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br ${style.bg}`}>
-                      {/* Pattern Background */}
-                      <div className="absolute inset-0 opacity-10">
-                        <div className="absolute inset-0" style={{
-                          backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-                          backgroundSize: '24px 24px'
-                        }} />
-                      </div>
-                      <CatIcon className="h-20 w-20 text-white/30 relative z-10" />
-                      {/* Price Badge */}
-                      <div className="absolute bottom-3 left-3 z-20">
-                        <span className="rounded-xl bg-white px-3.5 py-2 text-base font-bold text-zinc-900 shadow-lg">
-                          {formatPrice(post.price)}
-                        </span>
-                      </div>
-                      {/* Category Badge */}
-                      <div className="absolute top-3 left-3 z-20">
-                        <span className="rounded-lg bg-white/25 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
-                          {post.category === 'servico' ? 'Servico' : 'Produto'}
-                        </span>
-                      </div>
+                    <div className={`flex aspect-square w-full items-center justify-center bg-gradient-to-br ${config.bg}`}>
+                      <config.icon className="h-16 w-16 text-white/20" />
                     </div>
                   )}
-
-                  {/* Info Area */}
-                  <div className="flex flex-1 flex-col p-4">
-                    <h3 className="text-base font-semibold text-zinc-900 leading-tight line-clamp-2">
-                      {post.title}
-                    </h3>
-                    {post.description && (
-                      <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed line-clamp-2">
-                        {post.description}
-                      </p>
-                    )}
-
-                    <div className="mt-auto flex items-center justify-between pt-3">
-                      <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                        <User className="h-3.5 w-3.5" />
-                        <span className="truncate max-w-[120px]">{post.contact_name || 'Anonimo'}</span>
-                      </div>
-                      <div className={`flex items-center gap-1 text-xs font-medium ${
-                        hoursLeft <= 6 ? 'text-red-500' : hoursLeft <= 12 ? 'text-amber-500' : 'text-zinc-400'
-                      }`}>
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{hoursLeft}h</span>
-                      </div>
-                    </div>
-                  </div>
                 </button>
               )
             })}
@@ -254,9 +203,9 @@ export function VitrineGrid() {
                 />
               </div>
             ) : (
-              <div className={`relative flex aspect-[16/9] items-center justify-center bg-gradient-to-br ${catStyle(selectedPost.category).bg}`}>
+              <div className={`relative flex aspect-[16/9] items-center justify-center bg-gradient-to-br ${getCatConfig(selectedPost.category).bg}`}>
                 {(() => {
-                  const Icon = catStyle(selectedPost.category).icon
+                  const Icon = getCatConfig(selectedPost.category).icon
                   return <Icon className="h-20 w-20 text-white/15" />
                 })()}
               </div>
@@ -267,7 +216,7 @@ export function VitrineGrid() {
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex-1">
                   <span className="mb-2 inline-block rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600">
-                    {selectedPost.category === 'servico' ? 'Servico' : 'Produto'}
+                    {getCatConfig(selectedPost.category).label}
                   </span>
                   <h2 className="text-xl font-bold text-zinc-900">{selectedPost.title}</h2>
                 </div>

@@ -35,14 +35,11 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
   })
 
   const categories = [
-    'Eletronicos',
-    'Moveis',
-    'Roupas',
-    'Alimentos',
-    'Servicos',
-    'Veiculos',
-    'Imoveis',
-    'Outro'
+    { value: 'vaga', label: 'Vaga de Emprego' },
+    { value: 'informativo', label: 'Informativo' },
+    { value: 'servico', label: 'Serviço' },
+    { value: 'produto', label: 'Produto' },
+    { value: 'comunicado', label: 'Comunicado' }
   ]
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,8 +314,8 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                   >
                     <option value="">Selecione</option>
                     {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
                       </option>
                     ))}
                   </select>
