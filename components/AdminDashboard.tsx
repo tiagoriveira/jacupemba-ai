@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Shield, AlertTriangle, Store, Building2, LogOut } from 'lucide-react'
+import { Shield, AlertTriangle, Store, Building2, LogOut, ArrowLeft } from 'lucide-react'
 import { Toaster } from 'sonner'
+import Link from 'next/link'
 import { RelatosSection } from './admin/RelatosSection'
 import { VitrineSection } from './admin/VitrineSection'
 import { EmpresasSection } from './admin/EmpresasSection'
@@ -12,27 +13,22 @@ type Section = 'relatos' | 'vitrine' | 'empresas'
 export function AdminDashboard() {
   const [activeSection, setActiveSection] = useState<Section>('relatos')
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
-    console.log('[v0] Logout clicked')
-  }
-
   const sections = [
     {
       id: 'relatos' as Section,
-      name: 'Relatos Problematicos',
+      name: 'Relatos',
       icon: AlertTriangle,
       description: 'Moderar relatos de problemas'
     },
     {
       id: 'vitrine' as Section,
-      name: 'Gestao da Vitrine',
+      name: 'Vitrine',
       icon: Store,
       description: 'Gerenciar posts comerciais'
     },
     {
       id: 'empresas' as Section,
-      name: 'Cadastro de Empresas',
+      name: 'Empresas',
       icon: Building2,
       description: 'Gerenciar empresas locais'
     }
@@ -43,7 +39,7 @@ export function AdminDashboard() {
       <Toaster position="top-right" richColors />
       <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <aside className="w-64 flex-shrink-0 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="border-b border-zinc-200 p-6 dark:border-zinc-800">
@@ -99,9 +95,16 @@ export function AdminDashboard() {
           </nav>
 
           {/* Footer */}
-          <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
+          <div className="space-y-1 border-t border-zinc-200 p-4 dark:border-zinc-800">
+            <Link
+              href="/"
+              className="flex w-full items-center gap-3 rounded-lg p-3 text-left text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
+            >
+              <ArrowLeft className="h-5 w-5 text-zinc-500" />
+              <span>Voltar ao Chat</span>
+            </Link>
             <button
-              onClick={handleLogout}
+              onClick={() => window.location.reload()}
               className="flex w-full items-center gap-3 rounded-lg p-3 text-left text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
             >
               <LogOut className="h-5 w-5 text-zinc-500" />
