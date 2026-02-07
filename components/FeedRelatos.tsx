@@ -1,26 +1,44 @@
 'use client'
 
 // Feed de relatos do bairro com sistema de comentarios anonimos
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
-import { MessageSquare, Clock, X, Send, Loader2 } from 'lucide-react'
+import { 
+  MessageSquare, 
+  Clock, 
+  X, 
+  Send, 
+  Loader2,
+  Shield,
+  AlertCircle,
+  Activity,
+  TrafficCone,
+  Droplets,
+  Lightbulb,
+  Users,
+  PawPrint,
+  CalendarDays,
+  Store,
+  Bus,
+  MapPin
+} from 'lucide-react'
 
 type TimePeriod = '60min' | '24h' | '7d'
 
 const CATEGORY_INFO = {
-  'seguranca': { label: '🚨 Seguranca', color: 'bg-red-100 text-red-800' },
-  'emergencia': { label: '🆘 Emergencia', color: 'bg-red-200 text-red-900' },
-  'saude': { label: '🏥 Saude', color: 'bg-blue-100 text-blue-800' },
-  'transito': { label: '🚦 Transito', color: 'bg-yellow-100 text-yellow-800' },
-  'saneamento': { label: '💧 Saneamento', color: 'bg-cyan-100 text-cyan-800' },
-  'iluminacao': { label: '💡 Iluminacao', color: 'bg-amber-100 text-amber-800' },
-  'convivencia': { label: '🤝 Comunidade', color: 'bg-purple-100 text-purple-800' },
-  'animais': { label: '🐕 Animais', color: 'bg-green-100 text-green-800' },
-  'eventos': { label: '🎪 Eventos', color: 'bg-pink-100 text-pink-800' },
-  'comercio': { label: '🏬 Comercio', color: 'bg-indigo-100 text-indigo-800' },
-  'transporte': { label: '🚌 Transporte', color: 'bg-orange-100 text-orange-800' },
-  'outros': { label: '📍 Outros', color: 'bg-zinc-100 text-zinc-800' },
+  'seguranca': { label: 'Seguranca', icon: Shield, color: 'bg-rose-50 text-rose-700 border-rose-200' },
+  'emergencia': { label: 'Emergencia', icon: AlertCircle, color: 'bg-red-50 text-red-700 border-red-200' },
+  'saude': { label: 'Saude', icon: Activity, color: 'bg-sky-50 text-sky-700 border-sky-200' },
+  'transito': { label: 'Transito', icon: TrafficCone, color: 'bg-amber-50 text-amber-700 border-amber-200' },
+  'saneamento': { label: 'Saneamento', icon: Droplets, color: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+  'iluminacao': { label: 'Iluminacao', icon: Lightbulb, color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+  'convivencia': { label: 'Comunidade', icon: Users, color: 'bg-violet-50 text-violet-700 border-violet-200' },
+  'animais': { label: 'Animais', icon: PawPrint, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  'eventos': { label: 'Eventos', icon: CalendarDays, color: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200' },
+  'comercio': { label: 'Comercio', icon: Store, color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  'transporte': { label: 'Transporte', icon: Bus, color: 'bg-orange-50 text-orange-700 border-orange-200' },
+  'outros': { label: 'Outros', icon: MapPin, color: 'bg-slate-50 text-slate-700 border-slate-200' },
 }
 
 export function FeedRelatos() {
@@ -34,6 +52,7 @@ export function FeedRelatos() {
   const [comments, setComments] = useState<ReportComment[]>([])
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
+  const reportsListRef = useRef<HTMLDivElement>(null)
 
   const getCatInfo = (cat: string) => CATEGORY_INFO[cat as keyof typeof CATEGORY_INFO] || CATEGORY_INFO.outros
 
@@ -159,7 +178,7 @@ export function FeedRelatos() {
   ]
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-zinc-900">Pulso do Bairro</h2>
@@ -181,31 +200,39 @@ export function FeedRelatos() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
-          {Object.entries(CATEGORY_INFO).map(([key, info]) => (
-            <button
-              key={key}
-              onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                selectedCategory === key
-                  ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg scale-105'
-                  : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow'
-              }`}
-            >
-              <div className="text-center">
-                <div className="text-2xl mb-1">{info.label.split(' ')[0]}</div>
-                <div className="text-xs font-medium mb-1">{info.label.split(' ').slice(1).join(' ')}</div>
-                <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  selectedCategory === key ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'
-                }`}>
-                  {categoryCounts[key] || 0}
+          {Object.entries(CATEGORY_INFO).map(([key, info]) => {
+            const Icon = info.icon
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  setSelectedCategory(selectedCategory === key ? null : key)
+                  if (reportsListRef.current) {
+                    reportsListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                }}
+                className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                  selectedCategory === key
+                    ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg scale-105'
+                    : 'border-zinc-200 bg-white hover:border-zinc-400 hover:shadow-md'
+                }`}
+              >
+                <div className="text-center">
+                  <Icon className="h-7 w-7 mx-auto mb-2" />
+                  <div className="text-xs font-semibold mb-2">{info.label}</div>
+                  <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    selectedCategory === key ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-700'
+                  }`}>
+                    {categoryCounts[key] || 0}
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto" ref={reportsListRef}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
@@ -216,57 +243,67 @@ export function FeedRelatos() {
           </div>
         ) : (
           <div className="space-y-4">
-            {reports.map(report => (
-              <div
-                key={report.id}
-                onClick={() => openReportModal(report)}
-                className="bg-white rounded-xl p-5 border border-zinc-200 hover:border-zinc-300 hover:shadow-md transition-all cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${getCatInfo(report.category).color}`}>
-                    {getCatInfo(report.category).label}
-                  </span>
-                  <div className="flex items-center gap-1 text-zinc-400 text-sm">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{getTimeAgo(report.created_at)}</span>
+            {reports.map(report => {
+              const Icon = getCatInfo(report.category).icon
+              return (
+                <div
+                  key={report.id}
+                  onClick={() => openReportModal(report)}
+                  className="bg-white rounded-xl p-5 border border-zinc-200 hover:border-zinc-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${getCatInfo(report.category).color}`}>
+                      <Icon className="h-3.5 w-3.5" />
+                      {getCatInfo(report.category).label}
+                    </span>
+                    <div className="flex items-center gap-1 text-zinc-400 text-sm">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>{getTimeAgo(report.created_at)}</span>
+                    </div>
+                  </div>
+                  <p className="text-zinc-700 leading-relaxed mb-3">{report.text}</p>
+                  <div className="flex items-center gap-1 text-zinc-500">
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="text-sm font-medium">{commentCounts[report.id] || 0}</span>
                   </div>
                 </div>
-                <p className="text-zinc-700 mb-3">{report.text}</p>
-                <div className="flex items-center gap-1 text-zinc-500">
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="text-sm font-medium">{commentCounts[report.id] || 0}</span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
 
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedReport(null)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white p-4 border-b border-zinc-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedReport(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white p-5 border-b border-zinc-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-zinc-900">Relato</h2>
-                <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getCatInfo(selectedReport.category).color}`}>
-                  {getCatInfo(selectedReport.category).label}
-                </span>
+                {(() => {
+                  const Icon = getCatInfo(selectedReport.category).icon
+                  return (
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${getCatInfo(selectedReport.category).color}`}>
+                      <Icon className="h-3.5 w-3.5" />
+                      {getCatInfo(selectedReport.category).label}
+                    </span>
+                  )
+                })()}
               </div>
               <button
                 onClick={() => setSelectedReport(null)}
-                className="p-1 rounded-lg hover:bg-zinc-100 transition-colors"
+                className="p-2 rounded-lg hover:bg-zinc-100 transition-colors duration-200"
               >
                 <X className="h-5 w-5 text-zinc-500" />
               </button>
             </div>
 
-            <div className="p-4 space-y-4">
-              <div className="pb-4 border-b border-zinc-200">
-                <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2">
+            <div className="p-5 space-y-5">
+              <div className="pb-5 border-b border-zinc-200">
+                <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3">
                   <Clock className="h-4 w-4" />
                   <span>{getTimeAgo(selectedReport.created_at)}</span>
                 </div>
-                <p className="text-zinc-800">{selectedReport.text}</p>
+                <p className="text-zinc-800 leading-relaxed">{selectedReport.text}</p>
               </div>
 
               <div className="space-y-3">
@@ -274,11 +311,11 @@ export function FeedRelatos() {
                   Comentarios ({comments.length})
                 </h3>
                 {comments.map(comment => (
-                  <div key={comment.id} className="bg-zinc-50 rounded-lg p-3">
-                    <div className="text-xs text-zinc-500 mb-1">
+                  <div key={comment.id} className="bg-zinc-50 rounded-xl p-4 border border-zinc-100 transition-colors duration-200 hover:bg-zinc-100">
+                    <div className="text-xs text-zinc-500 mb-2">
                       {getTimeAgo(comment.created_at)}
                     </div>
-                    <p className="text-sm text-zinc-700">{comment.text}</p>
+                    <p className="text-sm text-zinc-700 leading-relaxed">{comment.text}</p>
                   </div>
                 ))}
               </div>
@@ -288,12 +325,12 @@ export function FeedRelatos() {
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Adicione um comentario anonimo..."
-                  className="w-full min-h-[80px] p-3 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+                  className="w-full min-h-[80px] p-3 border border-zinc-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent resize-none transition-all duration-200"
                 />
                 <button
                   onClick={handleSubmitComment}
                   disabled={!commentText.trim() || submittingComment}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   {submittingComment ? (
                     <>

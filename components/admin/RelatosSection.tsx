@@ -24,6 +24,8 @@ export function RelatosSection() {
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('pendente')
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false)
 
   useEffect(() => {
     fetchRelatos()
@@ -116,6 +118,50 @@ export function RelatosSection() {
     }
   }
 
+  const bulkUpdateStatus = async (status: 'aprovado' | 'rejeitado') => {
+    if (selectedIds.length === 0) return
+    if (!confirm(`Tem certeza que deseja ${status === 'aprovado' ? 'aprovar' : 'rejeitar'} ${selectedIds.length} relato(s)?`)) return
+    
+    try {
+      setIsBulkProcessing(true)
+      const { error } = await supabase
+        .from('anonymous_reports')
+        .update({ status })
+        .in('id', selectedIds)
+
+      if (error) throw error
+      
+      toast.success(
+        `${selectedIds.length} relato(s) ${status === 'aprovado' ? 'aprovado(s)' : 'rejeitado(s)'} com sucesso!`
+      )
+      
+      setSelectedIds([])
+      await fetchRelatos()
+    } catch (error) {
+      console.error('[v0] Error bulk updating status:', error)
+      toast.error('Erro ao atualizar relatos em lote')
+    } finally {
+      setIsBulkProcessing(false)
+    }
+  }
+
+  const toggleSelectRelato = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(selectedId => selectedId !== id)
+        : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    const pendingRelatos = filteredRelatos.filter(r => r.status === 'pendente')
+    if (selectedIds.length === pendingRelatos.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(pendingRelatos.map(r => r.id))
+    }
+  }
+
   const filteredRelatos = relatosComTriagem.filter((relato) =>
     relato.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
     relato.category.toLowerCase().includes(searchTerm.toLowerCase())
@@ -180,7 +226,10 @@ export function RelatosSection() {
           {(['todos', 'pendente', 'aprovado', 'rejeitado'] as const).map((status) => (
             <button
               key={status}
-              onClick={() => setFilterStatus(status)}
+              onClick={() => {
+                setFilterStatus(status)
+                setSelectedIds([])
+              }}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 filterStatus === status
                   ? 'bg-zinc-900 text-white'
@@ -192,6 +241,60 @@ export function RelatosSection() {
           ))}
         </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {filterStatus === 'pendente' && filteredRelatos.filter(r => r.status === 'pendente').length > 0 && (
+        <div className="rounded-lg border-2 border-zinc-300 bg-zinc-50 p-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length === filteredRelatos.filter(r => r.status === 'pendente').length && selectedIds.length > 0}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                />
+                <span className="text-sm font-medium text-zinc-700">
+                  Selecionar todos
+                </span>
+              </label>
+              {selectedIds.length > 0 && (
+                <span className="text-sm font-semibold text-zinc-900">
+                  {selectedIds.length} relato(s) selecionado(s)
+                </span>
+              )}
+            </div>
+            {selectedIds.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => bulkUpdateStatus('aprovado')}
+                  disabled={isBulkProcessing}
+                  className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isBulkProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  Aprovar Selecionados
+                </button>
+                <button
+                  onClick={() => bulkUpdateStatus('rejeitado')}
+                  disabled={isBulkProcessing}
+                  className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isBulkProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <X className="h-4 w-4" />
+                  )}
+                  Rejeitar Selecionados
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Relatos List */}
       <div className="space-y-3">
@@ -210,9 +313,22 @@ export function RelatosSection() {
                   relato.status === 'pendente' && relato.triagem.nivelRisco === 'alto'
                     ? 'border-red-300 shadow-lg'
                     : 'border-zinc-200'
+                } ${
+                  selectedIds.includes(relato.id) ? 'ring-2 ring-zinc-900' : ''
                 }`}
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  {/* Checkbox for pending relatos */}
+                  {relato.status === 'pendente' && (
+                    <div className="pt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(relato.id)}
+                        onChange={() => toggleSelectRelato(relato.id)}
+                        className="h-5 w-5 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900 cursor-pointer"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1 space-y-2">
                     {/* Header com categoria e badge de risco */}
                     <div className="flex items-center gap-2 flex-wrap">
@@ -253,6 +369,8 @@ export function RelatosSection() {
                     )}
                   </div>
 
+                  </div>
+                  
                   {/* Actions */}
                   {relato.status === 'pendente' && (
                     <div className="flex gap-2">
