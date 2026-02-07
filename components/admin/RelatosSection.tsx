@@ -368,8 +368,6 @@ export function RelatosSection() {
                       </div>
                     )}
                   </div>
-
-                  </div>
                   
                   {/* Actions */}
                   {relato.status === 'pendente' && (

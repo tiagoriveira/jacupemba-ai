@@ -74,6 +74,7 @@ export function FeedRelatos() {
     if (userFingerprint) {
       fetchReports()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, selectedCategory, userFingerprint])
 
   const fetchReports = async () => {
