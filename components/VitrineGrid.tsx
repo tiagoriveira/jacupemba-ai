@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User } from 'lucide-react'
+import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -14,6 +14,8 @@ interface VitrinePost {
   price: number
   category: string
   image_url: string
+  video_url?: string
+  aspect_ratio?: 'square' | 'vertical'
   expires_at: string
   created_at: string
 }
@@ -145,26 +147,41 @@ export function VitrineGrid() {
           <p className="text-zinc-400 text-xs mt-1">Os anuncios expiram em 48h</p>
         </div>
       ) : (
-        <div className="mx-auto max-w-6xl px-2 py-2">
+        <div className="mx-auto max-w-6xl px-0 py-0">
           {/* Masonry Grid - Instagram Explore Style */}
-          <div className="columns-2 gap-2 sm:columns-3 lg:columns-4">
+          <div className="columns-2 gap-0 sm:columns-3 lg:columns-4">
             {filteredPosts.map((post) => {
               const config = getCatConfig(post.category)
+              const isVertical = post.aspect_ratio === 'vertical'
 
               return (
                 <button
                   key={post.id}
                   onClick={() => setSelectedPost(post)}
-                  className="group relative mb-2 w-full break-inside-avoid overflow-hidden rounded-lg transition-all duration-200 hover:opacity-90"
+                  className="group relative mb-0 w-full break-inside-avoid overflow-hidden transition-all duration-200 hover:opacity-90"
                 >
-                  {post.image_url ? (
+                  {post.video_url ? (
+                    <div className="relative w-full">
+                      <video
+                        src={post.video_url}
+                        className={`w-full object-cover ${isVertical ? 'aspect-[9/16]' : 'aspect-square'}`}
+                        playsInline
+                        muted
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="rounded-full bg-white/90 p-3 backdrop-blur-sm">
+                          <Play className="h-6 w-6 text-zinc-900" fill="currentColor" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : post.image_url ? (
                     <img
                       src={post.image_url}
                       alt={post.title}
-                      className="w-full object-cover"
+                      className={`w-full object-cover ${isVertical ? 'aspect-[9/16]' : 'aspect-square'}`}
                     />
                   ) : (
-                    <div className={`flex aspect-square w-full items-center justify-center bg-gradient-to-br ${config.bg}`}>
+                    <div className={`flex ${isVertical ? 'aspect-[9/16]' : 'aspect-square'} w-full items-center justify-center bg-gradient-to-br ${config.bg}`}>
                       <config.icon className="h-16 w-16 text-white/20" />
                     </div>
                   )}
@@ -193,8 +210,17 @@ export function VitrineGrid() {
               <X className="h-5 w-5" />
             </button>
 
-            {/* Image / Gradient */}
-            {selectedPost.image_url ? (
+            {/* Image / Video / Gradient */}
+            {selectedPost.video_url ? (
+              <div className="relative aspect-square">
+                <video
+                  src={selectedPost.video_url}
+                  className="h-full w-full object-cover"
+                  controls
+                  playsInline
+                />
+              </div>
+            ) : selectedPost.image_url ? (
               <div className="relative aspect-square">
                 <img
                   src={selectedPost.image_url}
