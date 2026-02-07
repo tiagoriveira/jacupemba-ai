@@ -20,10 +20,16 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
     phone: '',
     address: '',
     hours: '',
+    diferencial: '',
+    promocao: '',
+    tempo_entrega: '',
+    formas_pagamento: '',
+    link_social: '',
     verified: false
   })
 
   const categories = [
+    'Alimentacao',
     'Restaurante',
     'Mercado',
     'Farmacia',
@@ -32,6 +38,10 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
     'Beleza',
     'Saude',
     'Educacao',
+    'Construcao e Reparos',
+    'Automotivo',
+    'Pets',
+    'Tecnologia',
     'Outro'
   ]
 
@@ -63,6 +73,11 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
         phone: '',
         address: '',
         hours: '',
+        diferencial: '',
+        promocao: '',
+        tempo_entrega: '',
+        formas_pagamento: '',
+        link_social: '',
         verified: false
       })
       onSuccess()
@@ -183,6 +198,77 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
                 onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
                 placeholder="Ex: Seg-Sex 8h-18h"
+              />
+            </div>
+
+            {/* Diferencial */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-900">
+                Diferencial (obrigatorio) *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.diferencial}
+                onChange={(e) => setFormData({ ...formData, diferencial: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                placeholder="O que torna esta empresa especial?"
+              />
+            </div>
+
+            {/* Promocao */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-900">
+                Promocao ou Oferta Especial
+              </label>
+              <input
+                type="text"
+                value={formData.promocao}
+                onChange={(e) => setFormData({ ...formData, promocao: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                placeholder="Ex: 10% de desconto na primeira compra"
+              />
+            </div>
+
+            {/* Tempo de Entrega */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-900">
+                Tempo de Entrega
+              </label>
+              <input
+                type="text"
+                value={formData.tempo_entrega}
+                onChange={(e) => setFormData({ ...formData, tempo_entrega: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                placeholder="Ex: 30-45 minutos"
+              />
+            </div>
+
+            {/* Formas de Pagamento */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-900">
+                Formas de Pagamento
+              </label>
+              <input
+                type="text"
+                value={formData.formas_pagamento}
+                onChange={(e) => setFormData({ ...formData, formas_pagamento: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                placeholder="Ex: Dinheiro, Pix, Cartao"
+              />
+            </div>
+
+            {/* Link Social */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-900">
+                Instagram / Facebook
+              </label>
+              <input
+                type="url"
+                value={formData.link_social}
+                onChange={(e) => setFormData({ ...formData, link_social: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                placeholder="https://instagram.com/..."
               />
             </div>
 

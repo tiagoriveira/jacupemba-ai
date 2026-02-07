@@ -32,7 +32,9 @@ export type Report = {
 export type ReportComment = {
   id: string
   report_id: string
+  parent_id: string | null
   text: string
+  author_name: string
   created_at: string
 }
 
@@ -58,6 +60,11 @@ export type Business = {
   phone: string | null
   address: string | null
   hours: string | null
+  diferencial: string | null
+  promocao: string | null
+  tempo_entrega: string | null
+  formas_pagamento: string | null
+  link_social: string | null
   verified: boolean
   status: Status
   created_at: string

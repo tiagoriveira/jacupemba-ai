@@ -55,6 +55,7 @@ export function FeedRelatos() {
   const [comments, setComments] = useState<ReportComment[]>([])
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const reportsListRef = useRef<HTMLDivElement>(null)
   
   // Likes state
