@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
+import { getUserFingerprint } from '@/lib/fingerprint'
 import { 
   MessageSquare, 
   Clock, 
@@ -21,7 +22,8 @@ import {
   CalendarDays,
   Store,
   Bus,
-  MapPin
+  MapPin,
+  Heart
 } from 'lucide-react'
 
 type TimePeriod = '60min' | '24h' | '7d'
@@ -53,12 +55,26 @@ export function FeedRelatos() {
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
   const reportsListRef = useRef<HTMLDivElement>(null)
+  
+  // Likes state
+  const [reportLikeCounts, setReportLikeCounts] = useState<Record<string, number>>({})
+  const [commentLikeCounts, setCommentLikeCounts] = useState<Record<string, number>>({})
+  const [userLikedReports, setUserLikedReports] = useState<Set<string>>(new Set())
+  const [userLikedComments, setUserLikedComments] = useState<Set<string>>(new Set())
+  const [userFingerprint, setUserFingerprint] = useState<string>('')
 
   const getCatInfo = (cat: string) => CATEGORY_INFO[cat as keyof typeof CATEGORY_INFO] || CATEGORY_INFO.outros
 
   useEffect(() => {
-    fetchReports()
-  }, [period, selectedCategory])
+    // Initialize user fingerprint
+    setUserFingerprint(getUserFingerprint())
+  }, [])
+
+  useEffect(() => {
+    if (userFingerprint) {
+      fetchReports()
+    }
+  }, [period, selectedCategory, userFingerprint])
 
   const fetchReports = async () => {
     try {
@@ -95,6 +111,7 @@ export function FeedRelatos() {
         
         const reportIds = data.map(r => r.id)
         if (reportIds.length > 0) {
+          // Fetch comment counts
           const { data: commentsData } = await supabase
             .from('report_comments')
             .select('report_id')
@@ -105,6 +122,29 @@ export function FeedRelatos() {
             commentCountsMap[comment.report_id] = (commentCountsMap[comment.report_id] || 0) + 1
           })
           setCommentCounts(commentCountsMap)
+
+          // Fetch like counts for reports
+          const { data: likesData } = await supabase
+            .from('report_likes')
+            .select('report_id')
+            .in('report_id', reportIds)
+          
+          const likeCountsMap: Record<string, number> = {}
+          likesData?.forEach(like => {
+            likeCountsMap[like.report_id] = (likeCountsMap[like.report_id] || 0) + 1
+          })
+          setReportLikeCounts(likeCountsMap)
+
+          // Fetch user's liked reports
+          if (userFingerprint) {
+            const { data: userLikesData } = await supabase
+              .from('report_likes')
+              .select('report_id')
+              .in('report_id', reportIds)
+              .eq('user_fingerprint', userFingerprint)
+            
+            setUserLikedReports(new Set(userLikesData?.map(l => l.report_id) || []))
+          }
         }
       }
     } catch (err) {
@@ -125,6 +165,122 @@ export function FeedRelatos() {
       .order('created_at', { ascending: true })
     
     setComments(data || [])
+
+    // Fetch comment likes
+    if (data && data.length > 0) {
+      const commentIds = data.map(c => c.id)
+      
+      // Fetch like counts for comments
+      const { data: commentLikesData } = await supabase
+        .from('comment_likes')
+        .select('comment_id')
+        .in('comment_id', commentIds)
+      
+      const commentLikeCountsMap: Record<string, number> = {}
+      commentLikesData?.forEach(like => {
+        commentLikeCountsMap[like.comment_id] = (commentLikeCountsMap[like.comment_id] || 0) + 1
+      })
+      setCommentLikeCounts(commentLikeCountsMap)
+
+      // Fetch user's liked comments
+      if (userFingerprint) {
+        const { data: userCommentLikesData } = await supabase
+          .from('comment_likes')
+          .select('comment_id')
+          .in('comment_id', commentIds)
+          .eq('user_fingerprint', userFingerprint)
+        
+        setUserLikedComments(new Set(userCommentLikesData?.map(l => l.comment_id) || []))
+      }
+    }
+  }
+
+  const toggleReportLike = async (reportId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!userFingerprint) return
+
+    const isLiked = userLikedReports.has(reportId)
+
+    try {
+      if (isLiked) {
+        // Unlike
+        await supabase
+          .from('report_likes')
+          .delete()
+          .eq('report_id', reportId)
+          .eq('user_fingerprint', userFingerprint)
+
+        setUserLikedReports(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(reportId)
+          return newSet
+        })
+        setReportLikeCounts(prev => ({
+          ...prev,
+          [reportId]: Math.max(0, (prev[reportId] || 0) - 1)
+        }))
+      } else {
+        // Like
+        await supabase
+          .from('report_likes')
+          .insert({
+            report_id: reportId,
+            user_fingerprint: userFingerprint
+          })
+
+        setUserLikedReports(prev => new Set([...prev, reportId]))
+        setReportLikeCounts(prev => ({
+          ...prev,
+          [reportId]: (prev[reportId] || 0) + 1
+        }))
+      }
+    } catch (error) {
+      console.error('[v0] Error toggling report like:', error)
+    }
+  }
+
+  const toggleCommentLike = async (commentId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!userFingerprint) return
+
+    const isLiked = userLikedComments.has(commentId)
+
+    try {
+      if (isLiked) {
+        // Unlike
+        await supabase
+          .from('comment_likes')
+          .delete()
+          .eq('comment_id', commentId)
+          .eq('user_fingerprint', userFingerprint)
+
+        setUserLikedComments(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(commentId)
+          return newSet
+        })
+        setCommentLikeCounts(prev => ({
+          ...prev,
+          [commentId]: Math.max(0, (prev[commentId] || 0) - 1)
+        }))
+      } else {
+        // Like
+        await supabase
+          .from('comment_likes')
+          .insert({
+            comment_id: commentId,
+            user_fingerprint: userFingerprint
+          })
+
+        setUserLikedComments(prev => new Set([...prev, commentId]))
+        setCommentLikeCounts(prev => ({
+          ...prev,
+          [commentId]: (prev[commentId] || 0) + 1
+        }))
+      }
+    } catch (error) {
+      console.error('[v0] Error toggling comment like:', error)
+    }
   }
 
   const handleSubmitComment = async () => {
@@ -152,6 +308,32 @@ export function FeedRelatos() {
           ...prev,
           [selectedReport.id]: (prev[selectedReport.id] || 0) + 1
         }))
+
+        // Reset comment likes for new comments
+        if (data && data.length > 0) {
+          const commentIds = data.map(c => c.id)
+          
+          const { data: commentLikesData } = await supabase
+            .from('comment_likes')
+            .select('comment_id')
+            .in('comment_id', commentIds)
+          
+          const commentLikeCountsMap: Record<string, number> = {}
+          commentLikesData?.forEach(like => {
+            commentLikeCountsMap[like.comment_id] = (commentLikeCountsMap[like.comment_id] || 0) + 1
+          })
+          setCommentLikeCounts(commentLikeCountsMap)
+
+          if (userFingerprint) {
+            const { data: userCommentLikesData } = await supabase
+              .from('comment_likes')
+              .select('comment_id')
+              .in('comment_id', commentIds)
+              .eq('user_fingerprint', userFingerprint)
+            
+            setUserLikedComments(new Set(userCommentLikesData?.map(l => l.comment_id) || []))
+          }
+        }
       }
     } catch (err) {
       console.error('Erro ao adicionar comentario:', err)
@@ -262,9 +444,24 @@ export function FeedRelatos() {
                     </div>
                   </div>
                   <p className="text-zinc-700 leading-relaxed mb-3">{report.text}</p>
-                  <div className="flex items-center gap-1 text-zinc-500">
-                    <MessageSquare className="h-4 w-4" />
-                    <span className="text-sm font-medium">{commentCounts[report.id] || 0}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 text-zinc-500">
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="text-sm font-medium">{commentCounts[report.id] || 0}</span>
+                    </div>
+                    <button
+                      onClick={(e) => toggleReportLike(report.id, e)}
+                      className={`flex items-center gap-1 transition-colors ${
+                        userLikedReports.has(report.id)
+                          ? 'text-red-500'
+                          : 'text-zinc-500 hover:text-red-500'
+                      }`}
+                    >
+                      <Heart
+                        className={`h-4 w-4 ${userLikedReports.has(report.id) ? 'fill-current' : ''}`}
+                      />
+                      <span className="text-sm font-medium">{reportLikeCounts[report.id] || 0}</span>
+                    </button>
                   </div>
                 </div>
               )
@@ -299,9 +496,24 @@ export function FeedRelatos() {
 
             <div className="p-5 space-y-5">
               <div className="pb-5 border-b border-zinc-200">
-                <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3">
-                  <Clock className="h-4 w-4" />
-                  <span>{getTimeAgo(selectedReport.created_at)}</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-sm text-zinc-500">
+                    <Clock className="h-4 w-4" />
+                    <span>{getTimeAgo(selectedReport.created_at)}</span>
+                  </div>
+                  <button
+                    onClick={(e) => toggleReportLike(selectedReport.id, e)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                      userLikedReports.has(selectedReport.id)
+                        ? 'bg-red-50 text-red-600 border border-red-200'
+                        : 'bg-zinc-50 text-zinc-600 border border-zinc-200 hover:border-red-300 hover:text-red-500'
+                    }`}
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${userLikedReports.has(selectedReport.id) ? 'fill-current' : ''}`}
+                    />
+                    <span className="text-sm font-semibold">{reportLikeCounts[selectedReport.id] || 0}</span>
+                  </button>
                 </div>
                 <p className="text-zinc-800 leading-relaxed">{selectedReport.text}</p>
               </div>
@@ -312,8 +524,23 @@ export function FeedRelatos() {
                 </h3>
                 {comments.map(comment => (
                   <div key={comment.id} className="bg-zinc-50 rounded-xl p-4 border border-zinc-100 transition-colors duration-200 hover:bg-zinc-100">
-                    <div className="text-xs text-zinc-500 mb-2">
-                      {getTimeAgo(comment.created_at)}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs text-zinc-500">
+                        {getTimeAgo(comment.created_at)}
+                      </div>
+                      <button
+                        onClick={(e) => toggleCommentLike(comment.id, e)}
+                        className={`flex items-center gap-1 text-xs transition-colors ${
+                          userLikedComments.has(comment.id)
+                            ? 'text-red-500'
+                            : 'text-zinc-400 hover:text-red-500'
+                        }`}
+                      >
+                        <Heart
+                          className={`h-3.5 w-3.5 ${userLikedComments.has(comment.id) ? 'fill-current' : ''}`}
+                        />
+                        <span className="font-medium">{commentLikeCounts[comment.id] || 0}</span>
+                      </button>
                     </div>
                     <p className="text-sm text-zinc-700 leading-relaxed">{comment.text}</p>
                   </div>

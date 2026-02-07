@@ -36,6 +36,20 @@ export type ReportComment = {
   created_at: string
 }
 
+export type ReportLike = {
+  id: string
+  report_id: string
+  user_fingerprint: string
+  created_at: string
+}
+
+export type CommentLike = {
+  id: string
+  comment_id: string
+  user_fingerprint: string
+  created_at: string
+}
+
 export type Business = {
   id: string
   name: string
