@@ -15,19 +15,19 @@ interface VitrineUploadModalProps {
     description: string
     price: number
     category: string
-    seller_name: string
-    seller_phone: string
-    media_url: string
+    contact_name: string
+    contact_phone: string
+    image_url: string
   } | null
 }
 
 export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: VitrineUploadModalProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [imagePreview, setImagePreview] = useState<string>(editPost?.media_url || '')
+  const [imagePreview, setImagePreview] = useState<string>(editPost?.image_url || '')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [formData, setFormData] = useState({
-    seller_name: editPost?.seller_name || '',
-    seller_phone: editPost?.seller_phone || '',
+    contact_name: editPost?.contact_name || '',
+    contact_phone: editPost?.contact_phone || '',
     title: editPost?.title || '',
     description: editPost?.description || '',
     price: editPost?.price?.toString() || '',
@@ -82,7 +82,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
         .upload(filePath, file)
 
       if (uploadError) {
-        console.error('[v0] Storage upload error:', uploadError)
+        console.error('Storage upload error:', uploadError)
         // Fallback: converter para base64
         return new Promise((resolve) => {
           const reader = new FileReader()
@@ -99,7 +99,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
 
       return data.publicUrl
     } catch (error) {
-      console.error('[v0] Error in uploadImage:', error)
+      console.error('Error in uploadImage:', error)
       // Fallback: converter para base64
       return new Promise((resolve) => {
         const reader = new FileReader()
@@ -114,7 +114,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.title || !formData.price || !formData.seller_name || !formData.seller_phone) {
+    if (!formData.title || !formData.price || !formData.contact_name || !formData.contact_phone) {
       toast.error('Preencha todos os campos obrigatórios')
       return
     }
@@ -127,11 +127,11 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
     try {
       setIsLoading(true)
       
-      let mediaUrl = editPost?.media_url || ''
+      let imageUrl = editPost?.image_url || ''
       
       // Upload nova imagem se fornecida
       if (imageFile) {
-        mediaUrl = await uploadImage(imageFile)
+        imageUrl = await uploadImage(imageFile)
       }
 
       // Calcular data de expiração (48h)
@@ -139,15 +139,15 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
       expiresAt.setHours(expiresAt.getHours() + 48)
 
       const postData = {
-        seller_name: formData.seller_name,
-        seller_phone: formData.seller_phone,
+        contact_name: formData.contact_name,
+        contact_phone: formData.contact_phone,
         title: formData.title,
         description: formData.description,
         price: parseFloat(formData.price),
         category: formData.category,
-        media_url: mediaUrl,
+        image_url: imageUrl,
         expires_at: expiresAt.toISOString(),
-        status: 'aprovado' // Admin criando já aprova automaticamente
+        status: 'aprovado' as const
       }
 
       if (editPost) {
@@ -172,7 +172,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
       onSuccess()
       onClose()
     } catch (error) {
-      console.error('[v0] Error saving post:', error)
+      console.error('Error saving post:', error)
       toast.error('Erro ao salvar post')
     } finally {
       setIsLoading(false)
@@ -252,8 +252,8 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                 <input
                   type="text"
                   required
-                  value={formData.seller_name}
-                  onChange={(e) => setFormData({ ...formData, seller_name: e.target.value })}
+                  value={formData.contact_name}
+                  onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
                   className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
                   placeholder="Nome ou empresa"
                 />
@@ -267,8 +267,8 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                 <input
                   type="tel"
                   required
-                  value={formData.seller_phone}
-                  onChange={(e) => setFormData({ ...formData, seller_phone: e.target.value })}
+                  value={formData.contact_phone}
+                  onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
                   className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
                   placeholder="(11) 98765-4321"
                 />

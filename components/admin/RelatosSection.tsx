@@ -20,6 +20,7 @@ interface RelatoComTriagem extends Relato {
 
 export function RelatosSection() {
   const [relatos, setRelatos] = useState<Relato[]>([])
+  const [allRelatos, setAllRelatos] = useState<Relato[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('pendente')
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -30,6 +31,22 @@ export function RelatosSection() {
   useEffect(() => {
     fetchRelatos()
   }, [filterStatus])
+
+  useEffect(() => {
+    fetchAllRelatos()
+  }, [])
+
+  const fetchAllRelatos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('anonymous_reports')
+        .select('*')
+      if (error) throw error
+      setAllRelatos(data || [])
+    } catch {
+      // silently fail for stats
+    }
+  }
 
   const fetchRelatos = async () => {
     try {
@@ -46,8 +63,10 @@ export function RelatosSection() {
       const { data, error } = await query
       if (error) throw error
       setRelatos(data || [])
+      // also refresh stats
+      fetchAllRelatos()
     } catch (error) {
-      console.error('[v0] Error fetching relatos:', error)
+      console.error('Error fetching relatos:', error)
       toast.error('Erro ao carregar relatos')
     } finally {
       setIsLoading(false)
@@ -90,7 +109,7 @@ export function RelatosSection() {
       
       await fetchRelatos()
     } catch (error) {
-      console.error('[v0] Error updating status:', error)
+      console.error('Error updating status:', error)
       toast.error('Erro ao atualizar status')
     } finally {
       setLoadingId(null)
@@ -111,7 +130,7 @@ export function RelatosSection() {
       toast.success('Relato deletado com sucesso!')
       await fetchRelatos()
     } catch (error) {
-      console.error('[v0] Error deleting relato:', error)
+      console.error('Error deleting relato:', error)
       toast.error('Erro ao deletar relato')
     } finally {
       setLoadingId(null)
@@ -138,7 +157,7 @@ export function RelatosSection() {
       setSelectedIds([])
       await fetchRelatos()
     } catch (error) {
-      console.error('[v0] Error bulk updating status:', error)
+      console.error('Error bulk updating status:', error)
       toast.error('Erro ao atualizar relatos em lote')
     } finally {
       setIsBulkProcessing(false)
@@ -176,12 +195,19 @@ export function RelatosSection() {
     outro: 'Outro'
   }
 
+  const allRelatosComTriagem = useMemo(() => {
+    return allRelatos.map(relato => ({
+      ...relato,
+      triagem: analisarRelato(relato.text, relato.category)
+    }))
+  }, [allRelatos])
+
   const stats = {
-    total: relatos.length,
-    pendentes: relatos.filter(r => r.status === 'pendente').length,
-    aprovados: relatos.filter(r => r.status === 'aprovado').length,
-    rejeitados: relatos.filter(r => r.status === 'rejeitado').length,
-    altoRisco: relatosComTriagem.filter(r => r.status === 'pendente' && r.triagem.nivelRisco === 'alto').length
+    total: allRelatos.length,
+    pendentes: allRelatos.filter(r => r.status === 'pendente').length,
+    aprovados: allRelatos.filter(r => r.status === 'aprovado').length,
+    rejeitados: allRelatos.filter(r => r.status === 'rejeitado').length,
+    altoRisco: allRelatosComTriagem.filter(r => r.status === 'pendente' && r.triagem.nivelRisco === 'alto').length
   }
 
   return (

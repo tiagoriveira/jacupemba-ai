@@ -8,13 +8,13 @@ import { VitrineUploadModal } from './VitrineUploadModal'
 
 interface VitrinePost {
   id: string
-  seller_name: string
-  seller_phone: string
+  contact_name: string
+  contact_phone: string
   title: string
   description: string
   price: number
   category: string
-  media_url: string
+  image_url: string
   expires_at: string
   status: 'pendente' | 'aprovado' | 'rejeitado'
   created_at: string
@@ -47,7 +47,7 @@ export function VitrineSection() {
       if (error) throw error
       setPosts(data || [])
     } catch (error) {
-      console.error('[v0] Error fetching vitrine posts:', error)
+      console.error('Error fetching vitrine posts:', error)
     }
   }
 
@@ -69,7 +69,7 @@ export function VitrineSection() {
       
       await fetchPosts()
     } catch (error) {
-      console.error('[v0] Error updating status:', error)
+      console.error('Error updating status:', error)
       toast.error('Erro ao atualizar status')
     } finally {
       setLoadingId(null)
@@ -90,7 +90,7 @@ export function VitrineSection() {
       toast.success('Post deletado com sucesso!')
       await fetchPosts()
     } catch (error) {
-      console.error('[v0] Error deleting:', error)
+      console.error('Error deleting:', error)
       toast.error('Erro ao deletar')
     } finally {
       setLoadingId(null)
@@ -109,7 +109,7 @@ export function VitrineSection() {
 
   const filteredPosts = posts.filter(post =>
     post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.seller_name.toLowerCase().includes(searchTerm.toLowerCase())
+    (post.contact_name && post.contact_name.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   const getStatusColor = (status: string) => {
@@ -211,11 +211,17 @@ export function VitrineSection() {
             filteredPosts.map((post) => (
               <div key={post.id} className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
                 <div className="relative aspect-square bg-zinc-100">
-                  <img
-                    src={post.media_url}
-                    alt={post.title}
-                    className="h-full w-full object-cover"
-                  />
+                  {post.image_url ? (
+                    <img
+                      src={post.image_url}
+                      alt={post.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <Store className="h-12 w-12 text-zinc-300" />
+                    </div>
+                  )}
                   <div className="absolute left-3 top-3 flex gap-2">
                     <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(post.status)}`}>
                       {post.status}
@@ -232,7 +238,7 @@ export function VitrineSection() {
                   <div className="mt-3 space-y-1 text-sm text-zinc-600">
                     <div className="flex items-center gap-2">
                       <Store className="h-4 w-4" />
-                      <span>{post.seller_name}</span>
+                      <span>{post.contact_name || 'Sem nome'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />

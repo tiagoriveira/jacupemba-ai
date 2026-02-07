@@ -108,7 +108,7 @@ export default function Page() {
           .gte('created_at', sevenDaysAgo)
         
         if (error) {
-          console.error('[v0] Error fetching reports:', error)
+          console.error('Error fetching reports:', error)
           setTrendingTopics([])
           return
         }
@@ -129,7 +129,7 @@ export default function Page() {
 
         setTrendingTopics(trending)
       } catch (error) {
-        console.error('[v0] Error calculating trending topics:', error)
+        console.error('Error calculating trending topics:', error)
         setTrendingTopics([])
       }
     }
@@ -276,7 +276,7 @@ export default function Page() {
         }])
       
       if (error) {
-        console.error('[v0] Error submitting report:', error)
+        console.error('Error submitting report:', error)
         alert('Erro ao enviar relato. Tente novamente.')
         return
       }
@@ -289,7 +289,7 @@ export default function Page() {
         setReportSubmitted(false)
       }, 2000)
     } catch (error) {
-      console.error('[v0] Error submitting report:', error)
+      console.error('Error submitting report:', error)
       alert('Erro ao enviar relato. Tente novamente.')
     }
   }

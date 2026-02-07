@@ -78,7 +78,7 @@ async function getBairroContext() {
       vitrinePosts: vitrinePosts || [],
     }
   } catch (error) {
-    console.error('[v0] Error fetching bairro context:', error)
+    console.error('Error fetching bairro context:', error)
     return { reports: [], comments: [], businesses: [], vitrinePosts: [] }
   }
 }
@@ -185,7 +185,6 @@ const buscarComercio = tool({
           nome: b.name,
           categoria: b.category,
           telefone: b.phone || 'N/A',
-          whatsapp: b.whatsapp || 'N/A',
           endereco: b.address || 'N/A',
           horario: b.hours || 'Consultar',
           descricao: b.description || '',
@@ -331,7 +330,7 @@ export async function POST(req: Request) {
         ? `\n\nCOMERCIOS E SERVICOS LOCAIS VERIFICADOS:\n${businesses
             .map(
               b =>
-                `- ${b.name} (${b.category}) | Tel: ${b.phone || 'N/A'} | WhatsApp: ${b.whatsapp || 'N/A'} | ${b.address || 'Endereco nao informado'} | Horario: ${b.hours || 'Consultar'} | ${b.description || ''} [fonte: comercio verificado]`
+                `- ${b.name} (${b.category}) | Tel: ${b.phone || 'N/A'} | ${b.address || 'Endereco nao informado'} | Horario: ${b.hours || 'Consultar'} | ${b.description || ''} [fonte: comercio verificado]`
             )
             .join('\n')}`
         : '\n\nNenhum comercio ou servico cadastrado no momento.'
@@ -341,7 +340,7 @@ export async function POST(req: Request) {
         ? `\n\nANUNCIOS NA VITRINE (temporarios):\n${vitrinePosts
             .map(
               v =>
-                `- ${v.title} - R$ ${v.price || 'A combinar'} | Vendedor: ${v.seller_name} | Tel: ${v.seller_phone} | ${v.description || ''} (${formatRelativeTime(v.created_at)}) [fonte: vitrine]`
+                `- ${v.title} - R$ ${v.price || 'A combinar'} | Vendedor: ${v.contact_name || 'N/A'} | Tel: ${v.contact_phone || 'N/A'} | ${v.description || ''} (${formatRelativeTime(v.created_at)}) [fonte: vitrine]`
             )
             .join('\n')}`
         : '\n\nNenhum anuncio ativo na vitrine.'
@@ -411,7 +410,7 @@ INSTRUCOES TECNICAS:
       consumeSseStream: consumeStream,
     })
   } catch (error) {
-    console.error('[v0] Error in chat API:', error)
+    console.error('Error in chat API:', error)
     return new Response(
       JSON.stringify({
         error: 'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.',
