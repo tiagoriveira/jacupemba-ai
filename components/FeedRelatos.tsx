@@ -1,6 +1,6 @@
 'use client'
 
-// Feed de relatos do bairro com sistema de comentarios anonimos - v2
+// Feed de relatos do bairro com sistema de comentarios anonimos
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
@@ -35,14 +35,15 @@ export function FeedRelatos() {
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
 
-  // Fetch reports baseado no periodo e categoria
+  const getCatInfo = (cat: string) => CATEGORY_INFO[cat as keyof typeof CATEGORY_INFO] || CATEGORY_INFO.outros
+
   useEffect(() => {
     fetchReports()
   }, [period, selectedCategory])
 
   const fetchReports = async () => {
-    setLoading(true)
     try {
+      setLoading(true)
       const now = Date.now()
       const cutoffTime = period === '60min' 
         ? new Date(now - 60 * 60 * 1000)
@@ -66,7 +67,6 @@ export function FeedRelatos() {
       if (!error && data) {
         setReports(data)
         
-        // Calcular contagens por categoria
         const counts: Record<string, number> = {}
         Object.keys(CATEGORY_INFO).forEach(cat => counts[cat] = 0)
         data.forEach(report => {
@@ -74,7 +74,6 @@ export function FeedRelatos() {
         })
         setCategoryCounts(counts)
         
-        // Buscar contagem de comentarios para cada relato
         const reportIds = data.map(r => r.id)
         if (reportIds.length > 0) {
           const { data: commentsData } = await supabase
@@ -90,179 +89,168 @@ export function FeedRelatos() {
         }
       }
     } catch (err) {
-      console.error('[v0] Error fetching reports:', err)
+      console.error('Erro ao buscar relatos:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchComments = async (reportId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('report_comments')
-        .select('*')
-        .eq('report_id', reportId)
-        .order('created_at', { ascending: true })
-
-      if (!error && data) {
-        setComments(data)
-      }
-    } catch (err) {
-      console.error('[v0] Error fetching comments:', err)
-    }
-  }
-
-  const handleReportClick = (report: Report) => {
+  const openReportModal = async (report: Report) => {
     setSelectedReport(report)
-    fetchComments(report.id)
+    setCommentText('')
+    
+    const { data } = await supabase
+      .from('report_comments')
+      .select('*')
+      .eq('report_id', report.id)
+      .order('created_at', { ascending: true })
+    
+    setComments(data || [])
   }
 
   const handleSubmitComment = async () => {
     if (!commentText.trim() || !selectedReport) return
-
-    setSubmittingComment(true)
+    
     try {
+      setSubmittingComment(true)
       const { error } = await supabase
         .from('report_comments')
-        .insert([{
+        .insert({
           report_id: selectedReport.id,
           text: commentText.trim()
-        }])
-
+        })
+      
       if (!error) {
         setCommentText('')
-        fetchComments(selectedReport.id)
+        const { data } = await supabase
+          .from('report_comments')
+          .select('*')
+          .eq('report_id', selectedReport.id)
+          .order('created_at', { ascending: true })
+        
+        setComments(data || [])
+        setCommentCounts(prev => ({
+          ...prev,
+          [selectedReport.id]: (prev[selectedReport.id] || 0) + 1
+        }))
       }
     } catch (err) {
-      console.error('[v0] Error submitting comment:', err)
+      console.error('Erro ao adicionar comentario:', err)
     } finally {
       setSubmittingComment(false)
     }
   }
 
-  const getTimeAgo = (timestamp: string) => {
-    const now = Date.now()
-    const created = new Date(timestamp).getTime()
-    const diff = now - created
+  const getTimeAgo = (dateString: string) => {
+    const diff = Date.now() - new Date(dateString).getTime()
     const minutes = Math.floor(diff / 60000)
-    const hours = Math.floor(diff / 3600000)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
     
-    if (minutes < 60) return `${minutes}min atrás`
-    if (hours < 24) return `${hours}h atrás`
-    return `${Math.floor(hours / 24)}d atrás`
+    if (days > 0) return `${days}d atras`
+    if (hours > 0) return `${hours}h atras`
+    return `${minutes}m atras`
   }
 
+  const periods: { value: TimePeriod; label: string }[] = [
+    { value: '60min', label: 'Ultima Hora' },
+    { value: '24h', label: 'Hoje' },
+    { value: '7d', label: 'Ultimos 7 Dias' }
+  ]
+
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
-      {/* Header com Tabs de Período */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h2 className="text-lg font-semibold text-zinc-900">Pulso do Bairro</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setPeriod('60min')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              period === '60min'
-                ? 'bg-zinc-900 text-white'
-                : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
-            }`}
-          >
-            Ultima Hora
-          </button>
-          <button
-            onClick={() => setPeriod('24h')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              period === '24h'
-                ? 'bg-zinc-900 text-white'
-                : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
-            }`}
-          >
-            Hoje
-          </button>
-          <button
-            onClick={() => setPeriod('7d')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              period === '7d'
-                ? 'bg-zinc-900 text-white'
-                : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
-            }`}
-          >
-            Ultimos 7 Dias
-          </button>
+    <div className="min-h-screen bg-zinc-50 p-6">
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-zinc-900">Pulso do Bairro</h2>
+          <div className="flex gap-2">
+            {periods.map(p => (
+              <button
+                key={p.value}
+                onClick={() => setPeriod(p.value)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  period === p.value
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
+          {Object.entries(CATEGORY_INFO).map(([key, info]) => (
+            <button
+              key={key}
+              onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
+              className={`p-4 rounded-xl border-2 transition-all ${
+                selectedCategory === key
+                  ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg scale-105'
+                  : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow'
+              }`}
+            >
+              <div className="text-center">
+                <div className="text-2xl mb-1">{info.label.split(' ')[0]}</div>
+                <div className="text-xs font-medium mb-1">{info.label.split(' ').slice(1).join(' ')}</div>
+                <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                  selectedCategory === key ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'
+                }`}>
+                  {categoryCounts[key] || 0}
+                </div>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Grid de Categorias */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {Object.entries(CATEGORY_INFO).map(([key, info]) => (
-          <button
-            key={key}
-            onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
-            className={`relative p-3 rounded-lg border-2 transition-all ${
-              selectedCategory === key 
-                ? 'border-zinc-900 bg-zinc-50 shadow-sm' 
-                : 'border-zinc-200 hover:border-zinc-400'
-            }`}
-          >
-            <div className="text-sm font-medium text-zinc-900 mb-1">
-              {info.label}
-            </div>
-            <div className="text-2xl font-bold text-zinc-900">
-              {categoryCounts[key] || 0}
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Feed de Relatos */}
-      <div className="space-y-3">
+      <div className="max-w-4xl mx-auto">
         {loading ? (
-          <div className="text-center py-12 text-zinc-500">Carregando relatos...</div>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+          </div>
         ) : reports.length === 0 ? (
           <div className="text-center py-12 text-zinc-500">
-            Nenhum relato {selectedCategory && `em ${CATEGORY_INFO[selectedCategory as keyof typeof CATEGORY_INFO]?.label}`} {period === '60min' ? 'na última hora' : period === '24h' ? 'hoje' : 'esta semana'}.
+            Nenhum relato encontrado neste periodo
           </div>
         ) : (
-          reports.map(report => (
-            <button
-              key={report.id}
-              onClick={() => handleReportClick(report)}
-              className="w-full p-4 bg-white rounded-lg border border-zinc-200 hover:border-zinc-400 transition-all text-left"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${CATEGORY_INFO[report.category as keyof typeof CATEGORY_INFO]?.color}`}>
-                      {CATEGORY_INFO[report.category as keyof typeof CATEGORY_INFO]?.label}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-zinc-500">
-                      <Clock className="h-3 w-3" />
-                      {getTimeAgo(report.created_at)}
-                    </span>
+          <div className="space-y-4">
+            {reports.map(report => (
+              <div
+                key={report.id}
+                onClick={() => openReportModal(report)}
+                className="bg-white rounded-xl p-5 border border-zinc-200 hover:border-zinc-300 hover:shadow-md transition-all cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${getCatInfo(report.category).color}`}>
+                    {getCatInfo(report.category).label}
+                  </span>
+                  <div className="flex items-center gap-1 text-zinc-400 text-sm">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{getTimeAgo(report.created_at)}</span>
                   </div>
-                  <p className="text-sm text-zinc-900 line-clamp-2">{report.text}</p>
                 </div>
+                <p className="text-zinc-700 mb-3">{report.text}</p>
                 <div className="flex items-center gap-1 text-zinc-500">
                   <MessageSquare className="h-4 w-4" />
                   <span className="text-sm font-medium">{commentCounts[report.id] || 0}</span>
                 </div>
               </div>
-            </button>
-          ))
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Modal de Comentários */}
       {selectedReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedReport(null)}>
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-white p-4 border-b border-zinc-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-zinc-900">Relato</h2>
-                {selectedReport && (
-                  <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${CATEGORY_INFO[selectedReport.category as keyof typeof CATEGORY_INFO]?.color}`}>
-                    {CATEGORY_INFO[selectedReport.category as keyof typeof CATEGORY_INFO]?.label}
-                  </span>
-                )}
+                <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getCatInfo(selectedReport.category).color}`}>
+                  {getCatInfo(selectedReport.category).label}
+                </span>
               </div>
               <button
                 onClick={() => setSelectedReport(null)}
@@ -272,39 +260,34 @@ export function FeedRelatos() {
               </button>
             </div>
 
-            <div className="p-4">
-          {selectedReport && (
-            <div className="space-y-4">
-              {/* Relato Original */}
-              <div className="p-4 bg-zinc-50 rounded-lg">
-                <p className="text-sm text-zinc-900">{selectedReport.text}</p>
-                <p className="text-xs text-zinc-500 mt-2">
-                  {getTimeAgo(selectedReport.created_at)}
-                </p>
+            <div className="p-4 space-y-4">
+              <div className="pb-4 border-b border-zinc-200">
+                <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2">
+                  <Clock className="h-4 w-4" />
+                  <span>{getTimeAgo(selectedReport.created_at)}</span>
+                </div>
+                <p className="text-zinc-800">{selectedReport.text}</p>
               </div>
 
-              {/* Comentários */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-zinc-900">
-                  Comentários ({comments.length})
+                <h3 className="text-sm font-semibold text-zinc-700">
+                  Comentarios ({comments.length})
                 </h3>
-                
                 {comments.map(comment => (
-                  <div key={comment.id} className="p-3 bg-zinc-50 rounded-lg">
-                    <p className="text-sm text-zinc-900">{comment.text}</p>
-                    <p className="text-xs text-zinc-500 mt-1">
+                  <div key={comment.id} className="bg-zinc-50 rounded-lg p-3">
+                    <div className="text-xs text-zinc-500 mb-1">
                       {getTimeAgo(comment.created_at)}
-                    </p>
+                    </div>
+                    <p className="text-sm text-zinc-700">{comment.text}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Adicionar Comentário */}
               <div className="space-y-2">
                 <textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Adicione um comentário anônimo..."
+                  placeholder="Adicione um comentario anonimo..."
                   className="w-full min-h-[80px] p-3 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
                 />
                 <button
@@ -325,8 +308,6 @@ export function FeedRelatos() {
                   )}
                 </button>
               </div>
-            </div>
-          )}
             </div>
           </div>
         </div>
