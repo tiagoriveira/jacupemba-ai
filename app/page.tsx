@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield, Sparkles } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -625,15 +625,6 @@ export default function Page() {
           </div>
         </div>
       )}
-
-      {/* Floating Action Button - Jacupemba AI Agent */}
-      <Link 
-        href="/chat"
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 group"
-        title="Falar com Jacupemba AI"
-      >
-        <Sparkles className="h-6 w-6 group-hover:rotate-12 transition-transform" />
-      </Link>
     </div>
   )
 }
