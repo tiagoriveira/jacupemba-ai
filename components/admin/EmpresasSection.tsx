@@ -12,7 +12,6 @@ interface Empresa {
   category: string
   description: string
   phone: string
-  whatsapp: string
   address: string
   hours: string
   verified: boolean
@@ -46,7 +45,7 @@ export function EmpresasSection() {
       if (error) throw error
       setEmpresas(data || [])
     } catch (error) {
-      console.error('[v0] Error fetching businesses:', error)
+      console.error('Error fetching businesses:', error)
     }
   }
 
@@ -68,7 +67,7 @@ export function EmpresasSection() {
       
       await fetchEmpresas()
     } catch (error) {
-      console.error('[v0] Error updating status:', error)
+      console.error('Error updating status:', error)
       toast.error('Erro ao atualizar status')
     } finally {
       setLoadingId(null)
@@ -89,7 +88,7 @@ export function EmpresasSection() {
       toast.success('Empresa deletada com sucesso!')
       await fetchEmpresas()
     } catch (error) {
-      console.error('[v0] Error deleting:', error)
+      console.error('Error deleting:', error)
       toast.error('Erro ao deletar')
     } finally {
       setLoadingId(null)

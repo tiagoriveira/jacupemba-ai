@@ -18,7 +18,6 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
     category: '',
     description: '',
     phone: '',
-    whatsapp: '',
     address: '',
     hours: '',
     verified: false
@@ -62,7 +61,6 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
         category: '',
         description: '',
         phone: '',
-        whatsapp: '',
         address: '',
         hours: '',
         verified: false
@@ -70,7 +68,7 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
       onSuccess()
       onClose()
     } catch (error) {
-      console.error('[v0] Error creating business:', error)
+      console.error('Error creating business:', error)
       toast.error('Erro ao cadastrar empresa')
     } finally {
       setIsLoading(false)
@@ -146,33 +144,18 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
               />
             </div>
 
-            {/* Telefone e WhatsApp */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-900">
-                  Telefone
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
-                  placeholder="(11) 1234-5678"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-900">
-                  WhatsApp
-                </label>
-                <input
-                  type="tel"
-                  value={formData.whatsapp}
-                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
-                  placeholder="(11) 98765-4321"
-                />
-              </div>
+            {/* Telefone */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-900">
+                Telefone / WhatsApp
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                placeholder="(27) 99999-9999"
+              />
             </div>
 
             {/* Endereco */}

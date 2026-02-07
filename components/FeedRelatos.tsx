@@ -142,7 +142,7 @@ export function FeedRelatos() {
               .from('report_likes')
               .select('report_id')
               .in('report_id', reportIds)
-              .eq('user_fingerprint', userFingerprint)
+              .eq('fingerprint', userFingerprint)
             
             setUserLikedReports(new Set(userLikesData?.map(l => l.report_id) || []))
           }
@@ -189,7 +189,7 @@ export function FeedRelatos() {
           .from('comment_likes')
           .select('comment_id')
           .in('comment_id', commentIds)
-          .eq('user_fingerprint', userFingerprint)
+          .eq('fingerprint', userFingerprint)
         
         setUserLikedComments(new Set(userCommentLikesData?.map(l => l.comment_id) || []))
       }
@@ -209,7 +209,7 @@ export function FeedRelatos() {
           .from('report_likes')
           .delete()
           .eq('report_id', reportId)
-          .eq('user_fingerprint', userFingerprint)
+          .eq('fingerprint', userFingerprint)
 
         setUserLikedReports(prev => {
           const newSet = new Set(prev)
@@ -226,7 +226,7 @@ export function FeedRelatos() {
           .from('report_likes')
           .insert({
             report_id: reportId,
-            user_fingerprint: userFingerprint
+            fingerprint: userFingerprint
           })
 
         setUserLikedReports(prev => new Set([...prev, reportId]))
@@ -236,7 +236,7 @@ export function FeedRelatos() {
         }))
       }
     } catch (error) {
-      console.error('[v0] Error toggling report like:', error)
+      console.error('Error toggling report like:', error)
     }
   }
 
@@ -253,7 +253,7 @@ export function FeedRelatos() {
           .from('comment_likes')
           .delete()
           .eq('comment_id', commentId)
-          .eq('user_fingerprint', userFingerprint)
+          .eq('fingerprint', userFingerprint)
 
         setUserLikedComments(prev => {
           const newSet = new Set(prev)
@@ -270,7 +270,7 @@ export function FeedRelatos() {
           .from('comment_likes')
           .insert({
             comment_id: commentId,
-            user_fingerprint: userFingerprint
+            fingerprint: userFingerprint
           })
 
         setUserLikedComments(prev => new Set([...prev, commentId]))
@@ -280,7 +280,7 @@ export function FeedRelatos() {
         }))
       }
     } catch (error) {
-      console.error('[v0] Error toggling comment like:', error)
+      console.error('Error toggling comment like:', error)
     }
   }
 
@@ -330,7 +330,7 @@ export function FeedRelatos() {
               .from('comment_likes')
               .select('comment_id')
               .in('comment_id', commentIds)
-              .eq('user_fingerprint', userFingerprint)
+              .eq('fingerprint', userFingerprint)
             
             setUserLikedComments(new Set(userCommentLikesData?.map(l => l.comment_id) || []))
           }

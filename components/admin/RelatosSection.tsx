@@ -20,6 +20,7 @@ interface RelatoComTriagem extends Relato {
 
 export function RelatosSection() {
   const [relatos, setRelatos] = useState<Relato[]>([])
+  const [allRelatos, setAllRelatos] = useState<Relato[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('pendente')
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -30,6 +31,22 @@ export function RelatosSection() {
   useEffect(() => {
     fetchRelatos()
   }, [filterStatus])
+
+  useEffect(() => {
+    fetchAllRelatos()
+  }, [])
+
+  const fetchAllRelatos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('anonymous_reports')
+        .select('*')
+      if (error) throw error
+      setAllRelatos(data || [])
+    } catch {
+      // silently fail for stats
+    }
+  }
 
   const fetchRelatos = async () => {
     try {
@@ -46,8 +63,10 @@ export function RelatosSection() {
       const { data, error } = await query
       if (error) throw error
       setRelatos(data || [])
+      // also refresh stats
+      fetchAllRelatos()
     } catch (error) {
-      console.error('[v0] Error fetching relatos:', error)
+      console.error('Error fetching relatos:', error)
       toast.error('Erro ao carregar relatos')
     } finally {
       setIsLoading(false)
@@ -90,7 +109,7 @@ export function RelatosSection() {
       
       await fetchRelatos()
     } catch (error) {
-      console.error('[v0] Error updating status:', error)
+      console.error('Error updating status:', error)
       toast.error('Erro ao atualizar status')
     } finally {
       setLoadingId(null)
@@ -111,7 +130,7 @@ export function RelatosSection() {
       toast.success('Relato deletado com sucesso!')
       await fetchRelatos()
     } catch (error) {
-      console.error('[v0] Error deleting relato:', error)
+      console.error('Error deleting relato:', error)
       toast.error('Erro ao deletar relato')
     } finally {
       setLoadingId(null)
@@ -138,7 +157,7 @@ export function RelatosSection() {
       setSelectedIds([])
       await fetchRelatos()
     } catch (error) {
-      console.error('[v0] Error bulk updating status:', error)
+      console.error('Error bulk updating status:', error)
       toast.error('Erro ao atualizar relatos em lote')
     } finally {
       setIsBulkProcessing(false)
@@ -176,42 +195,60 @@ export function RelatosSection() {
     outro: 'Outro'
   }
 
+  const allRelatosComTriagem = useMemo(() => {
+    return allRelatos.map(relato => ({
+      ...relato,
+      triagem: analisarRelato(relato.text, relato.category)
+    }))
+  }, [allRelatos])
+
   const stats = {
-    total: relatos.length,
-    pendentes: relatos.filter(r => r.status === 'pendente').length,
-    aprovados: relatos.filter(r => r.status === 'aprovado').length,
-    rejeitados: relatos.filter(r => r.status === 'rejeitado').length,
-    altoRisco: relatosComTriagem.filter(r => r.status === 'pendente' && r.triagem.nivelRisco === 'alto').length
+    total: allRelatos.length,
+    pendentes: allRelatos.filter(r => r.status === 'pendente').length,
+    aprovados: allRelatos.filter(r => r.status === 'aprovado').length,
+    rejeitados: allRelatos.filter(r => r.status === 'rejeitado').length,
+    altoRisco: allRelatosComTriagem.filter(r => r.status === 'pendente' && r.triagem.nivelRisco === 'alto').length
   }
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
-        <div className="rounded-lg border border-zinc-200 bg-white p-4">
-          <p className="text-sm text-zinc-500">Total</p>
-          <p className="text-2xl font-bold">{stats.total}</p>
+    <div className="h-full">
+      {/* Page Header with Stats */}
+      <div className="border-b border-zinc-200 bg-white px-8 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-900">Relatos</h1>
+            <p className="mt-1 text-sm text-zinc-600">
+              Modere relatos de problemas do bairro
+            </p>
+          </div>
         </div>
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-          <p className="text-sm text-yellow-700">Pendentes</p>
-          <p className="text-2xl font-bold text-yellow-900">{stats.pendentes}</p>
-        </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">🚨 Alto Risco</p>
-          <p className="text-2xl font-bold text-red-900">{stats.altoRisco}</p>
-        </div>
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-          <p className="text-sm text-green-700">Aprovados</p>
-          <p className="text-2xl font-bold text-green-900">{stats.aprovados}</p>
-        </div>
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-          <p className="text-sm text-zinc-500">Rejeitados</p>
-          <p className="text-2xl font-bold text-zinc-700">{stats.rejeitados}</p>
-        </div>
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+            <p className="text-xs font-medium text-zinc-500">Total</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-900">{stats.total}</p>
+          </div>
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
+            <p className="text-xs font-medium text-yellow-700">Pendentes</p>
+            <p className="mt-1 text-2xl font-bold text-yellow-900">{stats.pendentes}</p>
+          </div>
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-xs font-medium text-red-700">Alto Risco</p>
+            <p className="mt-1 text-2xl font-bold text-red-900">{stats.altoRisco}</p>
+          </div>
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <p className="text-xs font-medium text-green-700">Aprovados</p>
+            <p className="mt-1 text-2xl font-bold text-green-900">{stats.aprovados}</p>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+            <p className="text-xs font-medium text-zinc-500">Rejeitados</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-700">{stats.rejeitados}</p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
@@ -241,6 +278,10 @@ export function RelatosSection() {
           ))}
         </div>
       </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="space-y-4 p-8">
 
       {/* Bulk Actions Bar */}
       {filterStatus === 'pendente' && filteredRelatos.filter(r => r.status === 'pendente').length > 0 && (
@@ -415,6 +456,7 @@ export function RelatosSection() {
             )
           })
         )}
+      </div>
       </div>
     </div>
   )

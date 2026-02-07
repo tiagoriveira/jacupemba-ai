@@ -1,23 +1,20 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { X, MessageCircle, ArrowLeft, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, MessageCircle, ArrowLeft, Loader2, Store } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 interface VitrinePost {
   id: string
-  seller_name: string
-  seller_phone: string
+  contact_name: string
+  contact_phone: string
   title: string
   description: string
   price: number
   category: string
-  media_url: string
-  media_type: 'image' | 'video'
+  image_url: string
   expires_at: string
-  views: number
-  clicks: number
   created_at: string
 }
 
@@ -28,7 +25,6 @@ export function VitrineGrid() {
   const [posts, setPosts] = useState<VitrinePost[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPost, setSelectedPost] = useState<VitrinePost | null>(null)
-  const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({})
 
   useEffect(() => {
     async function fetchPosts() {
@@ -41,12 +37,12 @@ export function VitrineGrid() {
           .order('created_at', { ascending: false })
 
         if (error) {
-          console.error('[v0] Error fetching vitrine posts:', error)
+          console.error('Error fetching vitrine posts:', error)
           return
         }
         setPosts(data || [])
       } catch (err) {
-        console.error('[v0] Error:', err)
+        console.error('Error:', err)
       } finally {
         setLoading(false)
       }
@@ -55,32 +51,10 @@ export function VitrineGrid() {
     fetchPosts()
   }, [])
 
-  // Autoplay videos when in view
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const video = entry.target as HTMLVideoElement
-          if (entry.isIntersecting) {
-            video.play().catch(() => {})
-          } else {
-            video.pause()
-          }
-        })
-      },
-      { threshold: 0.5 }
-    )
-
-    Object.values(videoRefs.current).forEach((video) => {
-      if (video) observer.observe(video)
-    })
-
-    return () => observer.disconnect()
-  }, [posts])
-
   function handleWhatsAppClick(post: VitrinePost) {
+    const phone = (post.contact_phone || '').replace(/\D/g, '')
     const message = encodeURIComponent(`Ola, vi seu anuncio "${post.title}" no Assistente Local e tenho interesse!`)
-    window.open(`https://wa.me/${post.seller_phone}?text=${message}`, '_blank')
+    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank')
   }
 
   function getAspect(index: number) {
@@ -139,28 +113,16 @@ export function VitrineGrid() {
                   onClick={() => setSelectedPost(post)}
                   className="relative mb-1 w-full break-inside-avoid overflow-hidden rounded-sm bg-zinc-200 block"
                 >
-                  {post.media_type === 'video' ? (
-                    <>
-                      <video
-                        ref={(el) => { videoRefs.current[post.id] = el }}
-                        src={post.media_url}
-                        loop
-                        muted
-                        playsInline
-                        className={`w-full object-cover ${aspect === 'tall' ? 'aspect-[3/4]' : 'aspect-square'}`}
-                      />
-                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full">
-                        <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    </>
-                  ) : (
+                  {post.image_url ? (
                     <img
-                      src={post.media_url}
+                      src={post.image_url}
                       alt={post.title}
                       className={`w-full object-cover ${aspect === 'tall' ? 'aspect-[3/4]' : 'aspect-square'}`}
                     />
+                  ) : (
+                    <div className={`flex w-full items-center justify-center bg-zinc-200 ${aspect === 'tall' ? 'aspect-[3/4]' : 'aspect-square'}`}>
+                      <Store className="h-12 w-12 text-zinc-400" />
+                    </div>
                   )}
                 </button>
               )
@@ -180,20 +142,16 @@ export function VitrineGrid() {
           </button>
 
           <div className="relative h-full w-full">
-            {selectedPost.media_type === 'video' ? (
-              <video
-                src={selectedPost.media_url}
-                controls
-                autoPlay
-                loop
-                className="h-full w-full object-contain"
-              />
-            ) : (
+            {selectedPost.image_url ? (
               <img
-                src={selectedPost.media_url}
+                src={selectedPost.image_url}
                 alt={selectedPost.title}
                 className="h-full w-full object-contain"
               />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-zinc-900">
+                <Store className="h-24 w-24 text-zinc-600" />
+              </div>
             )}
 
             {/* Info footer */}
@@ -215,7 +173,7 @@ export function VitrineGrid() {
                 </p>
 
                 <p className="text-white/70 text-sm mb-2">
-                  Por: <span className="font-medium text-white">{selectedPost.seller_name}</span>
+                  Por: <span className="font-medium text-white">{selectedPost.contact_name || 'Anonimo'}</span>
                 </p>
 
                 <p className="text-white/50 text-xs">
