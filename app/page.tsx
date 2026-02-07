@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp } from 'lucide-react'
+import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -321,6 +321,14 @@ export default function Page() {
             >
               <History className="h-4 w-4" />
               <span>Historico</span>
+            </Link>
+            <Link 
+              href="/admin"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-red-600 border border-red-300 transition-all duration-150 hover:bg-red-50 active:scale-[0.98]"
+              title="Painel administrativo"
+            >
+              <Shield className="h-4 w-4" />
+              <span>Admin</span>
             </Link>
           </div>
         </div>
