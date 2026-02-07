@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, MessageCircle, ArrowLeft, Loader2, Store } from 'lucide-react'
+import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Tag, Wrench, ShoppingBag, User } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -18,13 +18,25 @@ interface VitrinePost {
   created_at: string
 }
 
-// Masonry heights for visual variety
-const ASPECT_PATTERNS = ['tall', 'normal', 'normal', 'tall', 'normal', 'normal', 'tall', 'normal'] as const
+const CATEGORY_STYLES: Record<string, { bg: string; icon: typeof Tag }> = {
+  produto: { bg: 'from-zinc-800 to-zinc-600', icon: ShoppingBag },
+  servico: { bg: 'from-zinc-700 to-zinc-500', icon: Wrench },
+}
+
+function getHoursRemaining(expiresAt: string) {
+  return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
+}
+
+function formatPrice(price: number | null) {
+  if (!price || price === 0) return 'A combinar'
+  return `R$ ${Number(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+}
 
 export function VitrineGrid() {
   const [posts, setPosts] = useState<VitrinePost[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPost, setSelectedPost] = useState<VitrinePost | null>(null)
+  const [filter, setFilter] = useState<'todos' | 'produto' | 'servico'>('todos')
 
   useEffect(() => {
     async function fetchPosts() {
@@ -51,79 +63,162 @@ export function VitrineGrid() {
     fetchPosts()
   }, [])
 
-  function handleWhatsAppClick(post: VitrinePost) {
+  const filteredPosts = filter === 'todos' ? posts : posts.filter(p => p.category === filter)
+
+  function handleWhatsAppClick(post: VitrinePost, e?: React.MouseEvent) {
+    e?.stopPropagation()
     const phone = (post.contact_phone || '').replace(/\D/g, '')
     const message = encodeURIComponent(`Ola, vi seu anuncio "${post.title}" no Assistente Local e tenho interesse!`)
     window.open(`https://wa.me/55${phone}?text=${message}`, '_blank')
   }
 
-  function getAspect(index: number) {
-    return ASPECT_PATTERNS[index % ASPECT_PATTERNS.length]
+  function handleShare(post: VitrinePost, e?: React.MouseEvent) {
+    e?.stopPropagation()
+    const text = `${post.title} - ${formatPrice(post.price)}\n${post.description || ''}\nContato: ${post.contact_name || ''} ${post.contact_phone || ''}`
+    const encoded = encodeURIComponent(text)
+    window.open(`https://wa.me/?text=${encoded}`, '_blank')
   }
+
+  const catStyle = (cat: string) => CATEGORY_STYLES[cat] || CATEGORY_STYLES.produto
 
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-zinc-200">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/90 backdrop-blur-lg">
+        <div className="mx-auto max-w-5xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link 
                 href="/"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 transition-colors"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="hidden sm:inline">Voltar</span>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-zinc-900">Vitrine do Bairro</h1>
-                <p className="text-sm text-zinc-600">Produtos e servicos locais</p>
+                <h1 className="text-xl font-bold text-zinc-900">Vitrine do Bairro</h1>
+                <p className="text-xs text-zinc-500">Anuncios expiram em 48h</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <div className="flex items-center gap-1">
-                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="hidden sm:inline">{posts.length} anuncios ativos</span>
-                <span className="sm:hidden">{posts.length}</span>
-              </div>
+            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <span>{posts.length} ativos</span>
             </div>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="mt-4 flex gap-2">
+            {([
+              { value: 'todos', label: 'Todos' },
+              { value: 'produto', label: 'Produtos' },
+              { value: 'servico', label: 'Servicos' },
+            ] as const).map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => setFilter(tab.value)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  filter === tab.value
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
       </header>
 
-      {/* Loading */}
+      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
         </div>
-      ) : posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+          <ShoppingBag className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
           <p className="text-zinc-500 text-sm">Nenhum anuncio ativo no momento</p>
           <p className="text-zinc-400 text-xs mt-1">Os anuncios expiram em 48h</p>
         </div>
       ) : (
-        /* Masonry Grid */
-        <div className="max-w-7xl mx-auto px-1 py-2">
-          <div className="columns-2 md:columns-3 gap-1">
-            {posts.map((post, index) => {
-              const aspect = getAspect(index)
+        <div className="mx-auto max-w-5xl px-4 py-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredPosts.map((post) => {
+              const style = catStyle(post.category)
+              const CatIcon = style.icon
+              const hoursLeft = getHoursRemaining(post.expires_at)
+
               return (
                 <button
                   key={post.id}
                   onClick={() => setSelectedPost(post)}
-                  className="relative mb-1 w-full break-inside-avoid overflow-hidden rounded-sm bg-zinc-200 block"
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white text-left shadow-sm transition-all duration-200 hover:shadow-lg hover:border-zinc-300 hover:-translate-y-0.5"
                 >
+                  {/* Visual Area */}
                   {post.image_url ? (
-                    <img
-                      src={post.image_url}
-                      alt={post.title}
-                      className={`w-full object-cover ${aspect === 'tall' ? 'aspect-[3/4]' : 'aspect-square'}`}
-                    />
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      <img
+                        src={post.image_url}
+                        alt={post.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      {/* Price Badge */}
+                      <div className="absolute bottom-3 left-3 z-10">
+                        <span className="rounded-xl bg-white px-3.5 py-2 text-base font-bold text-zinc-900 shadow-lg">
+                          {formatPrice(post.price)}
+                        </span>
+                      </div>
+                    </div>
                   ) : (
-                    <div className={`flex w-full items-center justify-center bg-zinc-200 ${aspect === 'tall' ? 'aspect-[3/4]' : 'aspect-square'}`}>
-                      <Store className="h-12 w-12 text-zinc-400" />
+                    <div className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br ${style.bg}`}>
+                      {/* Pattern Background */}
+                      <div className="absolute inset-0 opacity-10">
+                        <div className="absolute inset-0" style={{
+                          backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+                          backgroundSize: '24px 24px'
+                        }} />
+                      </div>
+                      <CatIcon className="h-20 w-20 text-white/30 relative z-10" />
+                      {/* Price Badge */}
+                      <div className="absolute bottom-3 left-3 z-20">
+                        <span className="rounded-xl bg-white px-3.5 py-2 text-base font-bold text-zinc-900 shadow-lg">
+                          {formatPrice(post.price)}
+                        </span>
+                      </div>
+                      {/* Category Badge */}
+                      <div className="absolute top-3 left-3 z-20">
+                        <span className="rounded-lg bg-white/25 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
+                          {post.category === 'servico' ? 'Servico' : 'Produto'}
+                        </span>
+                      </div>
                     </div>
                   )}
+
+                  {/* Info Area */}
+                  <div className="flex flex-1 flex-col p-4">
+                    <h3 className="text-base font-semibold text-zinc-900 leading-tight line-clamp-2">
+                      {post.title}
+                    </h3>
+                    {post.description && (
+                      <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed line-clamp-2">
+                        {post.description}
+                      </p>
+                    )}
+
+                    <div className="mt-auto flex items-center justify-between pt-3">
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+                        <User className="h-3.5 w-3.5" />
+                        <span className="truncate max-w-[120px]">{post.contact_name || 'Anonimo'}</span>
+                      </div>
+                      <div className={`flex items-center gap-1 text-xs font-medium ${
+                        hoursLeft <= 6 ? 'text-red-500' : hoursLeft <= 12 ? 'text-amber-500' : 'text-zinc-400'
+                      }`}>
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{hoursLeft}h</span>
+                      </div>
+                    </div>
+                  </div>
                 </button>
               )
             })}
@@ -131,64 +226,109 @@ export function VitrineGrid() {
         </div>
       )}
 
-      {/* Modal Fullscreen */}
+      {/* Detail Modal */}
       {selectedPost && (
-        <div className="fixed inset-0 z-50 bg-black">
-          <button
-            onClick={() => setSelectedPost(null)}
-            className="absolute top-4 right-4 z-10 rounded-full bg-black/60 backdrop-blur-sm p-2 text-white hover:bg-black/80 transition-colors"
+        <div 
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setSelectedPost(null)}
+        >
+          <div 
+            className="relative w-full max-w-lg overflow-hidden rounded-t-3xl bg-white sm:rounded-2xl sm:shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <X className="h-6 w-6" />
-          </button>
+            {/* Close */}
+            <button
+              onClick={() => setSelectedPost(null)}
+              className="absolute right-4 top-4 z-10 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
-          <div className="relative h-full w-full">
+            {/* Image / Gradient */}
             {selectedPost.image_url ? (
-              <img
-                src={selectedPost.image_url}
-                alt={selectedPost.title}
-                className="h-full w-full object-contain"
-              />
+              <div className="relative aspect-square">
+                <img
+                  src={selectedPost.image_url}
+                  alt={selectedPost.title}
+                  className="h-full w-full object-cover"
+                />
+              </div>
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-zinc-900">
-                <Store className="h-24 w-24 text-zinc-600" />
+              <div className={`relative flex aspect-[16/9] items-center justify-center bg-gradient-to-br ${catStyle(selectedPost.category).bg}`}>
+                {(() => {
+                  const Icon = catStyle(selectedPost.category).icon
+                  return <Icon className="h-20 w-20 text-white/15" />
+                })()}
               </div>
             )}
 
-            {/* Info footer */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/90 to-transparent px-6 py-8">
-              <div className="max-w-2xl mx-auto">
-                <span className="inline-block rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-xs font-medium text-white mb-3">
-                  {selectedPost.category}
-                </span>
-
-                <h2 className="text-2xl font-bold text-white mb-2">{selectedPost.title}</h2>
-                {selectedPost.price && (
-                  <p className="text-3xl font-bold text-green-400 mb-4">
-                    R$ {Number(selectedPost.price).toFixed(2)}
-                  </p>
+            {/* Content */}
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  <span className="mb-2 inline-block rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600">
+                    {selectedPost.category === 'servico' ? 'Servico' : 'Produto'}
+                  </span>
+                  <h2 className="text-xl font-bold text-zinc-900">{selectedPost.title}</h2>
+                </div>
+                {(selectedPost.price && selectedPost.price > 0) ? (
+                  <div className="flex-shrink-0 rounded-xl bg-zinc-900 px-4 py-2">
+                    <span className="text-lg font-bold text-white">
+                      R$ {Number(selectedPost.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0 rounded-xl bg-zinc-100 px-4 py-2">
+                    <span className="text-sm font-medium text-zinc-600">A combinar</span>
+                  </div>
                 )}
+              </div>
 
-                <p className="text-white/90 text-base leading-relaxed mb-4">
+              {selectedPost.description && (
+                <p className="mb-4 text-sm text-zinc-600 leading-relaxed">
                   {selectedPost.description}
                 </p>
+              )}
 
-                <p className="text-white/70 text-sm mb-2">
-                  Por: <span className="font-medium text-white">{selectedPost.contact_name || 'Anonimo'}</span>
-                </p>
+              {/* Seller Info */}
+              <div className="mb-4 rounded-xl bg-zinc-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-200">
+                      <User className="h-5 w-5 text-zinc-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-zinc-900">{selectedPost.contact_name || 'Anonimo'}</p>
+                      <p className="text-xs text-zinc-500">{selectedPost.contact_phone || 'Sem telefone'}</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs font-medium ${
+                    getHoursRemaining(selectedPost.expires_at) <= 6 ? 'text-red-500' : 'text-zinc-400'
+                  }`}>
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Expira em {getHoursRemaining(selectedPost.expires_at)}h</span>
+                  </div>
+                </div>
+              </div>
 
-                <p className="text-white/50 text-xs">
-                  Expira em {Math.max(0, Math.round((new Date(selectedPost.expires_at).getTime() - Date.now()) / (1000 * 60 * 60)))} horas
-                </p>
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleWhatsAppClick(selectedPost)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Contato via WhatsApp
+                </button>
+                <button
+                  onClick={(e) => handleShare(selectedPost, e)}
+                  className="flex items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-zinc-600 transition-colors hover:bg-zinc-50"
+                  title="Compartilhar"
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
               </div>
             </div>
-
-            <button
-              onClick={() => handleWhatsAppClick(selectedPost)}
-              className="absolute bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 hover:scale-110 transition-all"
-              title="Contato via WhatsApp"
-            >
-              <MessageCircle className="h-6 w-6" />
-            </button>
           </div>
         </div>
       )}

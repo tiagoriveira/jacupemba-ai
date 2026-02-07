@@ -23,7 +23,8 @@ import {
   Store,
   Bus,
   MapPin,
-  Heart
+  Heart,
+  Share2
 } from 'lucide-react'
 
 type TimePeriod = '60min' | '24h' | '7d'
@@ -354,6 +355,14 @@ export function FeedRelatos() {
     return `${minutes}m atras`
   }
 
+  const handleShareReport = (report: Report, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const catLabel = getCatInfo(report.category).label
+    const text = `[Relato - ${catLabel}]\n${report.text}\n\nVia Assistente Local Jacupemba`
+    const encoded = encodeURIComponent(text)
+    window.open(`https://wa.me/?text=${encoded}`, '_blank')
+  }
+
   const periods: { value: TimePeriod; label: string }[] = [
     { value: '60min', label: 'Ultima Hora' },
     { value: '24h', label: 'Hoje' },
@@ -463,6 +472,13 @@ export function FeedRelatos() {
                       />
                       <span className="text-sm font-medium">{reportLikeCounts[report.id] || 0}</span>
                     </button>
+                    <button
+                      onClick={(e) => handleShareReport(report, e)}
+                      className="flex items-center gap-1 text-zinc-500 transition-colors hover:text-green-600"
+                      title="Compartilhar no WhatsApp"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               )
@@ -502,19 +518,28 @@ export function FeedRelatos() {
                     <Clock className="h-4 w-4" />
                     <span>{getTimeAgo(selectedReport.created_at)}</span>
                   </div>
-                  <button
-                    onClick={(e) => toggleReportLike(selectedReport.id, e)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                      userLikedReports.has(selectedReport.id)
-                        ? 'bg-red-50 text-red-600 border border-red-200'
-                        : 'bg-zinc-50 text-zinc-600 border border-zinc-200 hover:border-red-300 hover:text-red-500'
-                    }`}
-                  >
-                    <Heart
-                      className={`h-4 w-4 ${userLikedReports.has(selectedReport.id) ? 'fill-current' : ''}`}
-                    />
-                    <span className="text-sm font-semibold">{reportLikeCounts[selectedReport.id] || 0}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => handleShareReport(selectedReport, e)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-600 border border-green-200 transition-colors hover:bg-green-100"
+                      title="Compartilhar no WhatsApp"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => toggleReportLike(selectedReport.id, e)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                        userLikedReports.has(selectedReport.id)
+                          ? 'bg-red-50 text-red-600 border border-red-200'
+                          : 'bg-zinc-50 text-zinc-600 border border-zinc-200 hover:border-red-300 hover:text-red-500'
+                      }`}
+                    >
+                      <Heart
+                        className={`h-4 w-4 ${userLikedReports.has(selectedReport.id) ? 'fill-current' : ''}`}
+                      />
+                      <span className="text-sm font-semibold">{reportLikeCounts[selectedReport.id] || 0}</span>
+                    </button>
+                  </div>
                 </div>
                 <p className="text-zinc-800 leading-relaxed">{selectedReport.text}</p>
               </div>
