@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play } from 'lucide-react'
+import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -14,6 +14,7 @@ interface VitrinePost {
   price: number
   category: string
   image_url: string
+  images?: string[]
   video_url?: string
   aspect_ratio?: 'square' | 'vertical'
   expires_at: string
@@ -44,6 +45,7 @@ export function VitrineGrid() {
   const [loading, setLoading] = useState(true)
   const [selectedPost, setSelectedPost] = useState<VitrinePost | null>(null)
   const [filter, setFilter] = useState<'todos' | CategoryType>('todos')
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   useEffect(() => {
     async function fetchPosts() {
@@ -153,11 +155,16 @@ export function VitrineGrid() {
             {filteredPosts.map((post) => {
               const config = getCatConfig(post.category)
               const isVertical = post.aspect_ratio === 'vertical'
+              const postImages = post.images && post.images.length > 0 ? post.images : (post.image_url ? [post.image_url] : [])
+              const hasMultipleImages = postImages.length > 1
 
               return (
                 <button
                   key={post.id}
-                  onClick={() => setSelectedPost(post)}
+                  onClick={() => {
+                    setSelectedPost(post)
+                    setCurrentImageIndex(0)
+                  }}
                   className="group relative mb-0 w-full break-inside-avoid overflow-hidden transition-all duration-200 hover:opacity-90"
                 >
                   {post.video_url ? (
@@ -174,12 +181,20 @@ export function VitrineGrid() {
                         </div>
                       </div>
                     </div>
-                  ) : post.image_url ? (
-                    <img
-                      src={post.image_url}
-                      alt={post.title}
-                      className={`w-full object-cover ${isVertical ? 'aspect-[9/16]' : 'aspect-square'}`}
-                    />
+                  ) : postImages.length > 0 ? (
+                    <div className="relative">
+                      <img
+                        src={postImages[0]}
+                        alt={post.title}
+                        className={`w-full object-cover ${isVertical ? 'aspect-[9/16]' : 'aspect-square'}`}
+                      />
+                      {hasMultipleImages && (
+                        <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 backdrop-blur-sm">
+                          <Camera className="h-3 w-3 text-white" />
+                          <span className="text-xs font-medium text-white">1/{postImages.length}</span>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className={`flex ${isVertical ? 'aspect-[9/16]' : 'aspect-square'} w-full items-center justify-center bg-gradient-to-br ${config.bg}`}>
                       <config.icon className="h-16 w-16 text-white/20" />
@@ -220,22 +235,85 @@ export function VitrineGrid() {
                   playsInline
                 />
               </div>
-            ) : selectedPost.image_url ? (
-              <div className="relative aspect-square">
-                <img
-                  src={selectedPost.image_url}
-                  alt={selectedPost.title}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className={`relative flex aspect-[16/9] items-center justify-center bg-gradient-to-br ${getCatConfig(selectedPost.category).bg}`}>
-                {(() => {
-                  const Icon = getCatConfig(selectedPost.category).icon
-                  return <Icon className="h-20 w-20 text-white/15" />
-                })()}
-              </div>
-            )}
+            ) : (() => {
+              const modalImages = selectedPost.images && selectedPost.images.length > 0 
+                ? selectedPost.images 
+                : (selectedPost.image_url ? [selectedPost.image_url] : [])
+              
+              if (modalImages.length === 0) {
+                return (
+                  <div className={`relative flex aspect-[16/9] items-center justify-center bg-gradient-to-br ${getCatConfig(selectedPost.category).bg}`}>
+                    {(() => {
+                      const Icon = getCatConfig(selectedPost.category).icon
+                      return <Icon className="h-20 w-20 text-white/15" />
+                    })()}
+                  </div>
+                )
+              }
+
+              const hasMultiple = modalImages.length > 1
+              const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % modalImages.length)
+              const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + modalImages.length) % modalImages.length)
+
+              return (
+                <div className="relative aspect-square bg-zinc-900">
+                  <img
+                    src={modalImages[currentImageIndex]}
+                    alt={`${selectedPost.title} - ${currentImageIndex + 1}`}
+                    className="h-full w-full object-contain"
+                  />
+                  
+                  {hasMultiple && (
+                    <>
+                      {/* Navigation Arrows */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          prevImage()
+                        }}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm transition-all hover:bg-black/80"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          nextImage()
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm transition-all hover:bg-black/80"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+
+                      {/* Dots Indicator */}
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                        {modalImages.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setCurrentImageIndex(idx)
+                            }}
+                            className={`h-2 rounded-full transition-all ${
+                              idx === currentImageIndex 
+                                ? 'w-6 bg-white' 
+                                : 'w-2 bg-white/50 hover:bg-white/75'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Counter */}
+                      <div className="absolute top-4 right-4 rounded-full bg-black/60 px-3 py-1 backdrop-blur-sm">
+                        <span className="text-sm font-medium text-white">
+                          {currentImageIndex + 1}/{modalImages.length}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Content */}
             <div className="p-6">

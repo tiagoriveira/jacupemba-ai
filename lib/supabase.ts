@@ -80,6 +80,7 @@ export type VitrinePost = {
   price: number | null
   category: string
   image_url: string | null
+  images: string[]
   video_url: string | null
   aspect_ratio: 'square' | 'vertical'
   expires_at: string
