@@ -31,18 +31,16 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
     title: editPost?.title || '',
     description: editPost?.description || '',
     price: editPost?.price?.toString() || '',
-    category: editPost?.category || ''
+    category: editPost?.category || '',
+    aspect_ratio: 'square' as 'square' | 'vertical'
   })
 
   const categories = [
-    'Eletronicos',
-    'Moveis',
-    'Roupas',
-    'Alimentos',
-    'Servicos',
-    'Veiculos',
-    'Imoveis',
-    'Outro'
+    { value: 'vaga', label: 'Vaga de Emprego' },
+    { value: 'informativo', label: 'Informativo' },
+    { value: 'servico', label: 'Serviço' },
+    { value: 'produto', label: 'Produto' },
+    { value: 'comunicado', label: 'Comunicado' }
   ]
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,6 +144,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
         price: parseFloat(formData.price),
         category: formData.category,
         image_url: imageUrl,
+        aspect_ratio: formData.aspect_ratio,
         expires_at: expiresAt.toISOString(),
         status: 'aprovado' as const
       }
@@ -317,8 +316,8 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                   >
                     <option value="">Selecione</option>
                     {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
                       </option>
                     ))}
                   </select>
@@ -337,6 +336,24 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                   rows={3}
                   placeholder="Detalhes do produto ou serviço..."
                 />
+              </div>
+
+              {/* Formato da Imagem */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-900">
+                  Formato
+                </label>
+                <select
+                  value={formData.aspect_ratio}
+                  onChange={(e) => setFormData({ ...formData, aspect_ratio: e.target.value as 'square' | 'vertical' })}
+                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                >
+                  <option value="square">Quadrado (1:1)</option>
+                  <option value="vertical">Vertical (9:16) - Estilo Reels</option>
+                </select>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Escolha o formato que combina com sua imagem ou vídeo
+                </p>
               </div>
             </div>
           </div>
