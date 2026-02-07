@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield, Sparkles } from 'lucide-react'
+import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
