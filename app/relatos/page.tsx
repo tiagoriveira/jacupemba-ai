@@ -24,7 +24,7 @@ export default function RelatosPage() {
 
       {/* Floating Action Button - Jacupemba AI Agent */}
       <Link 
-        href="/chat"
+        href="/"
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 group"
         title="Falar com Jacupemba AI"
       >
