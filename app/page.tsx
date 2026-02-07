@@ -338,17 +338,22 @@ export default function Page() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl px-4">
           {messages.length === 0 ? (
-            /* Welcome Screen */
-            <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-16">
-              <div className="mb-16 text-center">
-                <h2 className="mb-2 text-2xl font-semibold text-zinc-900 dark:text-white">
+            /* Empty State */
+            <div className="py-8 md:py-12">
+              {/* Header */}
+              <div className="mb-8 text-center">
+                <div className="mb-4 flex justify-center">
+                  <img 
+                    src="/avatar_jacupemba_v1.png" 
+                    alt="Jacupemba" 
+                    className="h-24 w-24 object-contain"
+                  />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-3xl">
                   Olá! Sou seu assistente local
                 </h2>
-                <p className="text-base text-zinc-600 dark:text-zinc-400">
-                  Como posso ajudar?
-                </p>
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
-                  Pergunte sobre serviços, comercios, vagas ou eventos do bairro
+                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 md:text-base">
+                  Te ajudo com comercio, servicos, vagas e informacoes do bairro de Jacupemba
                 </p>
               </div>
 
