@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { AlertTriangle, Search, Check, X, Trash2, AlertCircle } from 'lucide-react'
+import { AlertTriangle, Search, Check, X, Trash2, AlertCircle, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { analisarRelato, NIVEL_CONFIG, type ResultadoTriagem } from '@/lib/moderacao-triagem'
 
@@ -21,6 +22,8 @@ export function RelatosSection() {
   const [relatos, setRelatos] = useState<Relato[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('pendente')
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     fetchRelatos()
@@ -28,6 +31,7 @@ export function RelatosSection() {
 
   const fetchRelatos = async () => {
     try {
+      setIsLoading(true)
       const query = supabase
         .from('anonymous_reports')
         .select('*')
@@ -42,6 +46,9 @@ export function RelatosSection() {
       setRelatos(data || [])
     } catch (error) {
       console.error('[v0] Error fetching relatos:', error)
+      toast.error('Erro ao carregar relatos')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -65,16 +72,26 @@ export function RelatosSection() {
 
   const updateStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
     try {
+      setLoadingId(id)
       const { error } = await supabase
         .from('anonymous_reports')
         .update({ status })
         .eq('id', id)
 
       if (error) throw error
-      fetchRelatos()
+      
+      toast.success(
+        status === 'aprovado' 
+          ? 'Relato aprovado com sucesso!' 
+          : 'Relato rejeitado com sucesso!'
+      )
+      
+      await fetchRelatos()
     } catch (error) {
       console.error('[v0] Error updating status:', error)
-      alert('Erro ao atualizar status')
+      toast.error('Erro ao atualizar status')
+    } finally {
+      setLoadingId(null)
     }
   }
 
@@ -82,16 +99,20 @@ export function RelatosSection() {
     if (!confirm('Tem certeza que deseja deletar este relato?')) return
     
     try {
+      setLoadingId(id)
       const { error } = await supabase
         .from('anonymous_reports')
         .delete()
         .eq('id', id)
 
       if (error) throw error
-      fetchRelatos()
+      toast.success('Relato deletado com sucesso!')
+      await fetchRelatos()
     } catch (error) {
       console.error('[v0] Error deleting relato:', error)
-      alert('Erro ao deletar relato')
+      toast.error('Erro ao deletar relato')
+    } finally {
+      setLoadingId(null)
     }
   }
 
@@ -237,24 +258,39 @@ export function RelatosSection() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => updateStatus(relato.id, 'aprovado')}
-                        className="rounded-lg bg-green-500 p-2 text-white transition-colors hover:bg-green-600"
+                        disabled={loadingId === relato.id}
+                        className="rounded-lg bg-green-500 p-2 text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Aprovar"
                       >
-                        <Check className="h-4 w-4" />
+                        {loadingId === relato.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={() => updateStatus(relato.id, 'rejeitado')}
-                        className="rounded-lg bg-red-500 p-2 text-white transition-colors hover:bg-red-600"
+                        disabled={loadingId === relato.id}
+                        className="rounded-lg bg-red-500 p-2 text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Rejeitar"
                       >
-                        <X className="h-4 w-4" />
+                        {loadingId === relato.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={() => deleteRelato(relato.id)}
-                        className="rounded-lg bg-zinc-500 p-2 text-white transition-colors hover:bg-zinc-600"
+                        disabled={loadingId === relato.id}
+                        className="rounded-lg bg-zinc-500 p-2 text-white transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Deletar"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {loadingId === relato.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   )}

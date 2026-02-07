@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Shield, AlertTriangle, Store, Building2, LogOut } from 'lucide-react'
+import { Toaster } from 'sonner'
 import { RelatosSection } from './admin/RelatosSection'
 import { VitrineSection } from './admin/VitrineSection'
 import { EmpresasSection } from './admin/EmpresasSection'
@@ -38,7 +39,9 @@ export function AdminDashboard() {
   ]
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
+    <>
+      <Toaster position="top-right" richColors />
+      <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Sidebar */}
       <aside className="w-64 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex h-full flex-col">
@@ -114,6 +117,7 @@ export function AdminDashboard() {
         {activeSection === 'vitrine' && <VitrineSection />}
         {activeSection === 'empresas' && <EmpresasSection />}
       </main>
-    </div>
+      </div>
+    </>
   )
 }
