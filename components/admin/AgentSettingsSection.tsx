@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Save, Bot, Sparkles, Cpu, Loader2, MessageSquare, Zap, AlertTriangle } from 'lucide-react'
+import { Save, Loader2, MessageSquare, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import Image from 'next/image'
 
 interface AgentConfig {
     model: string
@@ -18,7 +19,7 @@ interface ConfigItem {
 
 export function AgentSettingsSection() {
     const [config, setConfig] = useState<AgentConfig>({
-        model: 'gpt-4o',
+        model: 'grok-4-1',
         sarcasm_level: 2,
         instructions: ''
     })
@@ -27,28 +28,22 @@ export function AgentSettingsSection() {
 
     const models = useMemo(() => [
         {
-            id: 'gpt-4o',
-            name: 'GPT-4o',
-            desc: 'Mais inteligente e capaz',
-            icon: Zap
-        },
-        {
-            id: 'claude-3-5-sonnet',
-            name: 'Claude 3.5 Sonnet',
-            desc: 'Equilibrado e natural',
-            icon: Bot
-        },
-        {
-            id: 'gpt-5-preview',
-            name: 'GPT-5 (Preview)',
-            desc: 'Máxima inteligência (Beta)',
-            icon: Sparkles
-        },
-        {
             id: 'grok-4-1',
             name: 'Grok 4.1',
-            desc: 'Sem filtros, humor ácido',
-            icon: Cpu
+            desc: 'Diálogo natural com inteligência emocional',
+            logo: '/logos/xai-logo.jpg'
+        },
+        {
+            id: 'claude-4-5',
+            name: 'Claude 4.5',
+            desc: 'Híbrido com raciocínio avançado para coding',
+            logo: '/logos/anthropic-logo.jpg'
+        },
+        {
+            id: 'gpt-5-1',
+            name: 'GPT-5.1',
+            desc: 'Conversacional com raciocínio aprimorado',
+            logo: '/logos/openai-logo.jpg'
         }
     ], [])
 
@@ -189,9 +184,15 @@ export function AgentSettingsSection() {
                                                 : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
                                                 }`}
                                         >
-                                            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${config.model === m.id ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500'
+                                            <div className={`flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden ${config.model === m.id ? 'bg-white ring-2 ring-zinc-900' : 'bg-white'
                                                 }`}>
-                                                <m.icon className="h-5 w-5" />
+                                                <Image 
+                                                    src={m.logo} 
+                                                    alt={`${m.name} logo`}
+                                                    width={40}
+                                                    height={40}
+                                                    className="object-contain p-1"
+                                                />
                                             </div>
                                             <div className="text-left flex-1">
                                                 <p className="font-medium text-zinc-900">{m.name}</p>
