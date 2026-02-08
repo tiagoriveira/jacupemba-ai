@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Save, Loader2, MessageSquare, AlertTriangle } from 'lucide-react'
+import { Save, Loader2, MessageSquare, AlertTriangle, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
