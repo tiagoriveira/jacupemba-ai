@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Store, Settings, Package, ArrowLeft, LogOut, Loader2, Save, Upload, Plus, Trash2 } from 'lucide-react'
+import { Store, Settings, Package, ArrowLeft, LogOut, Loader2, Save, Upload, Plus, Trash2, Sparkles } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
@@ -206,8 +206,8 @@ export default function MerchantPage() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={`flex items-center gap-2 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                                            ? 'border-zinc-900 text-zinc-900'
-                                            : 'border-transparent text-zinc-500 hover:text-zinc-700'
+                                        ? 'border-zinc-900 text-zinc-900'
+                                        : 'border-transparent text-zinc-500 hover:text-zinc-700'
                                         }`}
                                 >
                                     <Icon className="h-4 w-4" />
@@ -394,8 +394,8 @@ export default function MerchantPage() {
                                                 )}
                                                 <div className="absolute top-2 right-2">
                                                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${post.status === 'aprovado' ? 'bg-green-100 text-green-700' :
-                                                            post.status === 'rejeitado' ? 'bg-red-100 text-red-700' :
-                                                                'bg-yellow-100 text-yellow-700'
+                                                        post.status === 'rejeitado' ? 'bg-red-100 text-red-700' :
+                                                            'bg-yellow-100 text-yellow-700'
                                                         }`}>
                                                         {post.status.toUpperCase()}
                                                     </span>
