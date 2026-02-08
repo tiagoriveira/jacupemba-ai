@@ -274,6 +274,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                 </select>
               </div>
             </div>
+
             {/* Coluna Direita - Formulário */}
             <div className="space-y-4">
               {/* Vendedor */}
