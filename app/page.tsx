@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { MapPin, Send, Loader2, Briefcase, Calendar, Store, Clock, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Settings } from 'lucide-react'
+import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -53,21 +53,33 @@ export default function Page() {
   const [trendingTopics, setTrendingTopics] = useState<Array<{category: string, count: number}>>([])
 
   const CATEGORY_LABELS: Record<string, string> = {
-    comercio: 'Comercio',
-    seguranca: 'Seguranca',
-    transito: 'Transito',
-    convivencia: 'Convivencia',
-    eventos: 'Eventos',
-    outro: 'Outro'
+    'seguranca': '🚨 Seguranca',
+    'emergencia': '🆘 Emergencia',
+    'saude': '🏥 Saude Publica',
+    'transito': '🚦 Transito',
+    'saneamento': '💧 Saneamento',
+    'iluminacao': '💡 Iluminacao',
+    'convivencia': '🤝 Comunidade',
+    'animais': '🐕 Animais',
+    'eventos': '🎪 Eventos',
+    'comercio': '🏬 Comercio',
+    'transporte': '🚌 Transporte',
+    'outros': '📍 Outros'
   }
 
   const REPORT_CATEGORIES = [
-    { value: 'comercio', label: 'Comercio', placeholder: 'Descreva algo sobre comercio local...' },
-    { value: 'seguranca', label: 'Seguranca', placeholder: 'Descreva o problema de seguranca...' },
-    { value: 'transito', label: 'Transito', placeholder: 'Descreva o problema de transito...' },
-    { value: 'convivencia', label: 'Convivencia', placeholder: 'Descreva o assunto de convivencia...' },
-    { value: 'eventos', label: 'Eventos', placeholder: 'Compartilhe informacoes sobre eventos...' },
-    { value: 'outro', label: 'Outro', placeholder: 'Compartilhe informacoes uteis sobre o bairro...' },
+    { value: 'seguranca', label: '🚨 Seguranca', placeholder: 'Assaltos, violencia, areas perigosas...' },
+    { value: 'emergencia', label: '🆘 Emergencia', placeholder: 'Acidentes, incendios, situacoes urgentes...' },
+    { value: 'saude', label: '🏥 Saude Publica', placeholder: 'UBS, postos de saude, surtos...' },
+    { value: 'transito', label: '🚦 Transito', placeholder: 'Buracos, semaforos, acidentes...' },
+    { value: 'saneamento', label: '💧 Saneamento', placeholder: 'Agua, esgoto, coleta de lixo...' },
+    { value: 'iluminacao', label: '💡 Iluminacao', placeholder: 'Postes queimados, falta de luz...' },
+    { value: 'convivencia', label: '🤝 Comunidade', placeholder: 'Barulho, conflitos entre vizinhos...' },
+    { value: 'animais', label: '🐕 Animais', placeholder: 'Cachorros soltos, maus-tratos...' },
+    { value: 'eventos', label: '🎪 Eventos', placeholder: 'Festas, feiras, atividades locais...' },
+    { value: 'comercio', label: '🏬 Comercio', placeholder: 'Novos negocios, reclamacoes...' },
+    { value: 'transporte', label: '🚌 Transporte Publico', placeholder: 'Onibus, lotacao, atrasos...' },
+    { value: 'outros', label: '📍 Outros', placeholder: 'Outras informacoes uteis do bairro...' },
   ]
 
   const getPopularityIndicator = (count: number): string => {
@@ -86,17 +98,17 @@ export default function Page() {
   useEffect(() => {
     const calculateTrendingTopics = async () => {
       try {
-        // Get reports from last 48 hours
-        const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+        // Get reports from last 7 days
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
         
         const { data: reports, error } = await supabase
           .from('anonymous_reports')
           .select('category')
           .eq('status', 'aprovado')
-          .gte('created_at', fortyEightHoursAgo)
+          .gte('created_at', sevenDaysAgo)
         
         if (error) {
-          console.error('[v0] Error fetching reports:', error)
+          console.error('Error fetching reports:', error)
           setTrendingTopics([])
           return
         }
@@ -117,7 +129,7 @@ export default function Page() {
 
         setTrendingTopics(trending)
       } catch (error) {
-        console.error('[v0] Error calculating trending topics:', error)
+        console.error('Error calculating trending topics:', error)
         setTrendingTopics([])
       }
     }
@@ -264,7 +276,7 @@ export default function Page() {
         }])
       
       if (error) {
-        console.error('[v0] Error submitting report:', error)
+        console.error('Error submitting report:', error)
         alert('Erro ao enviar relato. Tente novamente.')
         return
       }
@@ -277,7 +289,7 @@ export default function Page() {
         setReportSubmitted(false)
       }, 2000)
     } catch (error) {
-      console.error('[v0] Error submitting report:', error)
+      console.error('Error submitting report:', error)
       alert('Erro ao enviar relato. Tente novamente.')
     }
   }
@@ -290,7 +302,7 @@ export default function Page() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsReportModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white bg-zinc-900 transition-all duration-150 hover:bg-zinc-800 active:scale-[0.98]"
               title="Relatar algo do bairro"
             >
               <MessageSquare className="h-4 w-4" />
@@ -310,6 +322,14 @@ export default function Page() {
               <History className="h-4 w-4" />
               <span>Historico</span>
             </Link>
+            <Link 
+              href="/admin"
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-red-600 border border-red-300 transition-all duration-150 hover:bg-red-50 active:scale-[0.98]"
+              title="Painel administrativo"
+            >
+              <Shield className="h-4 w-4" />
+              <span>Admin</span>
+            </Link>
           </div>
         </div>
       </header>
@@ -318,48 +338,61 @@ export default function Page() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl px-4">
           {messages.length === 0 ? (
-            /* Welcome Screen */
-            <div className="flex min-h-[calc(100vh-180px)] flex-col items-center justify-center py-16">
-              <div className="mb-16 text-center">
-                <h2 className="mb-2 text-2xl font-semibold text-zinc-900 dark:text-white">
-                  Olá! Sou seu assistente local
-                </h2>
-                <p className="text-base text-zinc-600 dark:text-zinc-400">
-                  Como posso ajudar?
-                </p>
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
-                  Pergunte sobre serviços, comercios, vagas ou eventos do bairro
-                </p>
+            /* Empty State */
+            <div>
+              {/* Hero Welcome Block - 85vh */}
+              <div className="flex min-h-[85vh] items-center justify-center px-4">
+                <div className="text-center animate-in fade-in-0 duration-700">
+                  {/* Avatar - Larger */}
+                  <div className="mb-6 flex justify-center">
+                    <img 
+                      src="/avatar_jacupemba_v1.png" 
+                      alt="Jacupemba" 
+                      className="h-32 w-32 object-contain animate-in zoom-in-50 duration-500"
+                    />
+                  </div>
+                  
+                  {/* Title */}
+                  <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-4xl lg:text-5xl animate-in slide-in-from-bottom-4 duration-500 delay-200">
+                    Olá! Sou seu assistente local
+                  </h1>
+                  
+                  {/* Subtitle with ironic touch */}
+                  <p className="mt-4 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
+                    Te ajudo com comércio, serviços, vagas e informações do bairro de Jacupemba, na maioria das vezes sou irônico, mas isso é quando estou de bom humor!
+                  </p>
+                </div>
               </div>
 
-              {/* Trending Topics */}
+              {/* Content Below - Spacer */}
+              <div className="pt-8 pb-12">
+                {/* Feed do Bairro - Card de Acesso */}
               <div className="w-full max-w-3xl mb-10">
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                  <div className="mb-3">
-                    <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Assuntos mais relatados nas ultimas 48h</h3>
-                  </div>
-                  {trendingTopics.length > 0 ? (
-                    <div className="flex flex-col gap-1.5">
-                      {trendingTopics.map((topic) => (
-                        <button
-                          key={topic.category}
-                          onClick={() => handleSuggestionClick(`Me conte sobre os relatos de ${CATEGORY_LABELS[topic.category]} que os vizinhos estao compartilhando`)}
-                          className="group flex items-center gap-2 rounded-lg bg-white px-3 py-2.5 text-left text-sm text-zinc-600 transition-all duration-150 hover:bg-zinc-100 active:scale-[0.99] dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                        >
-                          <span className="text-zinc-400 dark:text-zinc-500 text-xs">{getPopularityIndicator(topic.count)}</span>
-                          <span className="flex-1 font-medium">{CATEGORY_LABELS[topic.category]}</span>
-                          <svg className="h-3.5 w-3.5 text-zinc-300 transition-transform duration-150 group-hover:translate-x-0.5 dark:text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
-                      ))}
+                <Link 
+                  href="/relatos"
+                  className="block group"
+                >
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                            <MessageSquare className="h-6 w-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-white mb-1">Feed do Bairro</h3>
+                            <p className="text-sm text-zinc-300">Ultimos 7 dias de relatos</p>
+                          </div>
+                        </div>
+                        <ArrowUp className="h-5 w-5 text-white rotate-45 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+                      </div>
+                      <p className="text-zinc-200 text-sm leading-relaxed">
+                        Veja todos os relatos da comunidade organizados por categoria. Filtre por periodo, comente e acompanhe o que esta acontecendo no bairro em tempo real.
+                      </p>
                     </div>
-                  ) : (
-                    <p className="text-sm text-zinc-400 dark:text-zinc-500 py-2">
-                      Em breve aparecerao aqui os assuntos mais relatados nas ultimas 48h
-                    </p>
-                  )}
-                </div>
+                  </div>
+                </Link>
               </div>
 
               {/* Suggestion Cards */}
@@ -386,6 +419,7 @@ export default function Page() {
                     </button>
                   )
                 })}
+              </div>
               </div>
             </div>
           ) : (

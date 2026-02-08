@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Building2, Search, Check, X, Trash2, Phone, MapPin, AlertTriangle } from 'lucide-react'
+import { Building2, Search, Check, X, Trash2, Phone, MapPin, AlertTriangle, Plus, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { EmpresaModal } from './EmpresaModal'
 
 interface Empresa {
   id: string
@@ -10,7 +12,6 @@ interface Empresa {
   category: string
   description: string
   phone: string
-  whatsapp: string
   address: string
   hours: string
   verified: boolean
@@ -22,6 +23,8 @@ export function EmpresasSection() {
   const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('pendente')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchEmpresas()
@@ -42,22 +45,32 @@ export function EmpresasSection() {
       if (error) throw error
       setEmpresas(data || [])
     } catch (error) {
-      console.error('[v0] Error fetching businesses:', error)
+      console.error('Error fetching businesses:', error)
     }
   }
 
   const updateStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
     try {
+      setLoadingId(id)
       const { error } = await supabase
         .from('local_businesses')
         .update({ status })
         .eq('id', id)
 
       if (error) throw error
-      fetchEmpresas()
+      
+      toast.success(
+        status === 'aprovado' 
+          ? 'Empresa aprovada com sucesso!' 
+          : 'Empresa rejeitada com sucesso!'
+      )
+      
+      await fetchEmpresas()
     } catch (error) {
-      console.error('[v0] Error updating status:', error)
-      alert('Erro ao atualizar status')
+      console.error('Error updating status:', error)
+      toast.error('Erro ao atualizar status')
+    } finally {
+      setLoadingId(null)
     }
   }
 
@@ -65,16 +78,20 @@ export function EmpresasSection() {
     if (!confirm('Tem certeza que deseja deletar esta empresa?')) return
     
     try {
+      setLoadingId(id)
       const { error } = await supabase
         .from('local_businesses')
         .delete()
         .eq('id', id)
 
       if (error) throw error
-      fetchEmpresas()
+      toast.success('Empresa deletada com sucesso!')
+      await fetchEmpresas()
     } catch (error) {
-      console.error('[v0] Error deleting:', error)
-      alert('Erro ao deletar')
+      console.error('Error deleting:', error)
+      toast.error('Erro ao deletar')
+    } finally {
+      setLoadingId(null)
     }
   }
 
@@ -97,6 +114,12 @@ export function EmpresasSection() {
 
   return (
     <div className="h-full">
+      <EmpresaModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchEmpresas}
+      />
+      
       {/* Header */}
       <div className="border-b border-zinc-200 bg-white px-8 py-6">
         <div className="flex items-center justify-between">
@@ -106,11 +129,20 @@ export function EmpresasSection() {
               Modere cadastros de comércios e serviços
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-700" />
-            <span className="text-sm font-semibold text-yellow-700">
-              {pendentesCount} pendentes
-            </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white transition-colors hover:bg-zinc-800"
+            >
+              <Plus className="h-5 w-5" />
+              Nova Empresa
+            </button>
+            <div className="flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-700" />
+              <span className="text-sm font-semibold text-yellow-700">
+                {pendentesCount} pendentes
+              </span>
+            </div>
           </div>
         </div>
 
@@ -211,23 +243,40 @@ export function EmpresasSection() {
                         <>
                           <button
                             onClick={() => updateStatus(empresa.id, 'aprovado')}
-                            className="flex items-center gap-1 rounded-lg bg-green-100 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-200"
+                            disabled={loadingId === empresa.id}
+                            className="flex items-center gap-1 rounded-lg bg-green-100 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            <Check className="h-4 w-4" /> Aprovar
+                            {loadingId === empresa.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                            Aprovar
                           </button>
                           <button
                             onClick={() => updateStatus(empresa.id, 'rejeitado')}
-                            className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200"
+                            disabled={loadingId === empresa.id}
+                            className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            <X className="h-4 w-4" /> Rejeitar
+                            {loadingId === empresa.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
+                            Rejeitar
                           </button>
                         </>
                       )}
                       <button
                         onClick={() => deleteEmpresa(empresa.id)}
-                        className="rounded-lg bg-zinc-100 p-2 text-zinc-700 hover:bg-zinc-200"
+                        disabled={loadingId === empresa.id}
+                        className="rounded-lg bg-zinc-100 p-2 text-zinc-700 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {loadingId === empresa.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>

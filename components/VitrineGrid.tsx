@@ -1,34 +1,51 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { X, MessageCircle, ArrowLeft, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 interface VitrinePost {
   id: string
-  seller_name: string
-  seller_phone: string
+  contact_name: string
+  contact_phone: string
   title: string
   description: string
   price: number
   category: string
-  media_url: string
-  media_type: 'image' | 'video'
+  image_url: string
+  images?: string[]
+  video_url?: string
+  aspect_ratio?: 'square' | 'vertical'
   expires_at: string
-  views: number
-  clicks: number
   created_at: string
 }
 
-// Masonry heights for visual variety
-const ASPECT_PATTERNS = ['tall', 'normal', 'normal', 'tall', 'normal', 'normal', 'tall', 'normal'] as const
+type CategoryType = 'vaga' | 'informativo' | 'servico' | 'produto' | 'comunicado'
+
+const CATEGORY_CONFIG: Record<CategoryType, { label: string; bg: string; icon: any }> = {
+  vaga: { label: 'Vaga', bg: 'from-blue-600 to-blue-400', icon: Briefcase },
+  informativo: { label: 'Informativo', bg: 'from-purple-600 to-purple-400', icon: Info },
+  servico: { label: 'Servico', bg: 'from-orange-600 to-orange-400', icon: Wrench },
+  produto: { label: 'Produto', bg: 'from-green-600 to-green-400', icon: ShoppingBag },
+  comunicado: { label: 'Comunicado', bg: 'from-red-600 to-red-400', icon: Megaphone },
+}
+
+function getHoursRemaining(expiresAt: string) {
+  return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
+}
+
+function formatPrice(price: number | null) {
+  if (!price || price === 0) return 'A combinar'
+  return `R$ ${Number(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+}
 
 export function VitrineGrid() {
   const [posts, setPosts] = useState<VitrinePost[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPost, setSelectedPost] = useState<VitrinePost | null>(null)
-  const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({})
+  const [filter, setFilter] = useState<'todos' | CategoryType>('todos')
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   useEffect(() => {
     async function fetchPosts() {
@@ -41,12 +58,12 @@ export function VitrineGrid() {
           .order('created_at', { ascending: false })
 
         if (error) {
-          console.error('[v0] Error fetching vitrine posts:', error)
+          console.error('Error fetching vitrine posts:', error)
           return
         }
         setPosts(data || [])
       } catch (err) {
-        console.error('[v0] Error:', err)
+        console.error('Error:', err)
       } finally {
         setLoading(false)
       }
@@ -55,112 +72,133 @@ export function VitrineGrid() {
     fetchPosts()
   }, [])
 
-  // Autoplay videos when in view
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const video = entry.target as HTMLVideoElement
-          if (entry.isIntersecting) {
-            video.play().catch(() => {})
-          } else {
-            video.pause()
-          }
-        })
-      },
-      { threshold: 0.5 }
-    )
+  const filteredPosts = filter === 'todos' ? posts : posts.filter(p => p.category === filter)
 
-    Object.values(videoRefs.current).forEach((video) => {
-      if (video) observer.observe(video)
-    })
-
-    return () => observer.disconnect()
-  }, [posts])
-
-  function handleWhatsAppClick(post: VitrinePost) {
+  function handleWhatsAppClick(post: VitrinePost, e?: React.MouseEvent) {
+    e?.stopPropagation()
+    const phone = (post.contact_phone || '').replace(/\D/g, '')
     const message = encodeURIComponent(`Ola, vi seu anuncio "${post.title}" no Assistente Local e tenho interesse!`)
-    window.open(`https://wa.me/${post.seller_phone}?text=${message}`, '_blank')
+    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank')
   }
 
-  function getAspect(index: number) {
-    return ASPECT_PATTERNS[index % ASPECT_PATTERNS.length]
+  function handleShare(post: VitrinePost, e?: React.MouseEvent) {
+    e?.stopPropagation()
+    const text = `${post.title} - ${formatPrice(post.price)}\n${post.description || ''}\nContato: ${post.contact_name || ''} ${post.contact_phone || ''}`
+    const encoded = encodeURIComponent(text)
+    window.open(`https://wa.me/?text=${encoded}`, '_blank')
   }
+
+  const getCatConfig = (cat: string) => CATEGORY_CONFIG[cat as CategoryType] || CATEGORY_CONFIG.produto
 
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-zinc-200">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/90 backdrop-blur-lg">
+        <div className="mx-auto max-w-5xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link 
                 href="/"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 transition-colors"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="hidden sm:inline">Voltar</span>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-zinc-900">Vitrine do Bairro</h1>
-                <p className="text-sm text-zinc-600">Produtos e servicos locais</p>
+                <h1 className="text-xl font-bold text-zinc-900">Explorar</h1>
+                <p className="text-xs text-zinc-500">Comunidade local</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <div className="flex items-center gap-1">
-                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="hidden sm:inline">{posts.length} anuncios ativos</span>
-                <span className="sm:hidden">{posts.length}</span>
-              </div>
-            </div>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {([
+              { value: 'todos', label: 'Todos' },
+              { value: 'vaga', label: 'Vagas' },
+              { value: 'informativo', label: 'Informativos' },
+              { value: 'servico', label: 'Servicos' },
+              { value: 'produto', label: 'Produtos' },
+              { value: 'comunicado', label: 'Comunicados' },
+            ] as const).map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => setFilter(tab.value)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  filter === tab.value
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
       </header>
 
-      {/* Loading */}
+      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
         </div>
-      ) : posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+          <ShoppingBag className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
           <p className="text-zinc-500 text-sm">Nenhum anuncio ativo no momento</p>
           <p className="text-zinc-400 text-xs mt-1">Os anuncios expiram em 48h</p>
         </div>
       ) : (
-        /* Masonry Grid */
-        <div className="max-w-7xl mx-auto px-1 py-2">
-          <div className="columns-2 md:columns-3 gap-1">
-            {posts.map((post, index) => {
-              const aspect = getAspect(index)
+        <div className="mx-auto max-w-6xl px-0 py-0">
+          {/* Masonry Grid - Instagram Explore Style */}
+          <div className="columns-2 gap-0 sm:columns-3 lg:columns-4">
+            {filteredPosts.map((post) => {
+              const config = getCatConfig(post.category)
+              const isVertical = post.aspect_ratio === 'vertical'
+              const postImages = post.images && post.images.length > 0 ? post.images : (post.image_url ? [post.image_url] : [])
+              const hasMultipleImages = postImages.length > 1
+
               return (
                 <button
                   key={post.id}
-                  onClick={() => setSelectedPost(post)}
-                  className="relative mb-1 w-full break-inside-avoid overflow-hidden rounded-sm bg-zinc-200 block"
+                  onClick={() => {
+                    setSelectedPost(post)
+                    setCurrentImageIndex(0)
+                  }}
+                  className="group relative mb-0 w-full break-inside-avoid overflow-hidden transition-all duration-200 hover:opacity-90"
                 >
-                  {post.media_type === 'video' ? (
-                    <>
+                  {post.video_url ? (
+                    <div className="relative w-full">
                       <video
-                        ref={(el) => { videoRefs.current[post.id] = el }}
-                        src={post.media_url}
-                        loop
-                        muted
+                        src={post.video_url}
+                        className={`w-full object-cover ${isVertical ? 'aspect-[9/16]' : 'aspect-square'}`}
                         playsInline
-                        className={`w-full object-cover ${aspect === 'tall' ? 'aspect-[3/4]' : 'aspect-square'}`}
+                        muted
                       />
-                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full">
-                        <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="rounded-full bg-white/90 p-3 backdrop-blur-sm">
+                          <Play className="h-6 w-6 text-zinc-900" fill="currentColor" />
+                        </div>
                       </div>
-                    </>
+                    </div>
+                  ) : postImages.length > 0 ? (
+                    <div className="relative">
+                      <img
+                        src={postImages[0]}
+                        alt={post.title}
+                        className={`w-full object-cover ${isVertical ? 'aspect-[9/16]' : 'aspect-square'}`}
+                      />
+                      {hasMultipleImages && (
+                        <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 backdrop-blur-sm">
+                          <Camera className="h-3 w-3 text-white" />
+                          <span className="text-xs font-medium text-white">1/{postImages.length}</span>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <img
-                      src={post.media_url}
-                      alt={post.title}
-                      className={`w-full object-cover ${aspect === 'tall' ? 'aspect-[3/4]' : 'aspect-square'}`}
-                    />
+                    <div className={`flex ${isVertical ? 'aspect-[9/16]' : 'aspect-square'} w-full items-center justify-center bg-gradient-to-br ${config.bg}`}>
+                      <config.icon className="h-16 w-16 text-white/20" />
+                    </div>
                   )}
                 </button>
               )
@@ -169,68 +207,181 @@ export function VitrineGrid() {
         </div>
       )}
 
-      {/* Modal Fullscreen */}
+      {/* Detail Modal */}
       {selectedPost && (
-        <div className="fixed inset-0 z-50 bg-black">
-          <button
-            onClick={() => setSelectedPost(null)}
-            className="absolute top-4 right-4 z-10 rounded-full bg-black/60 backdrop-blur-sm p-2 text-white hover:bg-black/80 transition-colors"
+        <div 
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setSelectedPost(null)}
+        >
+          <div 
+            className="relative w-full max-w-lg overflow-hidden rounded-t-3xl bg-white sm:rounded-2xl sm:shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <X className="h-6 w-6" />
-          </button>
+            {/* Close */}
+            <button
+              onClick={() => setSelectedPost(null)}
+              className="absolute right-4 top-4 z-10 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
-          <div className="relative h-full w-full">
-            {selectedPost.media_type === 'video' ? (
-              <video
-                src={selectedPost.media_url}
-                controls
-                autoPlay
-                loop
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <img
-                src={selectedPost.media_url}
-                alt={selectedPost.title}
-                className="h-full w-full object-contain"
-              />
-            )}
+            {/* Image / Video / Gradient */}
+            {selectedPost.video_url ? (
+              <div className="relative aspect-square">
+                <video
+                  src={selectedPost.video_url}
+                  className="h-full w-full object-cover"
+                  controls
+                  playsInline
+                />
+              </div>
+            ) : (() => {
+              const modalImages = selectedPost.images && selectedPost.images.length > 0 
+                ? selectedPost.images 
+                : (selectedPost.image_url ? [selectedPost.image_url] : [])
+              
+              if (modalImages.length === 0) {
+                return (
+                  <div className={`relative flex aspect-[16/9] items-center justify-center bg-gradient-to-br ${getCatConfig(selectedPost.category).bg}`}>
+                    {(() => {
+                      const Icon = getCatConfig(selectedPost.category).icon
+                      return <Icon className="h-20 w-20 text-white/15" />
+                    })()}
+                  </div>
+                )
+              }
 
-            {/* Info footer */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/90 to-transparent px-6 py-8">
-              <div className="max-w-2xl mx-auto">
-                <span className="inline-block rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-xs font-medium text-white mb-3">
-                  {selectedPost.category}
-                </span>
+              const hasMultiple = modalImages.length > 1
+              const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % modalImages.length)
+              const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + modalImages.length) % modalImages.length)
 
-                <h2 className="text-2xl font-bold text-white mb-2">{selectedPost.title}</h2>
-                {selectedPost.price && (
-                  <p className="text-3xl font-bold text-green-400 mb-4">
-                    R$ {Number(selectedPost.price).toFixed(2)}
-                  </p>
+              return (
+                <div className="relative aspect-square bg-zinc-900">
+                  <img
+                    src={modalImages[currentImageIndex]}
+                    alt={`${selectedPost.title} - ${currentImageIndex + 1}`}
+                    className="h-full w-full object-contain"
+                  />
+                  
+                  {hasMultiple && (
+                    <>
+                      {/* Navigation Arrows */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          prevImage()
+                        }}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm transition-all hover:bg-black/80"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          nextImage()
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm transition-all hover:bg-black/80"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+
+                      {/* Dots Indicator */}
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                        {modalImages.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setCurrentImageIndex(idx)
+                            }}
+                            className={`h-2 rounded-full transition-all ${
+                              idx === currentImageIndex 
+                                ? 'w-6 bg-white' 
+                                : 'w-2 bg-white/50 hover:bg-white/75'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Counter */}
+                      <div className="absolute top-4 right-4 rounded-full bg-black/60 px-3 py-1 backdrop-blur-sm">
+                        <span className="text-sm font-medium text-white">
+                          {currentImageIndex + 1}/{modalImages.length}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  <span className="mb-2 inline-block rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600">
+                    {getCatConfig(selectedPost.category).label}
+                  </span>
+                  <h2 className="text-xl font-bold text-zinc-900">{selectedPost.title}</h2>
+                </div>
+                {(selectedPost.price && selectedPost.price > 0) ? (
+                  <div className="flex-shrink-0 rounded-xl bg-zinc-900 px-4 py-2">
+                    <span className="text-lg font-bold text-white">
+                      R$ {Number(selectedPost.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0 rounded-xl bg-zinc-100 px-4 py-2">
+                    <span className="text-sm font-medium text-zinc-600">A combinar</span>
+                  </div>
                 )}
+              </div>
 
-                <p className="text-white/90 text-base leading-relaxed mb-4">
+              {selectedPost.description && (
+                <p className="mb-4 text-sm text-zinc-600 leading-relaxed">
                   {selectedPost.description}
                 </p>
+              )}
 
-                <p className="text-white/70 text-sm mb-2">
-                  Por: <span className="font-medium text-white">{selectedPost.seller_name}</span>
-                </p>
+              {/* Seller Info */}
+              <div className="mb-4 rounded-xl bg-zinc-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-200">
+                      <User className="h-5 w-5 text-zinc-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-zinc-900">{selectedPost.contact_name || 'Anonimo'}</p>
+                      <p className="text-xs text-zinc-500">{selectedPost.contact_phone || 'Sem telefone'}</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs font-medium ${
+                    getHoursRemaining(selectedPost.expires_at) <= 6 ? 'text-red-500' : 'text-zinc-400'
+                  }`}>
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Expira em {getHoursRemaining(selectedPost.expires_at)}h</span>
+                  </div>
+                </div>
+              </div>
 
-                <p className="text-white/50 text-xs">
-                  Expira em {Math.max(0, Math.round((new Date(selectedPost.expires_at).getTime() - Date.now()) / (1000 * 60 * 60)))} horas
-                </p>
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleWhatsAppClick(selectedPost)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Contato via WhatsApp
+                </button>
+                <button
+                  onClick={(e) => handleShare(selectedPost, e)}
+                  className="flex items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-zinc-600 transition-colors hover:bg-zinc-50"
+                  title="Compartilhar"
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
               </div>
             </div>
-
-            <button
-              onClick={() => handleWhatsAppClick(selectedPost)}
-              className="absolute bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 hover:scale-110 transition-all"
-              title="Contato via WhatsApp"
-            >
-              <MessageCircle className="h-6 w-6" />
-            </button>
           </div>
         </div>
       )}

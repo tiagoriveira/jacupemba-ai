@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { AlertTriangle, Search, Check, X, Trash2, AlertCircle } from 'lucide-react'
+import { AlertTriangle, Search, Check, X, Trash2, AlertCircle, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { analisarRelato, NIVEL_CONFIG, type ResultadoTriagem } from '@/lib/moderacao-triagem'
 
@@ -19,15 +20,37 @@ interface RelatoComTriagem extends Relato {
 
 export function RelatosSection() {
   const [relatos, setRelatos] = useState<Relato[]>([])
+  const [allRelatos, setAllRelatos] = useState<Relato[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('pendente')
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false)
 
   useEffect(() => {
     fetchRelatos()
   }, [filterStatus])
 
+  useEffect(() => {
+    fetchAllRelatos()
+  }, [])
+
+  const fetchAllRelatos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('anonymous_reports')
+        .select('*')
+      if (error) throw error
+      setAllRelatos(data || [])
+    } catch {
+      // silently fail for stats
+    }
+  }
+
   const fetchRelatos = async () => {
     try {
+      setIsLoading(true)
       const query = supabase
         .from('anonymous_reports')
         .select('*')
@@ -40,8 +63,13 @@ export function RelatosSection() {
       const { data, error } = await query
       if (error) throw error
       setRelatos(data || [])
+      // also refresh stats
+      fetchAllRelatos()
     } catch (error) {
-      console.error('[v0] Error fetching relatos:', error)
+      console.error('Error fetching relatos:', error)
+      toast.error('Erro ao carregar relatos')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -65,16 +93,26 @@ export function RelatosSection() {
 
   const updateStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
     try {
+      setLoadingId(id)
       const { error } = await supabase
         .from('anonymous_reports')
         .update({ status })
         .eq('id', id)
 
       if (error) throw error
-      fetchRelatos()
+      
+      toast.success(
+        status === 'aprovado' 
+          ? 'Relato aprovado com sucesso!' 
+          : 'Relato rejeitado com sucesso!'
+      )
+      
+      await fetchRelatos()
     } catch (error) {
-      console.error('[v0] Error updating status:', error)
-      alert('Erro ao atualizar status')
+      console.error('Error updating status:', error)
+      toast.error('Erro ao atualizar status')
+    } finally {
+      setLoadingId(null)
     }
   }
 
@@ -82,16 +120,64 @@ export function RelatosSection() {
     if (!confirm('Tem certeza que deseja deletar este relato?')) return
     
     try {
+      setLoadingId(id)
       const { error } = await supabase
         .from('anonymous_reports')
         .delete()
         .eq('id', id)
 
       if (error) throw error
-      fetchRelatos()
+      toast.success('Relato deletado com sucesso!')
+      await fetchRelatos()
     } catch (error) {
-      console.error('[v0] Error deleting relato:', error)
-      alert('Erro ao deletar relato')
+      console.error('Error deleting relato:', error)
+      toast.error('Erro ao deletar relato')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const bulkUpdateStatus = async (status: 'aprovado' | 'rejeitado') => {
+    if (selectedIds.length === 0) return
+    if (!confirm(`Tem certeza que deseja ${status === 'aprovado' ? 'aprovar' : 'rejeitar'} ${selectedIds.length} relato(s)?`)) return
+    
+    try {
+      setIsBulkProcessing(true)
+      const { error } = await supabase
+        .from('anonymous_reports')
+        .update({ status })
+        .in('id', selectedIds)
+
+      if (error) throw error
+      
+      toast.success(
+        `${selectedIds.length} relato(s) ${status === 'aprovado' ? 'aprovado(s)' : 'rejeitado(s)'} com sucesso!`
+      )
+      
+      setSelectedIds([])
+      await fetchRelatos()
+    } catch (error) {
+      console.error('Error bulk updating status:', error)
+      toast.error('Erro ao atualizar relatos em lote')
+    } finally {
+      setIsBulkProcessing(false)
+    }
+  }
+
+  const toggleSelectRelato = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(selectedId => selectedId !== id)
+        : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    const pendingRelatos = filteredRelatos.filter(r => r.status === 'pendente')
+    if (selectedIds.length === pendingRelatos.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(pendingRelatos.map(r => r.id))
     }
   }
 
@@ -109,42 +195,60 @@ export function RelatosSection() {
     outro: 'Outro'
   }
 
+  const allRelatosComTriagem = useMemo(() => {
+    return allRelatos.map(relato => ({
+      ...relato,
+      triagem: analisarRelato(relato.text, relato.category)
+    }))
+  }, [allRelatos])
+
   const stats = {
-    total: relatos.length,
-    pendentes: relatos.filter(r => r.status === 'pendente').length,
-    aprovados: relatos.filter(r => r.status === 'aprovado').length,
-    rejeitados: relatos.filter(r => r.status === 'rejeitado').length,
-    altoRisco: relatosComTriagem.filter(r => r.status === 'pendente' && r.triagem.nivelRisco === 'alto').length
+    total: allRelatos.length,
+    pendentes: allRelatos.filter(r => r.status === 'pendente').length,
+    aprovados: allRelatos.filter(r => r.status === 'aprovado').length,
+    rejeitados: allRelatos.filter(r => r.status === 'rejeitado').length,
+    altoRisco: allRelatosComTriagem.filter(r => r.status === 'pendente' && r.triagem.nivelRisco === 'alto').length
   }
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
-        <div className="rounded-lg border border-zinc-200 bg-white p-4">
-          <p className="text-sm text-zinc-500">Total</p>
-          <p className="text-2xl font-bold">{stats.total}</p>
+    <div className="h-full">
+      {/* Page Header with Stats */}
+      <div className="border-b border-zinc-200 bg-white px-8 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-900">Relatos</h1>
+            <p className="mt-1 text-sm text-zinc-600">
+              Modere relatos de problemas do bairro
+            </p>
+          </div>
         </div>
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-          <p className="text-sm text-yellow-700">Pendentes</p>
-          <p className="text-2xl font-bold text-yellow-900">{stats.pendentes}</p>
-        </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">🚨 Alto Risco</p>
-          <p className="text-2xl font-bold text-red-900">{stats.altoRisco}</p>
-        </div>
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-          <p className="text-sm text-green-700">Aprovados</p>
-          <p className="text-2xl font-bold text-green-900">{stats.aprovados}</p>
-        </div>
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-          <p className="text-sm text-zinc-500">Rejeitados</p>
-          <p className="text-2xl font-bold text-zinc-700">{stats.rejeitados}</p>
-        </div>
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+            <p className="text-xs font-medium text-zinc-500">Total</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-900">{stats.total}</p>
+          </div>
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
+            <p className="text-xs font-medium text-yellow-700">Pendentes</p>
+            <p className="mt-1 text-2xl font-bold text-yellow-900">{stats.pendentes}</p>
+          </div>
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-xs font-medium text-red-700">Alto Risco</p>
+            <p className="mt-1 text-2xl font-bold text-red-900">{stats.altoRisco}</p>
+          </div>
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <p className="text-xs font-medium text-green-700">Aprovados</p>
+            <p className="mt-1 text-2xl font-bold text-green-900">{stats.aprovados}</p>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+            <p className="text-xs font-medium text-zinc-500">Rejeitados</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-700">{stats.rejeitados}</p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
@@ -159,7 +263,10 @@ export function RelatosSection() {
           {(['todos', 'pendente', 'aprovado', 'rejeitado'] as const).map((status) => (
             <button
               key={status}
-              onClick={() => setFilterStatus(status)}
+              onClick={() => {
+                setFilterStatus(status)
+                setSelectedIds([])
+              }}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 filterStatus === status
                   ? 'bg-zinc-900 text-white'
@@ -171,6 +278,64 @@ export function RelatosSection() {
           ))}
         </div>
       </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="space-y-4 p-8">
+
+      {/* Bulk Actions Bar */}
+      {filterStatus === 'pendente' && filteredRelatos.filter(r => r.status === 'pendente').length > 0 && (
+        <div className="rounded-lg border-2 border-zinc-300 bg-zinc-50 p-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length === filteredRelatos.filter(r => r.status === 'pendente').length && selectedIds.length > 0}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                />
+                <span className="text-sm font-medium text-zinc-700">
+                  Selecionar todos
+                </span>
+              </label>
+              {selectedIds.length > 0 && (
+                <span className="text-sm font-semibold text-zinc-900">
+                  {selectedIds.length} relato(s) selecionado(s)
+                </span>
+              )}
+            </div>
+            {selectedIds.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => bulkUpdateStatus('aprovado')}
+                  disabled={isBulkProcessing}
+                  className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isBulkProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  Aprovar Selecionados
+                </button>
+                <button
+                  onClick={() => bulkUpdateStatus('rejeitado')}
+                  disabled={isBulkProcessing}
+                  className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isBulkProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <X className="h-4 w-4" />
+                  )}
+                  Rejeitar Selecionados
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Relatos List */}
       <div className="space-y-3">
@@ -189,9 +354,22 @@ export function RelatosSection() {
                   relato.status === 'pendente' && relato.triagem.nivelRisco === 'alto'
                     ? 'border-red-300 shadow-lg'
                     : 'border-zinc-200'
+                } ${
+                  selectedIds.includes(relato.id) ? 'ring-2 ring-zinc-900' : ''
                 }`}
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  {/* Checkbox for pending relatos */}
+                  {relato.status === 'pendente' && (
+                    <div className="pt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(relato.id)}
+                        onChange={() => toggleSelectRelato(relato.id)}
+                        className="h-5 w-5 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900 cursor-pointer"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1 space-y-2">
                     {/* Header com categoria e badge de risco */}
                     <div className="flex items-center gap-2 flex-wrap">
@@ -231,30 +409,45 @@ export function RelatosSection() {
                       </div>
                     )}
                   </div>
-
+                  
                   {/* Actions */}
                   {relato.status === 'pendente' && (
                     <div className="flex gap-2">
                       <button
                         onClick={() => updateStatus(relato.id, 'aprovado')}
-                        className="rounded-lg bg-green-500 p-2 text-white transition-colors hover:bg-green-600"
+                        disabled={loadingId === relato.id}
+                        className="rounded-lg bg-green-500 p-2 text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Aprovar"
                       >
-                        <Check className="h-4 w-4" />
+                        {loadingId === relato.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={() => updateStatus(relato.id, 'rejeitado')}
-                        className="rounded-lg bg-red-500 p-2 text-white transition-colors hover:bg-red-600"
+                        disabled={loadingId === relato.id}
+                        className="rounded-lg bg-red-500 p-2 text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Rejeitar"
                       >
-                        <X className="h-4 w-4" />
+                        {loadingId === relato.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={() => deleteRelato(relato.id)}
-                        className="rounded-lg bg-zinc-500 p-2 text-white transition-colors hover:bg-zinc-600"
+                        disabled={loadingId === relato.id}
+                        className="rounded-lg bg-zinc-500 p-2 text-white transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Deletar"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {loadingId === relato.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   )}
@@ -263,6 +456,7 @@ export function RelatosSection() {
             )
           })
         )}
+      </div>
       </div>
     </div>
   )

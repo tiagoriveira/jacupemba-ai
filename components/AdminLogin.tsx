@@ -19,9 +19,12 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setError('')
     setIsLoading(true)
 
-    // Simular autenticacao - Trocar por Supabase Auth depois
+    // Autenticacao via env vars - configurar no .env.local
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@jacupemba.com'
+    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123'
+    
     setTimeout(() => {
-      if (email === 'admin@jacupemba.com' && password === 'admin123') {
+      if (email === adminEmail && password === adminPassword) {
         onLogin()
       } else {
         setError('Email ou senha incorretos')
@@ -121,10 +124,10 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
             </button>
           </form>
 
-          {/* Info de Demo */}
+          {/* Credenciais configuráveis via env vars */}
           <div className="mt-6 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
             <p className="text-xs text-zinc-600 dark:text-zinc-400">
-              <strong>Demo:</strong> admin@jacupemba.com / admin123
+              Acesso restrito aos administradores do sistema.
             </p>
           </div>
         </div>

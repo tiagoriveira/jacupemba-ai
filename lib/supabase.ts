@@ -5,38 +5,86 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+export type Status = 'pendente' | 'aprovado' | 'rejeitado'
+
+export type ReportCategory = 
+  | 'seguranca' 
+  | 'emergencia' 
+  | 'saude' 
+  | 'transito' 
+  | 'saneamento' 
+  | 'iluminacao' 
+  | 'convivencia' 
+  | 'animais' 
+  | 'eventos' 
+  | 'comercio' 
+  | 'transporte' 
+  | 'outros'
+
 export type Report = {
   id: string
-  category: 'comercio' | 'seguranca' | 'transito' | 'convivencia' | 'eventos' | 'outro'
+  category: ReportCategory
   text: string
+  status: Status
+  created_at: string
+}
+
+export type ReportComment = {
+  id: string
+  report_id: string
+  parent_id: string | null
+  text: string
+  author_name: string
+  created_at: string
+}
+
+export type ReportLike = {
+  id: string
+  report_id: string
+  fingerprint: string
+  created_at: string
+}
+
+export type CommentLike = {
+  id: string
+  comment_id: string
+  fingerprint: string
   created_at: string
 }
 
 export type Business = {
   id: string
   name: string
-  category: 'comercio' | 'servicos' | 'alimentacao' | 'saude' | 'educacao' | 'outro'
+  category: string
   description: string | null
   phone: string | null
-  whatsapp: string | null
   address: string | null
   hours: string | null
+  diferencial: string | null
+  promocao: string | null
+  tempo_entrega: string | null
+  formas_pagamento: string | null
+  link_social: string | null
   verified: boolean
+  status: Status
   created_at: string
+  updated_at: string
 }
 
 export type VitrinePost = {
   id: string
-  seller_name: string
-  seller_phone: string
+  contact_name: string
+  contact_phone: string
   title: string
   description: string | null
   price: number | null
   category: string
-  media_url: string
-  media_type: 'image' | 'video' | null
+  image_url: string | null
+  images: string[]
+  video_url: string | null
+  aspect_ratio: 'square' | 'vertical'
   expires_at: string
-  views: number
-  clicks: number
+  status: Status
   created_at: string
+  updated_at: string
 }

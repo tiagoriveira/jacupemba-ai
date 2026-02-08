@@ -18,12 +18,16 @@ npm install
 Crie um arquivo `.env.local` na raiz do projeto:
 
 ```env
-# Supabase (obrigatório)
-NEXT_PUBLIC_SUPABASE_URL=https://ypuzwiqjfsqhttevljtv.supabase.co
+# Supabase (obrigatorio)
+NEXT_PUBLIC_SUPABASE_URL=sua_url_supabase_aqui
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key_aqui
 
-# xAI Grok (obrigatório)
-XAI_API_KEY=e01efaa2a73742e9ab21f3a94c3ba447
+# xAI Grok (obrigatorio)
+XAI_API_KEY=sua_chave_xai_aqui
+
+# Admin (opcional - padrão: admin@jacupemba.com / admin123)
+NEXT_PUBLIC_ADMIN_EMAIL=seu_email_admin
+NEXT_PUBLIC_ADMIN_PASSWORD=sua_senha_admin
 ```
 
 ### Como obter as chaves Supabase:
