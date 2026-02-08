@@ -339,25 +339,34 @@ export default function Page() {
         <div className="mx-auto max-w-4xl px-4">
           {messages.length === 0 ? (
             /* Empty State */
-            <div className="py-8 md:py-12">
-              {/* Header */}
-              <div className="mb-8 text-center">
-                <div className="mb-4 flex justify-center">
-                  <img 
-                    src="/avatar_jacupemba_v1.png" 
-                    alt="Jacupemba" 
-                    className="h-24 w-24 object-contain"
-                  />
+            <div>
+              {/* Hero Welcome Block - 85vh */}
+              <div className="flex min-h-[85vh] items-center justify-center px-4">
+                <div className="text-center animate-in fade-in-0 duration-700">
+                  {/* Avatar - Larger */}
+                  <div className="mb-6 flex justify-center">
+                    <img 
+                      src="/avatar_jacupemba_v1.png" 
+                      alt="Jacupemba" 
+                      className="h-32 w-32 object-contain animate-in zoom-in-50 duration-500"
+                    />
+                  </div>
+                  
+                  {/* Title */}
+                  <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-4xl lg:text-5xl animate-in slide-in-from-bottom-4 duration-500 delay-200">
+                    Olá! Sou seu assistente local
+                  </h1>
+                  
+                  {/* Subtitle with ironic touch */}
+                  <p className="mt-4 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
+                    Te ajudo com comércio, serviços, vagas e informações do bairro de Jacupemba, na maioria das vezes sou irônico, mas isso é quando estou de bom humor!
+                  </p>
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-3xl">
-                  Olá! Sou seu assistente local
-                </h2>
-                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 md:text-base">
-                  Te ajudo com comercio, servicos, vagas e informacoes do bairro de Jacupemba
-                </p>
               </div>
 
-              {/* Feed do Bairro - Card de Acesso */}
+              {/* Content Below - Spacer */}
+              <div className="pt-8 pb-12">
+                {/* Feed do Bairro - Card de Acesso */}
               <div className="w-full max-w-3xl mb-10">
                 <Link 
                   href="/relatos"
@@ -410,6 +419,7 @@ export default function Page() {
                     </button>
                   )
                 })}
+              </div>
               </div>
             </div>
           ) : (
