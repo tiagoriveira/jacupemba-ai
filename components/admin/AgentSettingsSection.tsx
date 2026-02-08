@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Save, Bot, Sparkles, Cpu, Loader2, MessageSquare, Zap, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -11,6 +11,11 @@ interface AgentConfig {
     instructions: string
 }
 
+interface ConfigItem {
+    key: string
+    value: string
+}
+
 export function AgentSettingsSection() {
     const [config, setConfig] = useState<AgentConfig>({
         model: 'gpt-4o',
@@ -19,9 +24,8 @@ export function AgentSettingsSection() {
     })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-    const [preview, setPreview] = useState('')
 
-    const models = [
+    const models = useMemo(() => [
         {
             id: 'gpt-4o',
             name: 'GPT-4o',
@@ -46,41 +50,9 @@ export function AgentSettingsSection() {
             desc: 'Sem filtros, humor ácido',
             icon: Cpu
         }
-    ]
+    ], [])
 
-    useEffect(() => {
-        fetchConfig()
-    }, [])
-
-    useEffect(() => {
-        generatePreview()
-    }, [config])
-
-    const fetchConfig = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('app_config')
-                .select('*')
-
-            if (error) throw error
-
-            if (data) {
-                const newConfig = { ...config }
-                data.forEach((item: any) => {
-                    if (item.key === 'agent_model') newConfig.model = item.value
-                    if (item.key === 'agent_sarcasm_level') newConfig.sarcasm_level = parseInt(item.value)
-                    if (item.key === 'agent_instructions') newConfig.instructions = item.value
-                })
-                setConfig(newConfig)
-            }
-        } catch (error) {
-            console.error('Error fetching config:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const generatePreview = () => {
+    const preview = useMemo(() => {
         const level = config.sarcasm_level
         let text = ''
 
@@ -100,33 +72,83 @@ export function AgentSettingsSection() {
             text += ` [Incluindo contexto personalizado: "${config.instructions.substring(0, 20)}..."]`
         }
 
-        setPreview(text)
-    }
+        return text
+    }, [config])
 
-    const handleSave = async () => {
+    const fetchConfig = useCallback(async () => {
+        try {
+            const { data, error } = await supabase
+                .from('app_config')
+                .select('*')
+
+            if (error) {
+                console.error('[v0] Error fetching config:', error)
+                toast.error('Erro ao carregar configurações')
+                return
+            }
+
+            if (data && data.length > 0) {
+                const newConfig: AgentConfig = { ...config }
+                
+                data.forEach((item: ConfigItem) => {
+                    switch (item.key) {
+                        case 'agent_model':
+                            newConfig.model = item.value
+                            break
+                        case 'agent_sarcasm_level':
+                            const parsedLevel = parseInt(item.value, 10)
+                            newConfig.sarcasm_level = isNaN(parsedLevel) ? 2 : parsedLevel
+                            break
+                        case 'agent_instructions':
+                            newConfig.instructions = item.value || ''
+                            break
+                    }
+                })
+                
+                setConfig(newConfig)
+            }
+        } catch (error) {
+            console.error('[v0] Unexpected error fetching config:', error)
+            toast.error('Erro inesperado ao carregar configurações')
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    const handleSave = useCallback(async () => {
+        if (saving) return
+
         try {
             setSaving(true)
 
             const updates = [
                 { key: 'agent_model', value: config.model },
                 { key: 'agent_sarcasm_level', value: config.sarcasm_level.toString() },
-                { key: 'agent_instructions', value: config.instructions }
+                { key: 'agent_instructions', value: config.instructions.trim() }
             ]
 
             const { error } = await supabase
                 .from('app_config')
-                .upsert(updates)
+                .upsert(updates, { onConflict: 'key' })
 
-            if (error) throw error
+            if (error) {
+                console.error('[v0] Error saving config:', error)
+                toast.error('Erro ao salvar configurações')
+                return
+            }
 
             toast.success('Configurações salvas com sucesso!')
         } catch (error) {
-            console.error('Error saving config:', error)
-            toast.error('Erro ao salvar configurações')
+            console.error('[v0] Unexpected error saving config:', error)
+            toast.error('Erro inesperado ao salvar')
         } finally {
             setSaving(false)
         }
-    }
+    }, [config, saving])
+
+    useEffect(() => {
+        fetchConfig()
+    }, [fetchConfig])
 
     if (loading) {
         return (
@@ -161,7 +183,7 @@ export function AgentSettingsSection() {
                                     {models.map((m) => (
                                         <button
                                             key={m.id}
-                                            onClick={() => setConfig({ ...config, model: m.id })}
+                                            onClick={() => setConfig(prev => ({ ...prev, model: m.id }))}
                                             className={`flex w-full items-center gap-4 rounded-xl border p-4 transition-all ${config.model === m.id
                                                 ? 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900'
                                                 : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
@@ -205,7 +227,7 @@ export function AgentSettingsSection() {
                                         max="10"
                                         step="1"
                                         value={config.sarcasm_level}
-                                        onChange={(e) => setConfig({ ...config, sarcasm_level: parseInt(e.target.value) })}
+                                        onChange={(e) => setConfig(prev => ({ ...prev, sarcasm_level: parseInt(e.target.value, 10) }))}
                                         className={`h-2 w-full cursor-pointer appearance-none rounded-lg accent-zinc-900 ${config.sarcasm_level > 7 ? 'bg-red-200' : 'bg-zinc-200'}`}
                                     />
                                     <div className="mt-2 flex justify-between text-xs text-zinc-500">
@@ -260,7 +282,7 @@ export function AgentSettingsSection() {
                             </label>
                             <textarea
                                 value={config.instructions}
-                                onChange={(e) => setConfig({ ...config, instructions: e.target.value })}
+                                onChange={(e) => setConfig(prev => ({ ...prev, instructions: e.target.value }))}
                                 placeholder="Defina regras específicas de comportamento, gírias obrigatórias ou tópicos proibidos..."
                                 rows={6}
                                 className="w-full rounded-lg border border-zinc-300 p-3 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
