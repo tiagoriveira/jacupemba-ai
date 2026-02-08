@@ -5,11 +5,11 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
 import { getUserFingerprint } from '@/lib/fingerprint'
-import { 
-  MessageSquare, 
-  Clock, 
-  X, 
-  Send, 
+import {
+  MessageSquare,
+  Clock,
+  X,
+  Send,
   Loader2,
   Shield,
   AlertCircle,
@@ -57,7 +57,7 @@ export function FeedRelatos() {
   const [submittingComment, setSubmittingComment] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const reportsListRef = useRef<HTMLDivElement>(null)
-  
+
   // Likes state
   const [reportLikeCounts, setReportLikeCounts] = useState<Record<string, number>>({})
   const [commentLikeCounts, setCommentLikeCounts] = useState<Record<string, number>>({})
@@ -83,11 +83,11 @@ export function FeedRelatos() {
     try {
       setLoading(true)
       const now = Date.now()
-      const cutoffTime = period === '60min' 
+      const cutoffTime = period === '60min'
         ? new Date(now - 60 * 60 * 1000)
         : period === '24h'
-        ? new Date(now - 24 * 60 * 60 * 1000)
-        : new Date(now - 7 * 24 * 60 * 60 * 1000)
+          ? new Date(now - 24 * 60 * 60 * 1000)
+          : new Date(now - 7 * 24 * 60 * 60 * 1000)
 
       let query = supabase
         .from('anonymous_reports')
@@ -104,14 +104,14 @@ export function FeedRelatos() {
 
       if (!error && data) {
         setReports(data)
-        
+
         const counts: Record<string, number> = {}
         Object.keys(CATEGORY_INFO).forEach(cat => counts[cat] = 0)
         data.forEach(report => {
           counts[report.category] = (counts[report.category] || 0) + 1
         })
         setCategoryCounts(counts)
-        
+
         const reportIds = data.map(r => r.id)
         if (reportIds.length > 0) {
           // Fetch comment counts
@@ -119,7 +119,7 @@ export function FeedRelatos() {
             .from('report_comments')
             .select('report_id')
             .in('report_id', reportIds)
-          
+
           const commentCountsMap: Record<string, number> = {}
           commentsData?.forEach(comment => {
             commentCountsMap[comment.report_id] = (commentCountsMap[comment.report_id] || 0) + 1
@@ -131,7 +131,7 @@ export function FeedRelatos() {
             .from('report_likes')
             .select('report_id')
             .in('report_id', reportIds)
-          
+
           const likeCountsMap: Record<string, number> = {}
           likesData?.forEach(like => {
             likeCountsMap[like.report_id] = (likeCountsMap[like.report_id] || 0) + 1
@@ -145,7 +145,7 @@ export function FeedRelatos() {
               .select('report_id')
               .in('report_id', reportIds)
               .eq('fingerprint', userFingerprint)
-            
+
             setUserLikedReports(new Set(userLikesData?.map(l => l.report_id) || []))
           }
         }
@@ -160,25 +160,25 @@ export function FeedRelatos() {
   const openReportModal = async (report: Report) => {
     setSelectedReport(report)
     setCommentText('')
-    
+
     const { data } = await supabase
       .from('report_comments')
       .select('*')
       .eq('report_id', report.id)
       .order('created_at', { ascending: true })
-    
+
     setComments(data || [])
 
     // Fetch comment likes
     if (data && data.length > 0) {
       const commentIds = data.map(c => c.id)
-      
+
       // Fetch like counts for comments
       const { data: commentLikesData } = await supabase
         .from('comment_likes')
         .select('comment_id')
         .in('comment_id', commentIds)
-      
+
       const commentLikeCountsMap: Record<string, number> = {}
       commentLikesData?.forEach(like => {
         commentLikeCountsMap[like.comment_id] = (commentLikeCountsMap[like.comment_id] || 0) + 1
@@ -192,7 +192,7 @@ export function FeedRelatos() {
           .select('comment_id')
           .in('comment_id', commentIds)
           .eq('fingerprint', userFingerprint)
-        
+
         setUserLikedComments(new Set(userCommentLikesData?.map(l => l.comment_id) || []))
       }
     }
@@ -288,7 +288,7 @@ export function FeedRelatos() {
 
   const handleSubmitComment = async () => {
     if (!commentText.trim() || !selectedReport) return
-    
+
     try {
       setSubmittingComment(true)
       const { error } = await supabase
@@ -297,7 +297,7 @@ export function FeedRelatos() {
           report_id: selectedReport.id,
           text: commentText.trim()
         })
-      
+
       if (!error) {
         setCommentText('')
         const { data } = await supabase
@@ -305,7 +305,7 @@ export function FeedRelatos() {
           .select('*')
           .eq('report_id', selectedReport.id)
           .order('created_at', { ascending: true })
-        
+
         setComments(data || [])
         setCommentCounts(prev => ({
           ...prev,
@@ -315,12 +315,12 @@ export function FeedRelatos() {
         // Reset comment likes for new comments
         if (data && data.length > 0) {
           const commentIds = data.map(c => c.id)
-          
+
           const { data: commentLikesData } = await supabase
             .from('comment_likes')
             .select('comment_id')
             .in('comment_id', commentIds)
-          
+
           const commentLikeCountsMap: Record<string, number> = {}
           commentLikesData?.forEach(like => {
             commentLikeCountsMap[like.comment_id] = (commentLikeCountsMap[like.comment_id] || 0) + 1
@@ -333,7 +333,7 @@ export function FeedRelatos() {
               .select('comment_id')
               .in('comment_id', commentIds)
               .eq('fingerprint', userFingerprint)
-            
+
             setUserLikedComments(new Set(userCommentLikesData?.map(l => l.comment_id) || []))
           }
         }
@@ -350,7 +350,7 @@ export function FeedRelatos() {
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(minutes / 60)
     const days = Math.floor(hours / 24)
-    
+
     if (days > 0) return `${days}d atras`
     if (hours > 0) return `${hours}h atras`
     return `${minutes}m atras`
@@ -380,11 +380,10 @@ export function FeedRelatos() {
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  period === p.value
-                    ? 'bg-zinc-900 text-white'
-                    : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
-                }`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${period === p.value
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
+                  }`}
               >
                 {p.label}
               </button>
@@ -404,18 +403,16 @@ export function FeedRelatos() {
                     reportsListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   }
                 }}
-                className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                  selectedCategory === key
-                    ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg scale-105'
-                    : 'border-zinc-200 bg-white hover:border-zinc-400 hover:shadow-md'
-                }`}
+                className={`p-4 rounded-xl border-2 transition-all duration-200 ${selectedCategory === key
+                  ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg scale-105'
+                  : 'border-zinc-200 bg-white hover:border-zinc-400 hover:shadow-md'
+                  }`}
               >
                 <div className="text-center">
                   <Icon className="h-7 w-7 mx-auto mb-2" />
                   <div className="text-xs font-semibold mb-2">{info.label}</div>
-                  <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    selectedCategory === key ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-700'
-                  }`}>
+                  <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${selectedCategory === key ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-700'
+                    }`}>
                     {categoryCounts[key] || 0}
                   </div>
                 </div>
@@ -462,23 +459,15 @@ export function FeedRelatos() {
                     </div>
                     <button
                       onClick={(e) => toggleReportLike(report.id, e)}
-                      className={`flex items-center gap-1 transition-colors ${
-                        userLikedReports.has(report.id)
-                          ? 'text-red-500'
-                          : 'text-zinc-500 hover:text-red-500'
-                      }`}
+                      className={`flex items-center gap-1 transition-colors ${userLikedReports.has(report.id)
+                        ? 'text-red-500'
+                        : 'text-zinc-500 hover:text-red-500'
+                        }`}
                     >
                       <Heart
                         className={`h-4 w-4 ${userLikedReports.has(report.id) ? 'fill-current' : ''}`}
                       />
                       <span className="text-sm font-medium">{reportLikeCounts[report.id] || 0}</span>
-                    </button>
-                    <button
-                      onClick={(e) => handleShareReport(report, e)}
-                      className="flex items-center gap-1 text-zinc-500 transition-colors hover:text-green-600"
-                      title="Compartilhar no WhatsApp"
-                    >
-                      <Share2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -489,11 +478,11 @@ export function FeedRelatos() {
       </div>
 
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedReport(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white p-5 border-b border-zinc-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedReport(null)}>
+          <div className="bg-zinc-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-zinc-800" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-zinc-900 p-5 border-b border-zinc-800 flex items-center justify-between z-10">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-zinc-900">Relato</h2>
+                <h2 className="text-lg font-semibold text-white">Relato</h2>
                 {(() => {
                   const Icon = getCatInfo(selectedReport.category).icon
                   return (
@@ -506,34 +495,26 @@ export function FeedRelatos() {
               </div>
               <button
                 onClick={() => setSelectedReport(null)}
-                className="p-2 rounded-lg hover:bg-zinc-100 transition-colors duration-200"
+                className="p-2 rounded-lg hover:bg-zinc-800 transition-colors duration-200"
               >
-                <X className="h-5 w-5 text-zinc-500" />
+                <X className="h-5 w-5 text-zinc-400" />
               </button>
             </div>
 
             <div className="p-5 space-y-5">
-              <div className="pb-5 border-b border-zinc-200">
+              <div className="pb-5 border-b border-zinc-800">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-sm text-zinc-500">
+                  <div className="flex items-center gap-2 text-sm text-zinc-400">
                     <Clock className="h-4 w-4" />
                     <span>{getTimeAgo(selectedReport.created_at)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={(e) => handleShareReport(selectedReport, e)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-600 border border-green-200 transition-colors hover:bg-green-100"
-                      title="Compartilhar no WhatsApp"
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </button>
-                    <button
                       onClick={(e) => toggleReportLike(selectedReport.id, e)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                        userLikedReports.has(selectedReport.id)
-                          ? 'bg-red-50 text-red-600 border border-red-200'
-                          : 'bg-zinc-50 text-zinc-600 border border-zinc-200 hover:border-red-300 hover:text-red-500'
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${userLikedReports.has(selectedReport.id)
+                        ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                        : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-red-500/30 hover:text-red-500'
+                        }`}
                     >
                       <Heart
                         className={`h-4 w-4 ${userLikedReports.has(selectedReport.id) ? 'fill-current' : ''}`}
@@ -542,26 +523,25 @@ export function FeedRelatos() {
                     </button>
                   </div>
                 </div>
-                <p className="text-zinc-800 leading-relaxed">{selectedReport.text}</p>
+                <p className="text-zinc-300 leading-relaxed text-lg">{selectedReport.text}</p>
               </div>
 
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-zinc-700">
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-zinc-400">
                   Comentarios ({comments.length})
                 </h3>
                 {comments.map(comment => (
-                  <div key={comment.id} className="bg-zinc-50 rounded-xl p-4 border border-zinc-100 transition-colors duration-200 hover:bg-zinc-100">
+                  <div key={comment.id} className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-800 transition-colors duration-200 hover:bg-zinc-800">
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-xs text-zinc-500">
                         {getTimeAgo(comment.created_at)}
                       </div>
                       <button
                         onClick={(e) => toggleCommentLike(comment.id, e)}
-                        className={`flex items-center gap-1 text-xs transition-colors ${
-                          userLikedComments.has(comment.id)
-                            ? 'text-red-500'
-                            : 'text-zinc-400 hover:text-red-500'
-                        }`}
+                        className={`flex items-center gap-1 text-xs transition-colors ${userLikedComments.has(comment.id)
+                          ? 'text-red-500'
+                          : 'text-zinc-500 hover:text-red-500'
+                          }`}
                       >
                         <Heart
                           className={`h-3.5 w-3.5 ${userLikedComments.has(comment.id) ? 'fill-current' : ''}`}
@@ -569,22 +549,22 @@ export function FeedRelatos() {
                         <span className="font-medium">{commentLikeCounts[comment.id] || 0}</span>
                       </button>
                     </div>
-                    <p className="text-sm text-zinc-700 leading-relaxed">{comment.text}</p>
+                    <p className="text-sm text-zinc-300 leading-relaxed">{comment.text}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3 pt-2">
                 <textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Adicione um comentario anonimo..."
-                  className="w-full min-h-[80px] p-3 border border-zinc-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent resize-none transition-all duration-200"
+                  className="w-full min-h-[80px] p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent resize-none transition-all duration-200 text-sm"
                 />
                 <button
                   onClick={handleSubmitComment}
                   disabled={!commentText.trim() || submittingComment}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-zinc-900 font-semibold rounded-xl hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   {submittingComment ? (
                     <>
@@ -606,3 +586,4 @@ export function FeedRelatos() {
     </div>
   )
 }
+

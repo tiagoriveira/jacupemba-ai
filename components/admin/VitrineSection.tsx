@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Edit, Loader2 } from 'lucide-react'
+import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Edit, Loader2, DollarSign, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { VitrineUploadModal } from './VitrineUploadModal'
@@ -18,6 +18,9 @@ interface VitrinePost {
   expires_at: string
   status: 'pendente' | 'aprovado' | 'rejeitado'
   created_at: string
+  business_id?: string
+  business_name?: string // Optional, for display if joined
+  payment_proof_url?: string
 }
 
 export function VitrineSection() {
@@ -27,6 +30,8 @@ export function VitrineSection() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<VitrinePost | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [selectedPosts, setSelectedPosts] = useState<string[]>([])
+  const [processingBatch, setProcessingBatch] = useState(false)
 
   useEffect(() => {
     fetchPosts()
@@ -38,7 +43,7 @@ export function VitrineSection() {
         .from('vitrine_posts')
         .select('*')
         .order('created_at', { ascending: false })
-      
+
       if (filterStatus !== 'todos') {
         query.eq('status', filterStatus)
       }
@@ -46,12 +51,13 @@ export function VitrineSection() {
       const { data, error } = await query
       if (error) throw error
       setPosts(data || [])
+      setSelectedPosts([]) // Clear selection on refresh
     } catch (error) {
       console.error('Error fetching vitrine posts:', error)
     }
   }
 
-  const updateStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
+  const updateStatus = async (id: string, status: 'aprovado' | 'rejeitado' | 'pendente') => {
     try {
       setLoadingId(id)
       const { error } = await supabase
@@ -60,13 +66,13 @@ export function VitrineSection() {
         .eq('id', id)
 
       if (error) throw error
-      
+
       toast.success(
-        status === 'aprovado' 
-          ? 'Post aprovado com sucesso!' 
+        status === 'aprovado'
+          ? 'Post aprovado com sucesso!'
           : 'Post rejeitado com sucesso!'
       )
-      
+
       await fetchPosts()
     } catch (error) {
       console.error('Error updating status:', error)
@@ -78,7 +84,7 @@ export function VitrineSection() {
 
   const deletePost = async (id: string) => {
     if (!confirm('Tem certeza que deseja deletar este post?')) return
-    
+
     try {
       setLoadingId(id)
       const { error } = await supabase
@@ -95,6 +101,36 @@ export function VitrineSection() {
     } finally {
       setLoadingId(null)
     }
+  }
+
+  const handleBatchAction = async (action: 'aprovado' | 'rejeitado' | 'pendente') => {
+    if (selectedPosts.length === 0) return
+    if (!confirm(`Confirma ${action === 'aprovado' ? 'aprovar' : 'rejeitar'} ${selectedPosts.length} posts?`)) return
+
+    try {
+      setProcessingBatch(true)
+      const { error } = await supabase
+        .from('vitrine_posts')
+        .update({ status: action })
+        .in('id', selectedPosts)
+
+      if (error) throw error
+
+      toast.success(`${selectedPosts.length} posts ${action === 'aprovado' ? 'aprovados' : 'rejeitados'}!`)
+      setSelectedPosts([])
+      await fetchPosts()
+    } catch (error) {
+      console.error('Error batch update:', error)
+      toast.error('Erro na atualização em lote')
+    } finally {
+      setProcessingBatch(false)
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedPosts(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    )
   }
 
   const handleEdit = (post: VitrinePost) => {
@@ -133,13 +169,13 @@ export function VitrineSection() {
 
   return (
     <div className="h-full">
-      <VitrineUploadModal 
-        isOpen={isModalOpen} 
+      <VitrineUploadModal
+        isOpen={isModalOpen}
         onClose={handleCloseModal}
         onSuccess={fetchPosts}
         editPost={editingPost}
       />
-      
+
       {/* Header */}
       <div className="border-b border-zinc-200 bg-white px-8 py-6">
         <div className="flex items-center justify-between">
@@ -150,6 +186,36 @@ export function VitrineSection() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {selectedPosts.length > 0 && (
+              <div className="flex items-center gap-2 mr-4 animate-in fade-in slide-in-from-right-4">
+                <button
+                  onClick={() => handleBatchAction('aprovado')}
+                  disabled={processingBatch}
+                  className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 flex gap-2 items-center transition-all"
+                >
+                  {processingBatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  Aprovar ({selectedPosts.length})
+                </button>
+                <button
+                  onClick={() => handleBatchAction('rejeitado')}
+                  disabled={processingBatch}
+                  className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 flex gap-2 items-center transition-all"
+                >
+                  {processingBatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                  Rejeitar
+                </button>
+                {filterStatus !== 'pendente' && (
+                  <button
+                    onClick={() => handleBatchAction('pendente')}
+                    disabled={processingBatch}
+                    className="rounded-lg bg-yellow-500 px-3 py-2 text-sm font-medium text-white hover:bg-yellow-600 flex gap-2 items-center transition-all"
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    Reverter
+                  </button>
+                )}
+              </div>
+            )}
             <button
               onClick={() => {
                 setEditingPost(null)
@@ -183,15 +249,26 @@ export function VitrineSection() {
           </div>
 
           <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (selectedPosts.length === filteredPosts.length) {
+                  setSelectedPosts([])
+                } else {
+                  setSelectedPosts(filteredPosts.map(p => p.id))
+                }
+              }}
+              className="rounded-lg px-4 py-2 text-sm font-medium transition-colors bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+            >
+              {selectedPosts.length === filteredPosts.length && filteredPosts.length > 0 ? 'Desmarcar Todos' : 'Selecionar Todos'}
+            </button>
             {(['todos', 'pendente', 'aprovado', 'rejeitado'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  filterStatus === status
-                    ? 'bg-zinc-900 text-white'
-                    : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
-                }`}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filterStatus === status
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -209,7 +286,18 @@ export function VitrineSection() {
             </div>
           ) : (
             filteredPosts.map((post) => (
-              <div key={post.id} className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+              <div key={post.id} className={`overflow-hidden rounded-xl border bg-white relative group transition-all ${selectedPosts.includes(post.id) ? 'border-zinc-900 ring-2 ring-zinc-900' : 'border-zinc-200'
+                }`}>
+                {/* Selection Checkbox */}
+                <div className="absolute top-3 right-3 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedPosts.includes(post.id)}
+                    onChange={() => toggleSelect(post.id)}
+                    className="h-5 w-5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer shadow-sm"
+                  />
+                </div>
+
                 <div className="relative aspect-square bg-zinc-100">
                   {post.image_url ? (
                     <img
@@ -244,6 +332,18 @@ export function VitrineSection() {
                       <Clock className="h-4 w-4" />
                       <span>{getTimeRemaining(post.expires_at)}</span>
                     </div>
+                    {post.payment_proof_url && (
+                      <a
+                        href={post.payment_proof_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-blue-600 hover:underline mt-1"
+                      >
+                        <DollarSign className="h-4 w-4" />
+                        <span>Ver comprovante</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
                   </div>
 
                   <div className="mt-4 flex gap-2">

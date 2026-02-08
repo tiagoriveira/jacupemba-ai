@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Building2, Search, Check, X, Trash2, Phone, MapPin, AlertTriangle, Plus, Loader2 } from 'lucide-react'
+import { Building2, Search, Check, X, Trash2, Phone, MapPin, AlertTriangle, Plus, Loader2, Key, Copy, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { EmpresaModal } from './EmpresaModal'
@@ -17,6 +17,11 @@ interface Empresa {
   verified: boolean
   status: 'pendente' | 'aprovado' | 'rejeitado'
   created_at: string
+  access_token?: string
+  puv?: string
+  whatsapp_link?: string
+  menu_link?: string
+  social_link?: string
 }
 
 export function EmpresasSection() {
@@ -36,7 +41,7 @@ export function EmpresasSection() {
         .from('local_businesses')
         .select('*')
         .order('created_at', { ascending: false })
-      
+
       if (filterStatus !== 'todos') {
         query.eq('status', filterStatus)
       }
@@ -58,13 +63,13 @@ export function EmpresasSection() {
         .eq('id', id)
 
       if (error) throw error
-      
+
       toast.success(
-        status === 'aprovado' 
-          ? 'Empresa aprovada com sucesso!' 
+        status === 'aprovado'
+          ? 'Empresa aprovada com sucesso!'
           : 'Empresa rejeitada com sucesso!'
       )
-      
+
       await fetchEmpresas()
     } catch (error) {
       console.error('Error updating status:', error)
@@ -74,9 +79,46 @@ export function EmpresasSection() {
     }
   }
 
+  const generateToken = async (id: string) => {
+    try {
+      setLoadingId(id)
+      // Generate a simple random token (in production this should be more secure)
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+
+      console.log('Generating token for:', id, token); // Debug log
+
+      const { data, error } = await supabase
+        .from('local_businesses')
+        .update({ access_token: token })
+        .eq('id', id)
+        .select() // Add select to verify update
+
+      if (error) {
+        console.error('Supabase Error:', error)
+        throw error
+      }
+
+      console.log('Update success:', data)
+
+      toast.success('Token de acesso gerado com sucesso!')
+      await fetchEmpresas()
+    } catch (error: any) {
+      console.error('Error generating token:', error)
+      toast.error(`Erro ao gerar token: ${error.message || 'Erro desconhecido'}`)
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const copyLink = (token: string) => {
+    const link = `${window.location.origin}/admin/comercio?token=${token}`
+    navigator.clipboard.writeText(link)
+    toast.success('Link copiado para a área de transferência!')
+  }
+
   const deleteEmpresa = async (id: string) => {
     if (!confirm('Tem certeza que deseja deletar esta empresa?')) return
-    
+
     try {
       setLoadingId(id)
       const { error } = await supabase
@@ -114,12 +156,12 @@ export function EmpresasSection() {
 
   return (
     <div className="h-full">
-      <EmpresaModal 
-        isOpen={isModalOpen} 
+      <EmpresaModal
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchEmpresas}
       />
-      
+
       {/* Header */}
       <div className="border-b border-zinc-200 bg-white px-8 py-6">
         <div className="flex items-center justify-between">
@@ -164,11 +206,10 @@ export function EmpresasSection() {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  filterStatus === status
-                    ? 'bg-zinc-900 text-white'
-                    : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
-                }`}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filterStatus === status
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -214,6 +255,32 @@ export function EmpresasSection() {
                         {empresa.description && (
                           <p className="mt-2 text-sm text-zinc-600">{empresa.description}</p>
                         )}
+
+                        {/* Display Access Link if Token exists */}
+                        {empresa.access_token && (
+                          <div className="mt-3 flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs">
+                            <Key className="h-3 w-3 text-zinc-400" />
+                            <code className="flex-1 font-mono text-zinc-600 truncate max-w-[200px] xl:max-w-md">
+                              .../admin/comercio?token={empresa.access_token}
+                            </code>
+                            <button
+                              onClick={() => copyLink(empresa.access_token!)}
+                              className="rounded p-1 hover:bg-zinc-200 transition-colors"
+                              title="Copiar Link"
+                            >
+                              <Copy className="h-3 w-3 text-zinc-500" />
+                            </button>
+                            <a
+                              href={`/admin/comercio?token=${empresa.access_token}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded p-1 hover:bg-zinc-200 transition-colors"
+                              title="Abrir Link"
+                            >
+                              <ExternalLink className="h-3 w-3 text-zinc-500" />
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -239,6 +306,19 @@ export function EmpresasSection() {
                     )}
 
                     <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={() => generateToken(empresa.id)}
+                        disabled={loadingId === empresa.id}
+                        className="flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {loadingId === empresa.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Key className="h-4 w-4" />
+                        )}
+                        {empresa.access_token ? 'Regerar Token' : 'Gerar Token'}
+                      </button>
+
                       {empresa.status === 'pendente' && (
                         <>
                           <button
@@ -267,6 +347,7 @@ export function EmpresasSection() {
                           </button>
                         </>
                       )}
+                      <div className="flex-1"></div>
                       <button
                         onClick={() => deleteEmpresa(empresa.id)}
                         disabled={loadingId === empresa.id}

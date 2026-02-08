@@ -44,9 +44,9 @@ export default function HistoricoPage() {
     if (diffHours < 24) return `${diffHours}h atrás`
     if (diffDays === 1) return 'Ontem'
     if (diffDays < 7) return `${diffDays}d atrás`
-    
-    return date.toLocaleDateString('pt-BR', { 
-      day: '2-digit', 
+
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
       month: 'short',
       hour: '2-digit',
       minute: '2-digit'
@@ -64,20 +64,19 @@ export default function HistoricoPage() {
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <Link 
+            <Link
               href="/"
               className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
               <ArrowLeft className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
             </Link>
             <div className="flex items-center gap-2">
-              <MapPin className="h-6 w-6 text-zinc-900 dark:text-white" />
               <h1 className="text-xl font-semibold text-zinc-900 dark:text-white">
                 Histórico
               </h1>
             </div>
           </div>
-          
+
           {history.length > 0 && (
             <button
               onClick={clearHistory}
