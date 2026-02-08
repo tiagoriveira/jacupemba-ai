@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Loader2, Upload, Image as ImageIcon } from 'lucide-react'
+import { X, Loader2, Upload, Image as ImageIcon, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 
@@ -274,7 +274,6 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                 </select>
               </div>
             </div>
-
             {/* Coluna Direita - Formulário */}
             <div className="space-y-4">
               {/* Vendedor */}
@@ -359,3 +358,50 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                   </div>
                 )}
               </div>
+
+              {/* Descrição */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-900">
+                  Descrição
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                  rows={3}
+                  placeholder="Detalhes do produto ou serviço..."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-6 flex gap-3 border-t border-zinc-200 pt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {editPost ? 'Atualizando...' : 'Criando...'}
+                </>
+              ) : (
+                editPost ? 'Atualizar Post' : 'Criar Post'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
