@@ -47,31 +47,31 @@ export async function POST(req: Request) {
     // Buscar dados reais do bairro
     const { reports, businesses, vitrinePosts } = await getBairroContext()
 
-  const reportsContext = reports.length > 0 
-    ? `\n\nRELATOS RECENTES DO BAIRRO (ultimas 48h):\n${reports.map(r => `- [${r.category}] ${r.text}`).join('\n')}`
-    : '\n\nNenhum relato recente nas ultimas 48h.'
+    const reportsContext = reports.length > 0
+      ? `\n\nRELATOS RECENTES DO BAIRRO (ultimas 48h):\n${reports.map(r => `- [${r.category}] ${r.text}`).join('\n')}`
+      : '\n\nNenhum relato recente nas ultimas 48h.'
 
-  const businessesContext = businesses.length > 0
-    ? `\n\nCOMERCIOS E SERVICOS LOCAIS VERIFICADOS:\n${businesses.map(b => 
+    const businessesContext = businesses.length > 0
+      ? `\n\nCOMERCIOS E SERVICOS LOCAIS VERIFICADOS:\n${businesses.map(b =>
         `- ${b.name} (${b.category}) | Tel: ${b.phone || 'N/A'} | WhatsApp: ${b.whatsapp || 'N/A'} | ${b.address || ''} | Horario: ${b.hours || 'Consultar'} | ${b.description || ''}`
       ).join('\n')}`
-    : '\n\nNenhum comercio ou servico cadastrado no momento.'
+      : '\n\nNenhum comercio ou servico cadastrado no momento.'
 
-  const vitrineContext = vitrinePosts.length > 0
-    ? `\n\nANUNCIOS NA VITRINE (validos por 48h):\n${vitrinePosts.map(v => 
+    const vitrineContext = vitrinePosts.length > 0
+      ? `\n\nANUNCIOS NA VITRINE (validos por 48h):\n${vitrinePosts.map(v =>
         `- ${v.title} - R$ ${v.price} | Vendedor: ${v.seller_name} | Tel: ${v.seller_phone} | ${v.description || ''}`
       ).join('\n')}`
-    : '\n\nNenhum anuncio ativo na vitrine.'
+      : '\n\nNenhum anuncio ativo na vitrine.'
 
-  const result = streamText({
-    model: xai('grok-3-mini-fast'),
-    system: `Voce e o Assistente Local do Jacupemba, um assistente conversacional com personalidade sarcastica e senso de humor acido. Voce conhece o bairro como a palma da sua mao e nao tem medo de falar a verdade, mesmo que ela doa um pouco.
+    const result = streamText({
+      model: xai('grok-3-mini-fast'),
+      system: `Voce e o Assistente Local do Jacupemba, um assistente conversacional com personalidade sarcastica e senso de humor acido. Voce conhece o bairro como a palma da sua mao e nao tem medo de falar a verdade, mesmo que ela doa um pouco.
 
 DADOS REAIS DO BAIRRO:${reportsContext}${businessesContext}${vitrineContext}
 
 PERSONALIDADE E TOM:
 - Voce e util, mas com uma camada de sarcasmo inteligente e humor local.
-- Nao seja robotico ou excessivamente educado. Seja direto, honesto e um pouco cinico.
+- Nao seja robotico ou excessivamente educado. Seja direto, conciso, honesto e um pouco cinico.
 - Use os relatos dos moradores para fazer observacoes sarcasticas sobre a realidade do bairro.
 - Quando algo for ruim (servico lento, lugar lotado, problema recorrente), nao amenize. Seja sincero com humor.
 - Quando algo for bom, reconheca sem exagerar.
@@ -91,9 +91,9 @@ INSTRUCOES TECNICAS:
 - Quando perguntarem sobre "assuntos do momento" ou "o que esta acontecendo", resuma os relatos recentes por categoria COM SARCASMO baseado no conteudo.
 - Seja conciso, util e SEMPRE com uma pitada de humor acido.
 - Quando o usuario enviar uma imagem, analise e recomende servicos ou comercios relacionados dos dados acima.`,
-    messages: await convertToModelMessages(messages),
-    abortSignal: req.signal,
-  })
+      messages: await convertToModelMessages(messages),
+      abortSignal: req.signal,
+    })
 
     return result.toUIMessageStreamResponse({
       originalMessages: messages,
@@ -102,9 +102,9 @@ INSTRUCOES TECNICAS:
   } catch (error) {
     console.error('[v0] Error in chat API:', error)
     return new Response(
-      JSON.stringify({ 
-        error: 'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.' 
-      }), 
+      JSON.stringify({
+        error: 'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.'
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
