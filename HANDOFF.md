@@ -1,6 +1,6 @@
 # 📋 Documento de Handoff - Jacupemba AI
 
-**Data**: Janeiro 2025  
+**Data**: Janeiro 2026  
 **Versão**: 1.0  
 **Status**: Em produção (Vercel)
 

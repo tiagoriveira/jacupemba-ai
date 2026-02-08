@@ -61,7 +61,12 @@ export function VitrineGrid() {
           console.error('Error fetching vitrine posts:', error)
           return
         }
-        setPosts(data || [])
+        const validPosts = (data || []).filter(post =>
+          post.video_url ||
+          post.image_url ||
+          (post.images && post.images.length > 0)
+        )
+        setPosts(validPosts)
       } catch (err) {
         console.error('Error:', err)
       } finally {
@@ -97,7 +102,7 @@ export function VitrineGrid() {
         <div className="mx-auto max-w-5xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link 
+              <Link
                 href="/"
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
               >
@@ -124,11 +129,10 @@ export function VitrineGrid() {
               <button
                 key={tab.value}
                 onClick={() => setFilter(tab.value)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  filter === tab.value
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filter === tab.value
                     ? 'bg-zinc-900 text-white'
                     : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -209,11 +213,11 @@ export function VitrineGrid() {
 
       {/* Detail Modal */}
       {selectedPost && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
           onClick={() => setSelectedPost(null)}
         >
-          <div 
+          <div
             className="relative w-full max-w-lg overflow-hidden rounded-t-3xl bg-white sm:rounded-2xl sm:shadow-2xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -236,10 +240,10 @@ export function VitrineGrid() {
                 />
               </div>
             ) : (() => {
-              const modalImages = selectedPost.images && selectedPost.images.length > 0 
-                ? selectedPost.images 
+              const modalImages = selectedPost.images && selectedPost.images.length > 0
+                ? selectedPost.images
                 : (selectedPost.image_url ? [selectedPost.image_url] : [])
-              
+
               if (modalImages.length === 0) {
                 return (
                   <div className={`relative flex aspect-[16/9] items-center justify-center bg-gradient-to-br ${getCatConfig(selectedPost.category).bg}`}>
@@ -262,7 +266,7 @@ export function VitrineGrid() {
                     alt={`${selectedPost.title} - ${currentImageIndex + 1}`}
                     className="h-full w-full object-contain"
                   />
-                  
+
                   {hasMultiple && (
                     <>
                       {/* Navigation Arrows */}
@@ -294,11 +298,10 @@ export function VitrineGrid() {
                               e.stopPropagation()
                               setCurrentImageIndex(idx)
                             }}
-                            className={`h-2 rounded-full transition-all ${
-                              idx === currentImageIndex 
-                                ? 'w-6 bg-white' 
+                            className={`h-2 rounded-full transition-all ${idx === currentImageIndex
+                                ? 'w-6 bg-white'
                                 : 'w-2 bg-white/50 hover:bg-white/75'
-                            }`}
+                              }`}
                           />
                         ))}
                       </div>
@@ -355,9 +358,8 @@ export function VitrineGrid() {
                       <p className="text-xs text-zinc-500">{selectedPost.contact_phone || 'Sem telefone'}</p>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-1 text-xs font-medium ${
-                    getHoursRemaining(selectedPost.expires_at) <= 6 ? 'text-red-500' : 'text-zinc-400'
-                  }`}>
+                  <div className={`flex items-center gap-1 text-xs font-medium ${getHoursRemaining(selectedPost.expires_at) <= 6 ? 'text-red-500' : 'text-zinc-400'
+                    }`}>
                     <Clock className="h-3.5 w-3.5" />
                     <span>Expira em {getHoursRemaining(selectedPost.expires_at)}h</span>
                   </div>
