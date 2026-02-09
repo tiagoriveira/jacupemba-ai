@@ -343,16 +343,41 @@ const buscarSemantico = tool({
         }))
       }
 
+      const total = (results.relatos?.length || 0) + (results.comercios?.length || 0)
+
+      // Se nenhum resultado foi encontrado, sugerir alternativas
+      if (total === 0) {
+        return {
+          pergunta,
+          ...results,
+          total: 0,
+          mensagem: 'Nenhum resultado encontrado com busca semantica. Isso pode significar que os embeddings ainda nao foram gerados. Execute: npm run generate-embeddings',
+          sugestao: 'Tente usar buscarRelatos ou buscarComercio para busca tradicional.'
+        }
+      }
+
       return {
         pergunta,
         ...results,
-        total: (results.relatos?.length || 0) + (results.comercios?.length || 0),
+        total,
       }
     } catch (error) {
       console.error('[v0] Erro na busca semantica:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      
+      // Detectar se é erro de embeddings não gerados
+      if (errorMessage.includes('function') || errorMessage.includes('relation')) {
+        return { 
+          pergunta, 
+          erro: 'Tabelas de embeddings nao encontradas. Execute: npm run generate-embeddings',
+          fallback: 'Use buscarRelatos ou buscarComercio como alternativa.'
+        }
+      }
+      
       return { 
         pergunta, 
         erro: 'Erro ao realizar busca semantica. Tente usar buscarRelatos ou buscarComercio.',
+        detalhes: errorMessage,
         fallback: 'Use as ferramentas tradicionais como alternativa.'
       }
     }

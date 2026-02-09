@@ -1,22 +1,19 @@
 /**
- * Biblioteca para geração de embeddings usando Grok
- * Simples, eficaz e sem custos extras
+ * Biblioteca para geração de embeddings
+ * Usa OpenAI via AI Gateway (zero config)
  */
 
 import { embed } from 'ai'
-import { createXai } from '@ai-sdk/xai'
-
-const xai = createXai({
-  apiKey: process.env.XAI_API_KEY || 'placeholder'
-})
+import { EMBEDDING_CONFIG } from './embedding-config'
 
 /**
- * Gera embedding para um texto usando Grok
+ * Gera embedding para um texto usando OpenAI text-embedding-3-small via AI Gateway
+ * O AI Gateway já está configurado, não precisa de API key extra
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
     const { embedding } = await embed({
-      model: xai.embedding('grok-embedding-1'), // Modelo de embedding do Grok
+      model: EMBEDDING_CONFIG.model,
       value: text,
     })
     return embedding
@@ -62,7 +59,12 @@ export async function searchReportsSemantic(
     limit?: number
   } = {}
 ) {
-  const { threshold = 0.7, limit = 10 } = options
+  const { 
+    threshold = EMBEDDING_CONFIG.defaultThreshold, 
+    limit = EMBEDDING_CONFIG.defaultLimit 
+  } = options
+
+  console.log(`[v0] Busca semantica em relatos: "${query}" (threshold: ${threshold}, limit: ${limit})`)
 
   // Gerar embedding da query
   const queryEmbedding = await generateEmbedding(query)
@@ -71,7 +73,7 @@ export async function searchReportsSemantic(
   const { data, error } = await supabase.rpc('search_reports_semantic', {
     query_embedding: queryEmbedding,
     match_threshold: threshold,
-    match_count: limit,
+    match_count: Math.min(limit, EMBEDDING_CONFIG.maxLimit),
   })
 
   if (error) {
@@ -79,6 +81,7 @@ export async function searchReportsSemantic(
     throw error
   }
 
+  console.log(`[v0] ${data?.length || 0} relatos encontrados`)
   return data || []
 }
 
@@ -93,7 +96,12 @@ export async function searchBusinessesSemantic(
     limit?: number
   } = {}
 ) {
-  const { threshold = 0.7, limit = 10 } = options
+  const { 
+    threshold = EMBEDDING_CONFIG.defaultThreshold, 
+    limit = EMBEDDING_CONFIG.defaultLimit 
+  } = options
+
+  console.log(`[v0] Busca semantica em comercios: "${query}" (threshold: ${threshold}, limit: ${limit})`)
 
   // Gerar embedding da query
   const queryEmbedding = await generateEmbedding(query)
@@ -102,7 +110,7 @@ export async function searchBusinessesSemantic(
   const { data, error } = await supabase.rpc('search_businesses_semantic', {
     query_embedding: queryEmbedding,
     match_threshold: threshold,
-    match_count: limit,
+    match_count: Math.min(limit, EMBEDDING_CONFIG.maxLimit),
   })
 
   if (error) {
@@ -110,5 +118,6 @@ export async function searchBusinessesSemantic(
     throw error
   }
 
+  console.log(`[v0] ${data?.length || 0} comercios encontrados`)
   return data || []
 }

@@ -2,11 +2,12 @@
  * Script para gerar embeddings de todos os relatos e comercios existentes
  * Roda uma única vez para popular o banco, depois só precisa rodar em novos dados
  * 
- * Para executar: npx tsx scripts/generate-embeddings.ts
+ * Para executar: npm run generate-embeddings
  */
 
 import { createClient } from '@supabase/supabase-js'
 import { generateEmbedding, prepareReportText, prepareBusinessText } from '../lib/embeddings'
+import { EMBEDDING_CONFIG } from '../lib/embedding-config'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -65,8 +66,8 @@ async function generateReportEmbeddings() {
       processed++
       console.log(`✅ Relato ${processed}/${reports.length} processado`)
 
-      // Rate limiting: aguardar 100ms entre chamadas
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Rate limiting para evitar sobrecarga da API
+      await new Promise(resolve => setTimeout(resolve, EMBEDDING_CONFIG.rateLimitDelay))
     } catch (err) {
       errors++
       console.error(`❌ Erro ao processar relato ${report.id}:`, err)
@@ -129,8 +130,8 @@ async function generateBusinessEmbeddings() {
       processed++
       console.log(`✅ Comercio ${processed}/${businesses.length} processado`)
 
-      // Rate limiting: aguardar 100ms entre chamadas
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Rate limiting para evitar sobrecarga da API
+      await new Promise(resolve => setTimeout(resolve, EMBEDDING_CONFIG.rateLimitDelay))
     } catch (err) {
       errors++
       console.error(`❌ Erro ao processar comercio ${business.id}:`, err)
