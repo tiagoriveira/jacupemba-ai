@@ -5,9 +5,10 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield } from 'lucide-react'
+import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield, ThumbsUp, ThumbsDown } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getAgentConfig } from '@/lib/agentConfig'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -47,10 +48,13 @@ export default function Page() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+
+  // Feedback state - localStorage temporário até backend
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative' | null>>({})
   const [reportText, setReportText] = useState('')
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
-  const [trendingTopics, setTrendingTopics] = useState<Array<{category: string, count: number}>>([])
+  const [trendingTopics, setTrendingTopics] = useState<Array<{ category: string, count: number }>>([])
 
   const CATEGORY_LABELS: Record<string, string> = {
     'seguranca': '🚨 Seguranca',
@@ -87,9 +91,20 @@ export default function Page() {
     if (count >= 6) return '••'
     return '•'
   }
-  
+
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      headers: () => {
+        // Ler configurações do localStorage e enviar via headers
+        const config = getAgentConfig()
+        return {
+          'x-agent-model': config.model,
+          'x-agent-sarcasm': config.sarcasm_level.toString(),
+          'x-agent-instructions': config.instructions
+        }
+      }
+    }),
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
@@ -100,13 +115,13 @@ export default function Page() {
       try {
         // Get reports from last 7 days
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        
+
         const { data: reports, error } = await supabase
           .from('anonymous_reports')
           .select('category')
           .eq('status', 'aprovado')
           .gte('created_at', sevenDaysAgo)
-        
+
         if (error) {
           console.error('Error fetching reports:', error)
           setTrendingTopics([])
@@ -145,11 +160,11 @@ export default function Page() {
     if (messages.length >= 2 && !isLoading) {
       const lastUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0]
       const lastAssistantMessage = messages.filter(m => m.role === 'assistant').slice(-1)[0]
-      
+
       if (lastUserMessage && lastAssistantMessage) {
         const userText = getMessageText(lastUserMessage.parts)
         const assistantText = getMessageText(lastAssistantMessage.parts)
-        
+
         if (userText && assistantText) {
           const historyItem = {
             id: Date.now().toString(),
@@ -157,15 +172,15 @@ export default function Page() {
             answer: assistantText,
             timestamp: new Date().toISOString()
           }
-          
+
           const savedHistory = localStorage.getItem('chat-history')
           const history = savedHistory ? JSON.parse(savedHistory) : []
-          
+
           // Check if this item already exists (avoid duplicates)
-          const exists = history.some((item: any) => 
+          const exists = history.some((item: any) =>
             item.question === userText && item.answer === assistantText
           )
-          
+
           if (!exists) {
             history.unshift(historyItem)
             // Keep only last 50 items
@@ -199,20 +214,20 @@ export default function Page() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if ((!input.trim() && !selectedImage) || isLoading) return
-    
+
     const messageContent = []
-    
+
     if (input.trim()) {
       messageContent.push({ type: 'text' as const, text: input })
     }
-    
+
     if (selectedImage) {
       messageContent.push({
         type: 'image' as const,
         image: selectedImage,
       })
     }
-    
+
     sendMessage({ parts: messageContent })
     setInput('')
     setSelectedImage(null)
@@ -238,6 +253,21 @@ export default function Page() {
       .join('')
   }
 
+  const handleMessageFeedback = (messageId: string, feedback: 'positive' | 'negative') => {
+    // Toggle: se já tem esse feedback, remove; senão, adiciona
+    const currentFeedback = messageFeedback[messageId]
+    const newFeedback = currentFeedback === feedback ? null : feedback
+
+    setMessageFeedback(prev => ({
+      ...prev,
+      [messageId]: newFeedback
+    }))
+
+    // TODO: Quando backend estiver pronto, salvar em /api/feedback
+    // Por enquanto, só console.log
+    console.log('[FEEDBACK]', { messageId, feedback: newFeedback })
+  }
+
   const handleCloseReportModal = () => {
     if (reportText.trim() && !reportSubmitted) {
       const confirmClose = window.confirm('Voce tem texto digitado. Deseja descartar e fechar?')
@@ -255,17 +285,17 @@ export default function Page() {
       alert('Por favor, preencha todos os campos.')
       return
     }
-    
+
     if (reportText.trim().length < 10) {
       alert('O relato deve ter pelo menos 10 caracteres.')
       return
     }
-    
+
     if (reportText.trim().length > 500) {
       alert('O relato deve ter no maximo 500 caracteres.')
       return
     }
-    
+
     try {
       // Salvar no Supabase
       const { error } = await supabase
@@ -274,13 +304,13 @@ export default function Page() {
           text: reportText.trim(),
           category: reportCategory
         }])
-      
+
       if (error) {
         console.error('Error submitting report:', error)
         alert('Erro ao enviar relato. Tente novamente.')
         return
       }
-      
+
       setReportSubmitted(true)
       setTimeout(() => {
         setIsReportModalOpen(false)
@@ -308,21 +338,21 @@ export default function Page() {
               <MessageSquare className="h-4 w-4" />
               <span>Contribuir</span>
             </button>
-            <Link 
+            <Link
               href="/vitrine"
               className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
               <ShoppingBag className="h-4 w-4" />
               <span>Vitrine</span>
             </Link>
-            <Link 
+            <Link
               href="/historico"
               className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
               <History className="h-4 w-4" />
               <span>Historico</span>
             </Link>
-            <Link 
+            <Link
               href="/admin"
               className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-red-600 border border-red-300 transition-all duration-150 hover:bg-red-50 active:scale-[0.98]"
               title="Painel administrativo"
@@ -340,23 +370,23 @@ export default function Page() {
           {messages.length === 0 ? (
             /* Empty State */
             <div>
-              {/* Hero Welcome Block - 85vh */}
-              <div className="flex min-h-[85vh] items-center justify-center px-4">
+              {/* Hero Welcome Block - Altura reduzida para mostrar conteúdo abaixo */}
+              <div className="flex min-h-[50vh] md:min-h-[60vh] lg:min-h-[65vh] items-center justify-center px-4">
                 <div className="text-center animate-in fade-in-0 duration-700">
                   {/* Avatar - Larger */}
                   <div className="mb-6 flex justify-center">
-                    <img 
-                      src="/avatar_jacupemba_v1.png" 
-                      alt="Jacupemba" 
-                      className="h-32 w-32 object-contain animate-in zoom-in-50 duration-500"
+                    <img
+                      src="/avatar_jacupemba_v1.png"
+                      alt="Jacupemba"
+                      className="h-28 w-28 md:h-32 md:w-32 object-contain animate-in zoom-in-50 duration-500"
                     />
                   </div>
-                  
+
                   {/* Title */}
                   <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-4xl lg:text-5xl animate-in slide-in-from-bottom-4 duration-500 delay-200">
                     Olá! Sou seu assistente local
                   </h1>
-                  
+
                   {/* Subtitle with ironic touch */}
                   <p className="mt-4 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
                     Te ajudo com comércio, serviços, vagas e informações do bairro de Jacupemba, na maioria das vezes sou irônico, mas isso é quando estou de bom humor!
@@ -367,59 +397,59 @@ export default function Page() {
               {/* Content Below - Spacer */}
               <div className="pt-8 pb-12">
                 {/* Feed do Bairro - Card de Acesso */}
-              <div className="w-full max-w-3xl mb-10">
-                <Link 
-                  href="/relatos"
-                  className="block group"
-                >
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
-                    <div className="relative z-10">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                            <MessageSquare className="h-6 w-6 text-white" />
+                <div className="w-full max-w-3xl mb-10">
+                  <Link
+                    href="/relatos"
+                    className="block group"
+                  >
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+                      <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
+                      <div className="relative z-10">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                              <MessageSquare className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-white mb-1">Feed do Bairro</h3>
+                              <p className="text-sm text-zinc-300">Ultimos 7 dias de relatos</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-xl font-bold text-white mb-1">Feed do Bairro</h3>
-                            <p className="text-sm text-zinc-300">Ultimos 7 dias de relatos</p>
-                          </div>
+                          <ArrowUp className="h-5 w-5 text-white rotate-45 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                         </div>
-                        <ArrowUp className="h-5 w-5 text-white rotate-45 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+                        <p className="text-zinc-200 text-sm leading-relaxed">
+                          Veja todos os relatos da comunidade organizados por categoria. Filtre por periodo, comente e acompanhe o que esta acontecendo no bairro em tempo real.
+                        </p>
                       </div>
-                      <p className="text-zinc-200 text-sm leading-relaxed">
-                        Veja todos os relatos da comunidade organizados por categoria. Filtre por periodo, comente e acompanhe o que esta acontecendo no bairro em tempo real.
-                      </p>
                     </div>
-                  </div>
-                </Link>
-              </div>
+                  </Link>
+                </div>
 
-              {/* Suggestion Cards */}
-              <div className="grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
-                {SUGGESTED_QUESTIONS.map((suggestion, index) => {
-                  const Icon = suggestion.icon
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleSuggestionClick(suggestion.text)}
-                      className="group flex items-start gap-2.5 rounded-xl border border-zinc-200 bg-white p-3 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-sm active:scale-[0.99]"
-                    >
-                      <div className="rounded-lg bg-zinc-100 p-1.5 transition-colors group-hover:bg-zinc-200">
-                        <Icon className="h-4 w-4 text-zinc-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="mb-0.5 text-xs font-medium text-zinc-400">
-                          {suggestion.category}
+                {/* Suggestion Cards */}
+                <div className="grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
+                  {SUGGESTED_QUESTIONS.map((suggestion, index) => {
+                    const Icon = suggestion.icon
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion.text)}
+                        className="group flex items-start gap-2.5 rounded-xl border border-zinc-200 bg-white p-3 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-sm active:scale-[0.99]"
+                      >
+                        <div className="rounded-lg bg-zinc-100 p-1.5 transition-colors group-hover:bg-zinc-200">
+                          <Icon className="h-4 w-4 text-zinc-600" />
                         </div>
-                        <div className="text-sm text-zinc-700">
-                          {suggestion.text}
+                        <div className="flex-1">
+                          <div className="mb-0.5 text-xs font-medium text-zinc-400">
+                            {suggestion.category}
+                          </div>
+                          <div className="text-sm text-zinc-700">
+                            {suggestion.text}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           ) : (
@@ -436,11 +466,10 @@ export default function Page() {
                     className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in-0 slide-in-from-bottom-2 duration-200`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-xl px-4 py-3 ${
-                        isUser
-                          ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                          : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200'
-                      }`}
+                      className={`max-w-[85%] rounded-xl px-4 py-3 ${isUser
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                        : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200'
+                        }`}
                     >
                       {images.length > 0 && (
                         <div className="mb-2 space-y-2">
@@ -457,6 +486,33 @@ export default function Page() {
                       {text && (
                         <div className="whitespace-pre-wrap text-[15px] leading-relaxed">
                           {text}
+                        </div>
+                      )}
+
+                      {/* Feedback buttons - apenas para mensagens do assistente */}
+                      {!isUser && text && (
+                        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400">Esta resposta foi útil?</span>
+                          <button
+                            onClick={() => handleMessageFeedback(message.id, 'positive')}
+                            className={`p-1.5 rounded-lg transition-all ${messageFeedback[message.id] === 'positive'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'
+                              }`}
+                            title="Resposta útil"
+                          >
+                            <ThumbsUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleMessageFeedback(message.id, 'negative')}
+                            className={`p-1.5 rounded-lg transition-all ${messageFeedback[message.id] === 'negative'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              : 'text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'
+                              }`}
+                            title="Resposta não útil"
+                          >
+                            <ThumbsDown className="h-4 w-4" />
+                          </button>
                         </div>
                       )}
                     </div>
@@ -501,7 +557,7 @@ export default function Page() {
                 </button>
               </div>
             )}
-            
+
             <div className="flex items-end gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 transition-colors focus-within:border-zinc-300 focus-within:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:focus-within:border-zinc-700">
               <input
                 ref={fileInputRef}
@@ -518,7 +574,7 @@ export default function Page() {
               >
                 <ImagePlus className="h-5 w-5" />
               </button>
-              
+
               <input
                 type="text"
                 value={input}
@@ -607,14 +663,14 @@ export default function Page() {
                     value={reportText}
                     onChange={(e) => setReportText(e.target.value)}
                     placeholder={
-                      reportCategory 
-                        ? REPORT_CATEGORIES.find(c => c.value === reportCategory)?.placeholder 
+                      reportCategory
+                        ? REPORT_CATEGORIES.find(c => c.value === reportCategory)?.placeholder
                         : 'Selecione uma categoria acima...'
                     }
                     disabled={!reportCategory}
                     className="w-full min-h-[160px] rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600"
                   />
-                  
+
                   <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
                     Evite incluir dados pessoais no relato.
                   </p>

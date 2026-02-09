@@ -7,18 +7,18 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
 
 export type Status = 'pendente' | 'aprovado' | 'rejeitado'
 
-export type ReportCategory = 
-  | 'seguranca' 
-  | 'emergencia' 
-  | 'saude' 
-  | 'transito' 
-  | 'saneamento' 
-  | 'iluminacao' 
-  | 'convivencia' 
-  | 'animais' 
-  | 'eventos' 
-  | 'comercio' 
-  | 'transporte' 
+export type ReportCategory =
+  | 'seguranca'
+  | 'emergencia'
+  | 'saude'
+  | 'transito'
+  | 'saneamento'
+  | 'iluminacao'
+  | 'convivencia'
+  | 'animais'
+  | 'eventos'
+  | 'comercio'
+  | 'transporte'
   | 'outros'
 
 export type Report = {
@@ -26,6 +26,7 @@ export type Report = {
   category: ReportCategory
   text: string
   status: Status
+  fingerprint: string
   created_at: string
 }
 
@@ -35,6 +36,7 @@ export type ReportComment = {
   parent_id: string | null
   text: string
   author_name: string
+  fingerprint: string
   created_at: string
 }
 

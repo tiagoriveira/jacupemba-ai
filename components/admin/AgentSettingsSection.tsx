@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Save, Loader2, MessageSquare, AlertTriangle } from 'lucide-react'
+import { Save, Loader2, MessageSquare, AlertTriangle, Cpu, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { saveAgentConfig } from '@/lib/agentConfig'
 import Image from 'next/image'
 
 interface AgentConfig {
@@ -84,7 +85,7 @@ export function AgentSettingsSection() {
 
             if (data && data.length > 0) {
                 const newConfig: AgentConfig = { ...config }
-                
+
                 data.forEach((item: ConfigItem) => {
                     switch (item.key) {
                         case 'agent_model':
@@ -99,7 +100,7 @@ export function AgentSettingsSection() {
                             break
                     }
                 })
-                
+
                 setConfig(newConfig)
             }
         } catch (error) {
@@ -115,6 +116,13 @@ export function AgentSettingsSection() {
 
         try {
             setSaving(true)
+
+            // Salvar no localStorage (frontend-only, temporário)
+            saveAgentConfig({
+                model: config.model,
+                sarcasm_level: config.sarcasm_level,
+                instructions: config.instructions
+            })
 
             const updates = [
                 { key: 'agent_model', value: config.model },
@@ -186,8 +194,8 @@ export function AgentSettingsSection() {
                                         >
                                             <div className={`flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden ${config.model === m.id ? 'bg-white ring-2 ring-zinc-900' : 'bg-white'
                                                 }`}>
-                                                <Image 
-                                                    src={m.logo} 
+                                                <Image
+                                                    src={m.logo}
                                                     alt={`${m.name} logo`}
                                                     width={40}
                                                     height={40}

@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
 import { getUserFingerprint } from '@/lib/fingerprint'
+import { CategoryReportsModal } from './CategoryReportsModal'
 import {
   MessageSquare,
   Clock,
@@ -24,10 +25,11 @@ import {
   Bus,
   MapPin,
   Heart,
-  Share2
+  Share2,
+  Trash2
 } from 'lucide-react'
 
-type TimePeriod = '60min' | '24h' | '7d'
+type TimePeriod = '60min' | '24h' | '7days'
 
 const CATEGORY_INFO = {
   'seguranca': { label: 'Seguranca', icon: Shield, color: 'bg-rose-50 text-rose-700 border-rose-200' },
@@ -46,7 +48,6 @@ const CATEGORY_INFO = {
 
 export function FeedRelatos() {
   const [period, setPeriod] = useState<TimePeriod>('24h')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [reports, setReports] = useState<Report[]>([])
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
@@ -56,7 +57,6 @@ export function FeedRelatos() {
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
-  const reportsListRef = useRef<HTMLDivElement>(null)
 
   // Likes state
   const [reportLikeCounts, setReportLikeCounts] = useState<Record<string, number>>({})
@@ -64,6 +64,10 @@ export function FeedRelatos() {
   const [userLikedReports, setUserLikedReports] = useState<Set<string>>(new Set())
   const [userLikedComments, setUserLikedComments] = useState<Set<string>>(new Set())
   const [userFingerprint, setUserFingerprint] = useState<string>('')
+
+  // Modal de categoria dedicado
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false)
+  const [categoryModalData, setCategoryModalData] = useState<{ category: string; categoryLabel: string } | null>(null)
 
   const getCatInfo = (cat: string) => CATEGORY_INFO[cat as keyof typeof CATEGORY_INFO] || CATEGORY_INFO.outros
 
@@ -77,7 +81,7 @@ export function FeedRelatos() {
       fetchReports()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, selectedCategory, userFingerprint])
+  }, [period, userFingerprint])
 
   const fetchReports = async () => {
     try {
@@ -95,10 +99,6 @@ export function FeedRelatos() {
         .eq('status', 'aprovado')
         .gte('created_at', cutoffTime.toISOString())
         .order('created_at', { ascending: false })
-
-      if (selectedCategory) {
-        query = query.eq('category', selectedCategory)
-      }
 
       const { data, error } = await query
 
@@ -345,6 +345,68 @@ export function FeedRelatos() {
     }
   }
 
+  const deleteReport = async (reportId: string, reportFingerprint: string) => {
+    if (reportFingerprint !== userFingerprint) {
+      console.error('Você só pode deletar seus próprios relatos')
+      return
+    }
+
+    if (!confirm('Tem certeza que deseja deletar este relato?')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('anonymous_reports')
+        .delete()
+        .eq('id', reportId)
+        .eq('fingerprint', userFingerprint)
+
+      if (!error) {
+        setSelectedReport(null)
+        fetchReports() // Atualizar lista
+      }
+    } catch (error) {
+      console.error('Erro ao deletar relato:', error)
+    }
+  }
+
+  const deleteComment = async (commentId: string, commentFingerprint: string) => {
+    if (commentFingerprint !== userFingerprint) {
+      console.error('Você só pode deletar seus próprios comentários')
+      return
+    }
+
+    if (!confirm('Tem certeza que deseja deletar este comentário?')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('report_comments')
+        .delete()
+        .eq('id', commentId)
+        .eq('fingerprint', userFingerprint)
+
+      if (!error && selectedReport) {
+        // Atualizar lista de comentários
+        const { data } = await supabase
+          .from('report_comments')
+          .select('*')
+          .eq('report_id', selectedReport.id)
+          .order('created_at', { ascending: true })
+
+        setComments(data || [])
+        setCommentCounts(prev => ({
+          ...prev,
+          [selectedReport.id]: Math.max(0, (prev[selectedReport.id] || 0) - 1)
+        }))
+      }
+    } catch (error) {
+      console.error('Erro ao deletar comentário:', error)
+    }
+  }
+
   const getTimeAgo = (dateString: string) => {
     const diff = Date.now() - new Date(dateString).getTime()
     const minutes = Math.floor(diff / 60000)
@@ -367,7 +429,7 @@ export function FeedRelatos() {
   const periods: { value: TimePeriod; label: string }[] = [
     { value: '60min', label: 'Ultima Hora' },
     { value: '24h', label: 'Hoje' },
-    { value: '7d', label: 'Ultimos 7 Dias' }
+    { value: '7days', label: 'Ultimos 7 Dias' }
   ]
 
   return (
@@ -398,21 +460,15 @@ export function FeedRelatos() {
               <button
                 key={key}
                 onClick={() => {
-                  setSelectedCategory(selectedCategory === key ? null : key)
-                  if (reportsListRef.current) {
-                    reportsListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }
+                  setCategoryModalData({ category: key, categoryLabel: info.label })
+                  setCategoryModalOpen(true)
                 }}
-                className={`p-4 rounded-xl border-2 transition-all duration-200 ${selectedCategory === key
-                  ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg scale-105'
-                  : 'border-zinc-200 bg-white hover:border-zinc-400 hover:shadow-md'
-                  }`}
+                className={`p-4 rounded-xl border-2 transition-all duration-200 border-zinc-200 bg-white hover:border-zinc-400 hover:shadow-md`}
               >
                 <div className="text-center">
                   <Icon className="h-7 w-7 mx-auto mb-2" />
                   <div className="text-xs font-semibold mb-2">{info.label}</div>
-                  <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${selectedCategory === key ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-700'
-                    }`}>
+                  <div className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700">
                     {categoryCounts[key] || 0}
                   </div>
                 </div>
@@ -422,166 +478,19 @@ export function FeedRelatos() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto" ref={reportsListRef}>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-          </div>
-        ) : reports.length === 0 ? (
-          <div className="text-center py-12 text-zinc-500">
-            Nenhum relato encontrado neste periodo
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {reports.map(report => {
-              const Icon = getCatInfo(report.category).icon
-              return (
-                <div
-                  key={report.id}
-                  onClick={() => openReportModal(report)}
-                  className="bg-white rounded-xl p-5 border border-zinc-200 hover:border-zinc-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${getCatInfo(report.category).color}`}>
-                      <Icon className="h-3.5 w-3.5" />
-                      {getCatInfo(report.category).label}
-                    </span>
-                    <div className="flex items-center gap-1 text-zinc-400 text-sm">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{getTimeAgo(report.created_at)}</span>
-                    </div>
-                  </div>
-                  <p className="text-zinc-700 leading-relaxed mb-3">{report.text}</p>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 text-zinc-500">
-                      <MessageSquare className="h-4 w-4" />
-                      <span className="text-sm font-medium">{commentCounts[report.id] || 0}</span>
-                    </div>
-                    <button
-                      onClick={(e) => toggleReportLike(report.id, e)}
-                      className={`flex items-center gap-1 transition-colors ${userLikedReports.has(report.id)
-                        ? 'text-red-500'
-                        : 'text-zinc-500 hover:text-red-500'
-                        }`}
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${userLikedReports.has(report.id) ? 'fill-current' : ''}`}
-                      />
-                      <span className="text-sm font-medium">{reportLikeCounts[report.id] || 0}</span>
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
 
-      {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedReport(null)}>
-          <div className="bg-zinc-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-zinc-800" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-zinc-900 p-5 border-b border-zinc-800 flex items-center justify-between z-10">
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-white">Relato</h2>
-                {(() => {
-                  const Icon = getCatInfo(selectedReport.category).icon
-                  return (
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${getCatInfo(selectedReport.category).color}`}>
-                      <Icon className="h-3.5 w-3.5" />
-                      {getCatInfo(selectedReport.category).label}
-                    </span>
-                  )
-                })()}
-              </div>
-              <button
-                onClick={() => setSelectedReport(null)}
-                className="p-2 rounded-lg hover:bg-zinc-800 transition-colors duration-200"
-              >
-                <X className="h-5 w-5 text-zinc-400" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-5">
-              <div className="pb-5 border-b border-zinc-800">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-sm text-zinc-400">
-                    <Clock className="h-4 w-4" />
-                    <span>{getTimeAgo(selectedReport.created_at)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => toggleReportLike(selectedReport.id, e)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${userLikedReports.has(selectedReport.id)
-                        ? 'bg-red-500/10 text-red-500 border border-red-500/20'
-                        : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-red-500/30 hover:text-red-500'
-                        }`}
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${userLikedReports.has(selectedReport.id) ? 'fill-current' : ''}`}
-                      />
-                      <span className="text-sm font-semibold">{reportLikeCounts[selectedReport.id] || 0}</span>
-                    </button>
-                  </div>
-                </div>
-                <p className="text-zinc-300 leading-relaxed text-lg">{selectedReport.text}</p>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-zinc-400">
-                  Comentarios ({comments.length})
-                </h3>
-                {comments.map(comment => (
-                  <div key={comment.id} className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-800 transition-colors duration-200 hover:bg-zinc-800">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-xs text-zinc-500">
-                        {getTimeAgo(comment.created_at)}
-                      </div>
-                      <button
-                        onClick={(e) => toggleCommentLike(comment.id, e)}
-                        className={`flex items-center gap-1 text-xs transition-colors ${userLikedComments.has(comment.id)
-                          ? 'text-red-500'
-                          : 'text-zinc-500 hover:text-red-500'
-                          }`}
-                      >
-                        <Heart
-                          className={`h-3.5 w-3.5 ${userLikedComments.has(comment.id) ? 'fill-current' : ''}`}
-                        />
-                        <span className="font-medium">{commentLikeCounts[comment.id] || 0}</span>
-                      </button>
-                    </div>
-                    <p className="text-sm text-zinc-300 leading-relaxed">{comment.text}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Adicione um comentario anonimo..."
-                  className="w-full min-h-[80px] p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent resize-none transition-all duration-200 text-sm"
-                />
-                <button
-                  onClick={handleSubmitComment}
-                  disabled={!commentText.trim() || submittingComment}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-zinc-900 font-semibold rounded-xl hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                  {submittingComment ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      Comentar
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Modal de Categoria */}
+      {categoryModalData && (
+        <CategoryReportsModal
+          category={categoryModalData.category}
+          categoryLabel={categoryModalData.categoryLabel}
+          isOpen={categoryModalOpen}
+          period={period}
+          onClose={() => {
+            setCategoryModalOpen(false)
+            setCategoryModalData(null)
+          }}
+        />
       )}
     </div>
   )

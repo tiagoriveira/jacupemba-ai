@@ -25,6 +25,11 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
   const [isLoading, setIsLoading] = useState(false)
   const [imagePreview, setImagePreview] = useState<string>(editPost?.image_url || '')
   const [imageFile, setImageFile] = useState<File | null>(null)
+
+  // Payment proof state
+  const [paymentProofPreview, setPaymentProofPreview] = useState<string>('')
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null)
+
   const [formData, setFormData] = useState({
     contact_name: editPost?.contact_name || '',
     contact_phone: editPost?.contact_phone || '',
@@ -67,6 +72,32 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
     const reader = new FileReader()
     reader.onloadend = () => {
       setImagePreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handlePaymentProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tamanho (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Comprovante muito grande. Máximo 5MB')
+      return
+    }
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Comprovante deve ser uma imagem (screenshot do PIX)')
+      return
+    }
+
+    setPaymentProofFile(file)
+
+    // Preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPaymentProofPreview(reader.result as string)
     }
     reader.readAsDataURL(file)
   }
@@ -133,10 +164,16 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
       setIsLoading(true)
 
       let imageUrl = editPost?.image_url || ''
+      let paymentProofUrl = ''
 
       // Upload nova imagem se fornecida
       if (imageFile) {
         imageUrl = await uploadImage(imageFile)
+      }
+
+      // Upload comprovante se fornecido (base64 temporário)
+      if (paymentProofFile) {
+        paymentProofUrl = paymentProofPreview // Base64 temporário até Supabase Storage
       }
 
       // Calcular data de expiração (48h)
@@ -151,9 +188,10 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
         price: isCommercial ? parseFloat(formData.price) : 0,
         category: formData.category,
         image_url: imageUrl,
+        payment_proof_url: paymentProofUrl || null, // Novo campo
         aspect_ratio: formData.aspect_ratio,
         expires_at: expiresAt.toISOString(),
-        status: 'aprovado' as const
+        status: 'pendente' as const // Mudado para pendente até aprovação do Super Admin
       }
 
       if (editPost) {
@@ -172,7 +210,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
           .insert([postData])
 
         if (error) throw error
-        toast.success('Post criado com sucesso!')
+        toast.success('Post criado e enviado para análise!')
       }
 
       onSuccess()
@@ -272,6 +310,50 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                   <option value="square">Quadrado (1:1)</option>
                   <option value="vertical">Vertical (9:16) - Estilo Reels</option>
                 </select>
+              </div>
+
+              {/* Comprovante PIX */}
+              <div className="mt-6 space-y-2 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 p-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-emerald-900">
+                    Comprovante de Pagamento (PIX)
+                  </label>
+                  <span className="text-xs text-emerald-600">Recomendado</span>
+                </div>
+                <p className="text-xs text-emerald-700">
+                  Anexe o print do PIX para agilizar a aprovação pelo admin
+                </p>
+
+                {paymentProofPreview ? (
+                  <div className="relative mt-2">
+                    <img
+                      src={paymentProofPreview}
+                      alt="Comprovante PIX"
+                      className="h-32 w-full rounded-lg object-cover border border-emerald-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentProofPreview('')
+                        setPaymentProofFile(null)
+                      }}
+                      className="absolute top-2 right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
+                    <Upload className="h-4 w-4" />
+                    Anexar Comprovante
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePaymentProofChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
             </div>
 

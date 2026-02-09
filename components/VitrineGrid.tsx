@@ -81,6 +81,16 @@ export function VitrineGrid() {
 
   function handleWhatsAppClick(post: VitrinePost, e?: React.MouseEvent) {
     e?.stopPropagation()
+
+    // TODO: Quando backend estiver pronto, substituir por chamada API
+    // await fetch('/api/analytics/track', { method: 'POST', body: JSON.stringify({ postId: post.id, action: 'whatsapp_click' }) })
+    console.log('[ANALYTICS]', {
+      action: 'whatsapp_click',
+      post_id: post.id,
+      post_title: post.title,
+      timestamp: new Date().toISOString()
+    })
+
     const phone = (post.contact_phone || '').replace(/\D/g, '')
     const message = encodeURIComponent(`Ola, vi seu anuncio "${post.title}" no Assistente Local e tenho interesse!`)
     window.open(`https://wa.me/55${phone}?text=${message}`, '_blank')
@@ -130,8 +140,8 @@ export function VitrineGrid() {
                 key={tab.value}
                 onClick={() => setFilter(tab.value)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filter === tab.value
-                    ? 'bg-zinc-900 text-white'
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                   }`}
               >
                 {tab.label}
@@ -299,8 +309,8 @@ export function VitrineGrid() {
                               setCurrentImageIndex(idx)
                             }}
                             className={`h-2 rounded-full transition-all ${idx === currentImageIndex
-                                ? 'w-6 bg-white'
-                                : 'w-2 bg-white/50 hover:bg-white/75'
+                              ? 'w-6 bg-white'
+                              : 'w-2 bg-white/50 hover:bg-white/75'
                               }`}
                           />
                         ))}

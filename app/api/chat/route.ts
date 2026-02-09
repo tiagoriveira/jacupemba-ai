@@ -311,6 +311,11 @@ export async function POST(req: Request) {
     // Load base context from all 4 data layers
     const { reports, comments, businesses, vitrinePosts } = await getBairroContext()
 
+    // Ler configurações do agente (via headers do cliente que leu do localStorage)
+    const agentModel = req.headers.get('x-agent-model') || 'grok-3-mini-fast'
+    const sarcasmLevel = parseInt(req.headers.get('x-agent-sarcasm') || '5', 10)
+    const customInstructions = req.headers.get('x-agent-instructions') || ''
+
     // Format reports with comments and relative timestamps
     const reportsContext =
       reports.length > 0
@@ -353,9 +358,8 @@ export async function POST(req: Request) {
       analisarSentimento,
     }
 
-    const result = streamText({
-      model: xai('grok-3-mini-fast'),
-      system: `Voce e o Assistente Local do Jacupemba, um assistente conversacional com personalidade sarcastica e senso de humor acido. Voce conhece o bairro como a palma da sua mao e nao tem medo de falar a verdade, mesmo que ela doa um pouco.
+    // System prompt base
+    let systemPrompt = `Voce e o Assistente Local do Jacupemba, um assistente conversacional com personalidade sarcastica e senso de humor acido. Voce conhece o bairro como a palma da sua mao e nao tem medo de falar a verdade, mesmo que ela doa um pouco.
 
 DADOS REAIS DO BAIRRO (CONTEXTO BASE):${reportsContext}${businessesContext}${vitrineContext}
 
@@ -399,7 +403,33 @@ INSTRUCOES TECNICAS:
 - Quando perguntarem sobre "assuntos do momento" ou "o que esta acontecendo", resuma os relatos recentes por categoria COM SARCASMO baseado no conteudo.
 - Considere os COMENTARIOS dos relatos como atualizacoes em tempo real - eles complementam e podem atualizar as informacoes dos relatos originais.
 - Seja conciso, util e SEMPRE com uma pitada de humor acido.
-- Quando o usuario enviar uma imagem, analise e recomende servicos ou comercios relacionados dos dados acima.`,
+- Quando o usuario enviar uma imagem, analise e recomende servicos ou comercios relacionados dos dados acima.`
+
+    // Aplicar ajuste de sarcasmo baseado no nível configurado
+    const sarcasmAdjustments: Record<number, string> = {
+      0: '\n\nTom: Seja extremamente educado, formal e cortês. Evite qualquer tipo de sarcasmo.',
+      1: '\n\nTom: Seja gentil e amigável, mas pode usar um humor leve ocasionalmente.',
+      2: '\n\nTom: Seja útil e direto, com toques ocasionais de personalidade.',
+      3: '\n\nTom: Use humor moderado e seja conversacional, mas mantenha o profissionalismo.',
+      4: '\n\nTom: Seja espirituoso e use ironia leve para tornar a conversa mais interessante.',
+      5: '\n\nTom: Use sarcasmo de forma equilibrada. Seja sincero mas com bom humor.',
+      6: '\n\nTom: Aumente o sarcasmo. Seja direto e não tenha medo de fazer observações ácidas sobre a realidade.',
+      7: '\n\nTom: Sarcasmo forte. Seja cínico e não amenize problemas. Use comparações irônicas.',
+      8: '\n\nTom: Muito sarcástico. Seja brutalmente honesto e use humor negro quando apropriado.',
+      9: '\n\nTom: Extremamente sarcástico. Não poupe críticas e seja impiedoso com a verdade.',
+      10: '\n\nTom: TÓXICO. Sarcasmo máximo, sem filtros. Seja implacável e excessivamente crítico.'
+    }
+
+    systemPrompt += sarcasmAdjustments[sarcasmLevel] || sarcasmAdjustments[5]
+
+    // Adicionar instruções personalizadas se houver
+    if (customInstructions.trim()) {
+      systemPrompt += `\n\nINSTRUÇÕES ADICIONAIS DO ADMIN:\n${customInstructions}`
+    }
+
+    const result = streamText({
+      model: xai(agentModel as any), // Usar modelo configurado dinamicamente
+      system: systemPrompt,
       messages: await convertToModelMessages(messages),
       tools: agentTools,
       stopWhen: stepCountIs(5),

@@ -20,11 +20,10 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
     phone: '',
     address: '',
     hours: '',
-    diferencial: '',
-    promocao: '',
-    tempo_entrega: '',
-    formas_pagamento: '',
-    link_social: '',
+    puv: '', // Renomeado de diferencial para puv (Proposta Única de Valor)
+    whatsapp_link: '',
+    menu_link: '',
+    social_link: '',
     verified: false
   })
 
@@ -47,7 +46,7 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.name || !formData.category) {
       toast.error('Preencha os campos obrigatorios')
       return
@@ -55,7 +54,7 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
 
     try {
       setIsLoading(true)
-      
+
       const { error } = await supabase
         .from('local_businesses')
         .insert([{
@@ -64,7 +63,7 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
         }])
 
       if (error) throw error
-      
+
       toast.success('Empresa cadastrada com sucesso!')
       setFormData({
         name: '',
@@ -73,11 +72,10 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
         phone: '',
         address: '',
         hours: '',
-        diferencial: '',
-        promocao: '',
-        tempo_entrega: '',
-        formas_pagamento: '',
-        link_social: '',
+        puv: '',
+        whatsapp_link: '',
+        menu_link: '',
+        social_link: '',
         verified: false
       })
       onSuccess()
@@ -201,75 +199,72 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
               />
             </div>
 
-            {/* Diferencial */}
+            {/* PUV - Proposta Única de Valor */}
             <div>
               <label className="block text-sm font-medium text-zinc-900">
-                Diferencial (obrigatorio) *
+                Diferencial (PUV) *
               </label>
-              <input
-                type="text"
+              <textarea
                 required
-                value={formData.diferencial}
-                onChange={(e) => setFormData({ ...formData, diferencial: e.target.value })}
+                value={formData.puv}
+                onChange={(e) => setFormData({ ...formData, puv: e.target.value })}
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
-                placeholder="O que torna esta empresa especial?"
+                rows={3}
+                placeholder="O que torna este negócio único? Descreva o principal diferencial..."
               />
+              <p className="mt-1 text-xs text-zinc-500">
+                Este campo é proeminente e ajuda os clientes a entenderem por que escolher você.
+              </p>
             </div>
 
-            {/* Promocao */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-900">
-                Promocao ou Oferta Especial
-              </label>
-              <input
-                type="text"
-                value={formData.promocao}
-                onChange={(e) => setFormData({ ...formData, promocao: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
-                placeholder="Ex: 10% de desconto na primeira compra"
-              />
-            </div>
+            {/* Links para Conversão */}
+            <div className="space-y-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <h3 className="text-sm font-semibold text-zinc-900">Links de Conversão</h3>
+              <p className="text-xs text-zinc-600">
+                Campos opcionais que aumentam a taxa de cliques
+              </p>
 
-            {/* Tempo de Entrega */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-900">
-                Tempo de Entrega
-              </label>
-              <input
-                type="text"
-                value={formData.tempo_entrega}
-                onChange={(e) => setFormData({ ...formData, tempo_entrega: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
-                placeholder="Ex: 30-45 minutos"
-              />
-            </div>
+              {/* WhatsApp */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-900">
+                  Link do WhatsApp
+                </label>
+                <input
+                  type="url"
+                  value={formData.whatsapp_link}
+                  onChange={(e) => setFormData({ ...formData, whatsapp_link: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                  placeholder="https://wa.me/5527999999999"
+                />
+              </div>
 
-            {/* Formas de Pagamento */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-900">
-                Formas de Pagamento
-              </label>
-              <input
-                type="text"
-                value={formData.formas_pagamento}
-                onChange={(e) => setFormData({ ...formData, formas_pagamento: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
-                placeholder="Ex: Dinheiro, Pix, Cartao"
-              />
-            </div>
+              {/* Cardápio Online */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-900">
+                  Link para Cardápio/Catálogo
+                </label>
+                <input
+                  type="url"
+                  value={formData.menu_link}
+                  onChange={(e) => setFormData({ ...formData, menu_link: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                  placeholder="https://cardapio.com/..."
+                />
+              </div>
 
-            {/* Link Social */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-900">
-                Instagram / Facebook
-              </label>
-              <input
-                type="url"
-                value={formData.link_social}
-                onChange={(e) => setFormData({ ...formData, link_social: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
-                placeholder="https://instagram.com/..."
-              />
+              {/* Redes Sociais */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-900">
+                  Instagram/Facebook
+                </label>
+                <input
+                  type="url"
+                  value={formData.social_link}
+                  onChange={(e) => setFormData({ ...formData, social_link: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                  placeholder="https://instagram.com/..."
+                />
+              </div>
             </div>
 
             {/* Verificado */}
