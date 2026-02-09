@@ -1,18 +1,55 @@
 /**
  * Script para gerar embeddings de todos os relatos e comercios existentes
- * Roda uma única vez para popular o banco, depois só precisa rodar em novos dados
+ * Versão em JavaScript puro para evitar problemas de compilação TypeScript
  * 
  * Para executar: npm run generate-embeddings
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { generateEmbedding, prepareReportText, prepareBusinessText } from '../lib/embeddings'
-import { EMBEDDING_CONFIG } from '../lib/embedding-config'
+import { embed } from 'ai'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ Erro: SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurados')
+  process.exit(1)
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+// Configurações
+const EMBEDDING_CONFIG = {
+  model: 'openai/text-embedding-3-small',
+  defaultThreshold: 0.7,
+  defaultLimit: 10,
+  maxLimit: 50,
+  rateLimitDelay: 100, // ms entre chamadas
+}
+
+// Funções auxiliares
+function prepareReportText(report) {
+  return `${report.text} (categoria: ${report.category})`
+}
+
+function prepareBusinessText(business) {
+  const parts = [business.name, business.category]
+  if (business.description) parts.push(business.description)
+  return parts.join(' - ')
+}
+
+async function generateEmbedding(text) {
+  try {
+    const { embedding } = await embed({
+      model: EMBEDDING_CONFIG.model,
+      value: text,
+    })
+    return embedding
+  } catch (error) {
+    console.error('[v0] Error generating embedding:', error)
+    throw error
+  }
+}
 
 async function generateReportEmbeddings() {
   console.log('🔄 Gerando embeddings para relatos...')
@@ -32,23 +69,26 @@ async function generateReportEmbeddings() {
 
   let processed = 0
   let errors = 0
+  let skipped = 0
 
   for (const report of reports) {
     try {
       // Verificar se já existe embedding
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from('report_embeddings')
         .select('id')
         .eq('report_id', report.id)
         .single()
 
       if (existing) {
+        skipped++
         console.log(`⏭️  Relato ${report.id} já tem embedding, pulando...`)
         continue
       }
 
       // Gerar embedding
       const text = prepareReportText(report)
+      console.log(`  → Gerando embedding para: "${text.substring(0, 50)}..."`)
       const embedding = await generateEmbedding(text)
 
       // Salvar no banco
@@ -70,11 +110,11 @@ async function generateReportEmbeddings() {
       await new Promise(resolve => setTimeout(resolve, EMBEDDING_CONFIG.rateLimitDelay))
     } catch (err) {
       errors++
-      console.error(`❌ Erro ao processar relato ${report.id}:`, err)
+      console.error(`❌ Erro ao processar relato ${report.id}:`, err instanceof Error ? err.message : err)
     }
   }
 
-  console.log(`\n✨ Concluído! ${processed} embeddings gerados, ${errors} erros`)
+  console.log(`\n✨ Relatos concluído! ${processed} embeddings gerados, ${skipped} pulados, ${errors} erros`)
 }
 
 async function generateBusinessEmbeddings() {
@@ -96,23 +136,26 @@ async function generateBusinessEmbeddings() {
 
   let processed = 0
   let errors = 0
+  let skipped = 0
 
   for (const business of businesses) {
     try {
       // Verificar se já existe embedding
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from('business_embeddings')
         .select('id')
         .eq('business_id', business.id)
         .single()
 
       if (existing) {
+        skipped++
         console.log(`⏭️  Comercio ${business.id} já tem embedding, pulando...`)
         continue
       }
 
       // Gerar embedding
       const text = prepareBusinessText(business)
+      console.log(`  → Gerando embedding para: "${text.substring(0, 50)}..."`)
       const embedding = await generateEmbedding(text)
 
       // Salvar no banco
@@ -134,20 +177,28 @@ async function generateBusinessEmbeddings() {
       await new Promise(resolve => setTimeout(resolve, EMBEDDING_CONFIG.rateLimitDelay))
     } catch (err) {
       errors++
-      console.error(`❌ Erro ao processar comercio ${business.id}:`, err)
+      console.error(`❌ Erro ao processar comercio ${business.id}:`, err instanceof Error ? err.message : err)
     }
   }
 
-  console.log(`\n✨ Concluído! ${processed} embeddings gerados, ${errors} erros`)
+  console.log(`\n✨ Comercios concluído! ${processed} embeddings gerados, ${skipped} pulados, ${errors} erros`)
 }
 
 async function main() {
-  console.log('🚀 Iniciando geração de embeddings...\n')
+  console.log('🚀 Iniciando geração de embeddings semânticos...\n')
+  console.log(`📍 Supabase URL: ${supabaseUrl}`)
+  console.log(`🤖 Modelo: ${EMBEDDING_CONFIG.model}\n`)
 
-  await generateReportEmbeddings()
-  await generateBusinessEmbeddings()
+  try {
+    await generateReportEmbeddings()
+    await generateBusinessEmbeddings()
 
-  console.log('\n🎉 Processo completo!')
+    console.log('\n🎉 Processo completo! Agora o agente pode fazer buscas semânticas.\n')
+    console.log('💡 Teste no chat: "Onde comer rapidinho?" ou "Problema com água no bairro?"')
+  } catch (err) {
+    console.error('\n❌ Erro fatal:', err)
+    process.exit(1)
+  }
 }
 
-main().catch(console.error)
+main()
