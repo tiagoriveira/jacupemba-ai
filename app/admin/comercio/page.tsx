@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
 import { Store, Settings, Package, ArrowLeft, LogOut, Loader2, Save, Upload, Plus, Trash2, Sparkles } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -32,7 +32,7 @@ interface VitrinePost {
     created_at: string
 }
 
-export default function MerchantPage() {
+function MerchantPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const token = searchParams.get('token')
@@ -87,12 +87,11 @@ export default function MerchantPage() {
             const { data, error } = await supabase
                 .from('vitrine_posts')
                 .select('*')
-                .eq('business_id', businessId) // Assuming we added this field
+                .eq('business_id', businessId)
                 .order('created_at', { ascending: false })
 
             if (error) {
-                // Fallback if column doesn't exist yet or other error, just show empty
-                console.warn('Could not fetch posts (column might be missing):', error)
+                console.warn('Could not fetch posts:', error)
             } else {
                 setPosts(data || [])
             }
@@ -137,7 +136,6 @@ export default function MerchantPage() {
         if (!inventoryText.trim()) return
 
         setProcessingAI(true)
-        // Mock AI processing
         setTimeout(() => {
             setProcessingAI(false)
             toast.success('Inventário processado com sucesso! (Simulação)')
@@ -173,7 +171,6 @@ export default function MerchantPage() {
         <>
             <Toaster position="top-right" richColors />
             <div className="min-h-screen bg-zinc-50 pb-20">
-                {/* Top Bar */}
                 <header className="bg-white border-b border-zinc-200 sticky top-0 z-10">
                     <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -192,7 +189,6 @@ export default function MerchantPage() {
                     </div>
                 </header>
 
-                {/* Navigation Tabs */}
                 <div className="bg-white border-b border-zinc-200">
                     <div className="max-w-5xl mx-auto px-4 flex gap-6 overflow-x-auto">
                         {[
@@ -218,15 +214,11 @@ export default function MerchantPage() {
                     </div>
                 </div>
 
-                {/* Content */}
                 <main className="max-w-5xl mx-auto px-4 py-8">
-
-                    {/* Business Info Tab */}
                     {activeTab === 'info' && (
                         <form onSubmit={handleUpdateInfo} className="max-w-2xl space-y-6">
                             <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-6">
                                 <h2 className="text-lg font-bold text-zinc-900">Informações Básicas</h2>
-
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-1">
                                         <label className="text-sm font-medium text-zinc-700">Nome do Negócio</label>
@@ -247,64 +239,49 @@ export default function MerchantPage() {
                                         />
                                     </div>
                                 </div>
-
                                 <div className="space-y-1">
                                     <label className="text-sm font-medium text-zinc-700">Diferencial (PUV)</label>
                                     <textarea
                                         value={business.puv || ''}
                                         onChange={e => setBusiness({ ...business, puv: e.target.value })}
                                         placeholder="O que torna seu negócio único?"
-                                        rows={2}
-                                        className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
+                                        className="w-full rounded-lg border border-zinc-300 p-2 text-sm min-h-[80px]"
                                     />
-                                    <p className="text-xs text-zinc-500">Ex: "A melhor coxinha da cidade dita por quem entende"</p>
                                 </div>
-
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-medium text-zinc-700">Telefone/WhatsApp</label>
+                                        <input
+                                            value={business.phone || ''}
+                                            onChange={e => setBusiness({ ...business, phone: e.target.value })}
+                                            className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-medium text-zinc-700">Horário de Funcionamento</label>
+                                        <input
+                                            value={business.hours || ''}
+                                            onChange={e => setBusiness({ ...business, hours: e.target.value })}
+                                            placeholder="Ex: Seg-Sex 08h-18h"
+                                            className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
+                                        />
+                                    </div>
+                                </div>
                                 <div className="space-y-1">
-                                    <label className="text-sm font-medium text-zinc-700">Descrição</label>
-                                    <textarea
-                                        value={business.description}
-                                        onChange={e => setBusiness({ ...business, description: e.target.value })}
-                                        rows={3}
+                                    <label className="text-sm font-medium text-zinc-700">Endereço Completo</label>
+                                    <input
+                                        value={business.address || ''}
+                                        onChange={e => setBusiness({ ...business, address: e.target.value })}
                                         className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
                                     />
                                 </div>
                             </div>
 
                             <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-6">
-                                <h2 className="text-lg font-bold text-zinc-900">Contato & Links</h2>
-
-                                <div className="grid gap-4 sm:grid-cols-2">
+                                <h2 className="text-lg font-bold text-zinc-900">Links Externos</h2>
+                                <div className="grid gap-4">
                                     <div className="space-y-1">
-                                        <label className="text-sm font-medium text-zinc-700">Telefone / WhatsApp</label>
-                                        <input
-                                            value={business.phone}
-                                            onChange={e => setBusiness({ ...business, phone: e.target.value })}
-                                            className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-medium text-zinc-700">Endereço</label>
-                                        <input
-                                            value={business.address}
-                                            onChange={e => setBusiness({ ...business, address: e.target.value })}
-                                            className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-zinc-700">Horário de Funcionamento</label>
-                                    <input
-                                        value={business.hours}
-                                        onChange={e => setBusiness({ ...business, hours: e.target.value })}
-                                        className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
-                                    />
-                                </div>
-
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-medium text-zinc-700">Link WhatsApp Direto (Opcional)</label>
+                                        <label className="text-sm font-medium text-zinc-700">Link do WhatsApp</label>
                                         <input
                                             value={business.whatsapp_link || ''}
                                             onChange={e => setBusiness({ ...business, whatsapp_link: e.target.value })}
@@ -313,11 +290,20 @@ export default function MerchantPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-sm font-medium text-zinc-700">Link Cardápio/Site (Opcional)</label>
+                                        <label className="text-sm font-medium text-zinc-700">Link do Cardápio/Catálogo</label>
                                         <input
                                             value={business.menu_link || ''}
                                             onChange={e => setBusiness({ ...business, menu_link: e.target.value })}
                                             placeholder="https://..."
+                                            className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-medium text-zinc-700">Instagram/Rede Social</label>
+                                        <input
+                                            value={business.social_link || ''}
+                                            onChange={e => setBusiness({ ...business, social_link: e.target.value })}
+                                            placeholder="https://instagram.com/..."
                                             className="w-full rounded-lg border border-zinc-300 p-2 text-sm"
                                         />
                                     </div>
@@ -328,50 +314,44 @@ export default function MerchantPage() {
                                 <button
                                     type="submit"
                                     disabled={saving}
-                                    className="flex items-center gap-2 rounded-xl bg-zinc-900 px-8 py-3 font-semibold text-white transition-all hover:bg-zinc-800 disabled:opacity-70"
+                                    className="flex items-center gap-2 rounded-lg bg-zinc-900 px-8 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 transition-all"
                                 >
-                                    {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-                                    Salvar Alterações
+                                    {saving ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Salvando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="h-4 w-4" />
+                                            Salvar Alterações
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </form>
                     )}
 
-                    {/* Vitrine Tab */}
                     {activeTab === 'vitrine' && (
                         <div className="space-y-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-lg font-bold text-zinc-900">Seus Anúncios</h2>
-                                    <p className="text-sm text-zinc-500">Gerencie seus posts na vitrine da comunidade</p>
+                                    <h2 className="text-lg font-bold text-zinc-900">Minha Vitrine</h2>
+                                    <p className="text-sm text-zinc-500">Gerencie seus anúncios ativos na plataforma.</p>
                                 </div>
                                 <button
                                     onClick={() => setIsVitrineModalOpen(true)}
-                                    className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                                    className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-all"
                                 >
                                     <Plus className="h-4 w-4" />
                                     Criar Novo Post
                                 </button>
                             </div>
 
-                            {/* Using existing VitrineUploadModal but we might need to tweak passed props or make it aware of business context */}
-                            {/* For now, let's assume VitrineUploadModal handles general upload, but we need to inject business_id if possible or handle it via a wrapper. 
-                       However, VitrineUploadModal is built for public use currently. 
-                       I will use it as is, but maybe I should have created a specialized one.
-                       Actually, I can pass a pre-filled contact info or handle submission internally.
-                       For MVP simplicity, let's just use the modal as a trigger and maybe standard form?
-                       
-                       Wait, existing VitrineUploadModal does everything internally.
-                       I should probably create a specific form for the merchant that includes the business_id automatically.
-                   */}
-
                             <VitrineUploadModal
                                 isOpen={isVitrineModalOpen}
                                 onClose={() => setIsVitrineModalOpen(false)}
                                 onSuccess={() => fetchBusinessPosts(business.id)}
-                            // We might need to modify VitrineUploadModal to accept business_id or initial data
-                            // For now, let's assume the user fills it out manually or I'll implement a simple form here later if needed.
-                            // Actually, I'll update VitrineUploadModal to accept `businessId` prop in a future step if needed.
                             />
 
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -422,21 +402,18 @@ export default function MerchantPage() {
                         </div>
                     )}
 
-                    {/* Inventory / AI Tab */}
                     {activeTab === 'inventory' && (
                         <div className="max-w-3xl">
                             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-8 text-center space-y-6">
                                 <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto">
                                     <Package className="h-8 w-8 text-indigo-600" />
                                 </div>
-
                                 <div className="space-y-2">
                                     <h2 className="text-2xl font-bold text-zinc-900">Atualização Inteligente</h2>
                                     <p className="text-zinc-600 max-w-lg mx-auto">
                                         Não perca tempo cadastrando produtos um por um. Cole seu cardápio abaixo ou envie uma foto e nossa IA fará o resto.
                                     </p>
                                 </div>
-
                                 <div className="bg-white rounded-xl border border-zinc-200 p-4 shadow-sm text-left">
                                     <textarea
                                         value={inventoryText}
@@ -449,7 +426,6 @@ export default function MerchantPage() {
                                             <Upload className="h-4 w-4" />
                                             Anexar Arquivo (PDF/Img)
                                         </button>
-
                                         <button
                                             onClick={handleAIProcessing}
                                             disabled={processingAI || !inventoryText.trim()}
@@ -469,16 +445,26 @@ export default function MerchantPage() {
                                         </button>
                                     </div>
                                 </div>
-
                                 <p className="text-xs text-zinc-400">
                                     * A IA pode levar alguns segundos para estruturar seus dados. Você poderá revisar antes de publicar.
                                 </p>
                             </div>
                         </div>
                     )}
-
                 </main>
             </div>
         </>
+    )
+}
+
+export default function MerchantPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen items-center justify-center bg-zinc-50">
+                <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+            </div>
+        }>
+            <MerchantPageContent />
+        </Suspense>
     )
 }

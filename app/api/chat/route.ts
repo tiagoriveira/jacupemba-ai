@@ -3,10 +3,11 @@ import { supabase } from '@/lib/supabase'
 import { createXai } from '@ai-sdk/xai'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const xai = createXai({
-  apiKey: process.env.XAI_API_KEY!
+  apiKey: process.env.XAI_API_KEY || 'placeholder'
 })
 
 // ---------------------------------------------------------------------------
