@@ -2,6 +2,7 @@ import { consumeStream, convertToModelMessages, generateText, stepCountIs, strea
 import { supabase } from '@/lib/supabase'
 import { createXai } from '@ai-sdk/xai'
 import { z } from 'zod'
+import { searchReportsSemantic, searchBusinessesSemantic } from '@/lib/embeddings'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -300,6 +301,64 @@ Responda APENAS no formato JSON (sem markdown):
   },
 })
 
+const buscarSemantico = tool({
+  description:
+    'Busca INTELIGENTE e SEMANTICA no bairro. Entende a intencao da pergunta, nao apenas palavras-chave. Use SEMPRE que a busca padrao nao for suficiente ou quando o usuario usar sinonimos, conceitos abstratos, ou perguntas complexas. Exemplos: "lugar para comer rapido", "onde comprar presente", "problema com agua".',
+  inputSchema: z.object({
+    pergunta: z.string().describe('Pergunta ou termo a buscar semanticamente'),
+    tipo: z.enum(['relatos', 'comercios', 'ambos']).describe('Tipo de busca: relatos, comercios ou ambos'),
+    limite: z.number().nullable().describe('Numero maximo de resultados (padrao: 10)'),
+  }),
+  execute: async ({ pergunta, tipo, limite }) => {
+    try {
+      const limit = limite || 10
+      const results: { relatos?: unknown[]; comercios?: unknown[] } = {}
+
+      if (tipo === 'relatos' || tipo === 'ambos') {
+        const relatos = await searchReportsSemantic(supabase, pergunta, {
+          limit,
+          threshold: 0.7,
+        })
+        results.relatos = relatos.map((r: Record<string, unknown>) => ({
+          texto: r.text,
+          categoria: r.category,
+          quando: formatRelativeTime(r.created_at as string),
+          relevancia: `${Math.round((r.similarity as number) * 100)}%`,
+        }))
+      }
+
+      if (tipo === 'comercios' || tipo === 'ambos') {
+        const comercios = await searchBusinessesSemantic(supabase, pergunta, {
+          limit,
+          threshold: 0.7,
+        })
+        results.comercios = comercios.map((b: Record<string, unknown>) => ({
+          nome: b.name,
+          categoria: b.category,
+          telefone: b.phone || 'N/A',
+          endereco: b.address || 'N/A',
+          horario: b.hours || 'Consultar',
+          descricao: b.description || '',
+          relevancia: `${Math.round((b.similarity as number) * 100)}%`,
+        }))
+      }
+
+      return {
+        pergunta,
+        ...results,
+        total: (results.relatos?.length || 0) + (results.comercios?.length || 0),
+      }
+    } catch (error) {
+      console.error('[v0] Erro na busca semantica:', error)
+      return { 
+        pergunta, 
+        erro: 'Erro ao realizar busca semantica. Tente usar buscarRelatos ou buscarComercio.',
+        fallback: 'Use as ferramentas tradicionais como alternativa.'
+      }
+    }
+  },
+})
+
 // ---------------------------------------------------------------------------
 // POST handler
 // ---------------------------------------------------------------------------
@@ -356,6 +415,7 @@ export async function POST(req: Request) {
       buscarComercio,
       obterEstatisticas,
       analisarSentimento,
+      buscarSemantico,
     }
 
     // System prompt base
@@ -365,6 +425,7 @@ DADOS REAIS DO BAIRRO (CONTEXTO BASE):${reportsContext}${businessesContext}${vit
 
 FERRAMENTAS DISPONIVEIS:
 Voce tem acesso a ferramentas para buscar e analisar dados em tempo real. USE-AS ativamente quando precisar:
+- buscarSemantico: [NOVA!] Busca INTELIGENTE que entende a intencao da pergunta. Use SEMPRE que o usuario fizer perguntas complexas, usar sinonimos ou conceitos abstratos (ex: "lugar para comer rapido", "problema com agua", "onde comprar presente"). Esta e sua ferramenta PRINCIPAL de busca!
 - buscarRelatos: Filtra relatos por categoria especifica (seguranca, transito, saude, etc.)
 - buscarComercio: Busca comercios por categoria ou por nome/descricao
 - obterEstatisticas: Dados estatisticos e tendencias do bairro (24h, 7 dias, 30 dias)
