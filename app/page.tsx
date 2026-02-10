@@ -5,10 +5,13 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield, ThumbsUp, ThumbsDown, Brain, Settings, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getAgentConfig } from '@/lib/agentConfig'
+import { NotificationSystem, type Notification } from '@/components/NotificationSystem'
+import { notificationManager } from '@/lib/notificationManager'
+import { useContextNotifications } from '@/hooks/useContextNotifications'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -55,6 +58,27 @@ export default function Page() {
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
   const [trendingTopics, setTrendingTopics] = useState<Array<{ category: string, count: number }>>([])
+  
+  // Notifications state
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  
+  // User preferences state
+  const [userPreferences, setUserPreferences] = useState<{
+    categoriasInteresse: string[]
+    tomResposta: string
+  } | null>(null)
+  
+  // Load user preferences
+  useEffect(() => {
+    const saved = localStorage.getItem('user-preferences')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      setUserPreferences({
+        categoriasInteresse: parsed.categoriasInteresse || [],
+        tomResposta: parsed.tomResposta || 'informal'
+      })
+    }
+  }, [])
 
   const CATEGORY_LABELS: Record<string, string> = {
     'seguranca': '🚨 Seguranca',
@@ -108,6 +132,17 @@ export default function Page() {
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
+  
+  // Subscribe to notification manager
+  useEffect(() => {
+    const unsubscribe = notificationManager.subscribe((newNotifications) => {
+      setNotifications(newNotifications)
+    })
+    return unsubscribe
+  }, [])
+  
+  // Enable context-aware notifications
+  useContextNotifications()
 
   // Calculate trending topics from Supabase
   useEffect(() => {
@@ -312,6 +347,13 @@ export default function Page() {
       }
 
       setReportSubmitted(true)
+      
+      // Show success notification
+      notificationManager.success(
+        'Relato enviado com sucesso!',
+        'Seu relato será revisado e publicado em breve. Obrigado por contribuir!'
+      )
+      
       setTimeout(() => {
         setIsReportModalOpen(false)
         setReportText('')
@@ -328,7 +370,20 @@ export default function Page() {
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
       {/* Header */}
       <header className="bg-zinc-50 border-b border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
-        <div className="mx-auto flex max-w-4xl items-center justify-center px-4 py-4">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
+          {/* Memory Indicator */}
+          <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <div className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1.5 dark:bg-blue-950/30">
+                <Brain className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                  {messages.length} {messages.length === 1 ? 'mensagem' : 'mensagens'} lembradas
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsReportModalOpen(true)}
@@ -336,29 +391,35 @@ export default function Page() {
               title="Relatar algo do bairro"
             >
               <MessageSquare className="h-4 w-4" />
-              <span>Contribuir</span>
+              <span className="hidden sm:inline">Contribuir</span>
             </button>
             <Link
               href="/vitrine"
               className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
               <ShoppingBag className="h-4 w-4" />
-              <span>Vitrine</span>
+              <span className="hidden sm:inline">Vitrine</span>
             </Link>
             <Link
               href="/historico"
               className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
               <History className="h-4 w-4" />
-              <span>Historico</span>
+              <span className="hidden sm:inline">Historico</span>
+            </Link>
+            <Link
+              href="/preferencias"
+              className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              title="Preferências"
+            >
+              <Settings className="h-4 w-4" />
             </Link>
             <Link
               href="/admin"
-              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-red-600 border border-red-300 transition-all duration-150 hover:bg-red-50 active:scale-[0.98]"
+              className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 border border-red-300 transition-all duration-150 hover:bg-red-50 active:scale-[0.98]"
               title="Painel administrativo"
             >
               <Shield className="h-4 w-4" />
-              <span>Admin</span>
             </Link>
           </div>
         </div>
@@ -391,6 +452,18 @@ export default function Page() {
                   <p className="mt-4 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
                     Te ajudo com comércio, serviços, vagas e informações do bairro de Jacupemba, na maioria das vezes sou irônico, mas isso é quando estou de bom humor!
                   </p>
+                  
+                  {/* Active Preferences Indicator */}
+                  {userPreferences && userPreferences.categoriasInteresse.length > 0 && (
+                    <div className="mt-6 flex justify-center animate-in fade-in-0 duration-700 delay-500">
+                      <div className="flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 dark:bg-blue-950/30">
+                        <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm text-blue-700 dark:text-blue-300">
+                          Personalizado para {userPreferences.categoriasInteresse.length} {userPreferences.categoriasInteresse.length === 1 ? 'categoria' : 'categorias'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -696,6 +769,12 @@ export default function Page() {
           </div>
         </div>
       )}
+
+      {/* Notification System */}
+      <NotificationSystem
+        notifications={notifications}
+        onDismiss={(id) => notificationManager.dismiss(id)}
+      />
     </div>
   )
 }

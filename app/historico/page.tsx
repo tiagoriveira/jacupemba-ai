@@ -114,24 +114,35 @@ export default function HistoricoPage() {
           ) : (
             /* History List */
             <div className="space-y-3">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {history.length} {history.length === 1 ? 'conversa salva' : 'conversas salvas'}
+                </p>
+              </div>
               {history.map((item) => (
                 <div
                   key={item.id}
-                  className="group rounded-2xl border border-zinc-200 bg-white p-4 transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                  className="group rounded-xl border border-zinc-200 bg-white p-5 transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <h3 className="mb-1 font-medium text-zinc-900 dark:text-white">
-                        {item.question}
-                      </h3>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {truncateText(item.answer, 150)}
+                      <div className="mb-2 flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+                        <h3 className="font-semibold text-zinc-900 dark:text-white">
+                          {item.question}
+                        </h3>
+                      </div>
+                      <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                        {truncateText(item.answer, 180)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
                     <span className="text-xs text-zinc-500 dark:text-zinc-500">
                       {formatDate(item.timestamp)}
+                    </span>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                      Arquivada
                     </span>
                   </div>
                 </div>
