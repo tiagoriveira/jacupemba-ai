@@ -5,7 +5,6 @@ import { Save, Loader2, MessageSquare, AlertTriangle, Cpu, Sparkles } from 'luci
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { saveAgentConfig } from '@/lib/agentConfig'
-import Image from 'next/image'
 
 interface AgentConfig {
     model: string
@@ -20,33 +19,12 @@ interface ConfigItem {
 
 export function AgentSettingsSection() {
     const [config, setConfig] = useState<AgentConfig>({
-        model: 'grok-4-1',
+        model: 'grok-4-1-fast-reasoning',
         sarcasm_level: 2,
         instructions: ''
     })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-
-    const models = useMemo(() => [
-        {
-            id: 'grok-4-1',
-            name: 'Grok 4.1',
-            desc: 'Diálogo natural com inteligência emocional',
-            logo: '/logos/xai-logo.jpg'
-        },
-        {
-            id: 'claude-4-5',
-            name: 'Claude 4.5',
-            desc: 'Híbrido com raciocínio avançado para coding',
-            logo: '/logos/anthropic-logo.jpg'
-        },
-        {
-            id: 'gpt-5-1',
-            name: 'GPT-5.1',
-            desc: 'Conversacional com raciocínio aprimorado',
-            logo: '/logos/openai-logo.jpg'
-        }
-    ], [])
 
     const preview = useMemo(() => {
         const level = config.sarcasm_level
@@ -58,10 +36,6 @@ export function AgentSettingsSection() {
             text = "Ah, Jacupemba... O lugar onde o vento faz a curva e o nada acontece. Mas diz aí, o que você quer?"
         } else {
             text = "Olha só quem apareceu. Espero que não seja outra pergunta óbvia sobre a previsão do tempo. Fala logo."
-        }
-
-        if (config.model === 'grok-4-1') {
-            text += " (E não me venha com choramingos.)"
         }
 
         if (config.instructions.length > 0) {
@@ -182,37 +156,26 @@ export function AgentSettingsSection() {
                                     <h2 className="text-lg font-semibold text-zinc-900">Modelo de IA</h2>
                                 </div>
 
-                                <div className="space-y-3">
-                                    {models.map((m) => (
-                                        <button
-                                            key={m.id}
-                                            onClick={() => setConfig(prev => ({ ...prev, model: m.id }))}
-                                            className={`flex w-full items-center gap-4 rounded-xl border p-4 transition-all ${config.model === m.id
-                                                ? 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900'
-                                                : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
-                                                }`}
-                                        >
-                                            <div className={`flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden ${config.model === m.id ? 'bg-white ring-2 ring-zinc-900' : 'bg-white'
-                                                }`}>
-                                                <Image
-                                                    src={m.logo}
-                                                    alt={`${m.name} logo`}
-                                                    width={40}
-                                                    height={40}
-                                                    className="object-contain p-1"
-                                                />
-                                            </div>
-                                            <div className="text-left flex-1">
-                                                <p className="font-medium text-zinc-900">{m.name}</p>
-                                                <p className="text-xs text-zinc-500">{m.desc}</p>
-                                            </div>
-                                            <div className={`h-4 w-4 rounded-full border ${config.model === m.id ? 'border-zinc-900 bg-zinc-900' : 'border-zinc-300'
-                                                }`}>
-                                                {config.model === m.id && <div className="m-1 h-1.5 w-1.5 rounded-full bg-white" />}
-                                            </div>
-                                        </button>
-                                    ))}
+                                {/* Single Grok Model Card */}
+                                <div className="flex w-full items-center gap-4 rounded-xl border border-zinc-900 bg-zinc-50 p-4 ring-1 ring-zinc-900">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden bg-black ring-2 ring-zinc-900">
+                                        <img
+                                            src="/logos/xai-logo.svg"
+                                            alt="xAI Logo"
+                                            className="h-6 w-6 object-contain"
+                                        />
+                                    </div>
+                                    <div className="text-left flex-1">
+                                        <p className="font-medium text-zinc-900">Grok 4.1</p>
+                                        <p className="text-xs text-zinc-500">Modelo avançado com raciocínio aprimorado da xAI</p>
+                                    </div>
+                                    <div className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+                                        ATIVO
+                                    </div>
                                 </div>
+                                <p className="text-xs text-zinc-500 italic">
+                                    Este é o modelo padrão do sistema. Ele oferece respostas rápidas e econômicas.
+                                </p>
                             </div>
 
                             {/* Personality */}

@@ -25,6 +25,43 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Helper: build conversation context summary for memory
+// ---------------------------------------------------------------------------
+function buildConversationContext(messages: UIMessage[]): string {
+  if (messages.length <= 1) return ''
+
+  // Pegar apenas mensagens de texto (user e assistant) para resumo
+  const relevantMessages = messages
+    .slice(-10) // Últimas 10 mensagens para não sobrecarregar
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .map(m => {
+      // UIMessage pode ter content como string ou array de parts
+      const msgAny = m as unknown as { content?: string; parts?: { type: string; text?: string }[] }
+      let content = ''
+      if (typeof msgAny.content === 'string') {
+        content = msgAny.content
+      } else if (Array.isArray(msgAny.parts)) {
+        content = msgAny.parts
+          .filter(p => p.type === 'text' && p.text)
+          .map(p => p.text)
+          .join(' ')
+      }
+      const role = m.role === 'user' ? 'Usuario' : 'Agente'
+      // Truncar mensagens longas
+      const truncated = content.length > 150 ? content.substring(0, 150) + '...' : content
+      return truncated ? `${role}: ${truncated}` : null
+    })
+    .filter(Boolean)
+
+  if (relevantMessages.length === 0) return ''
+
+  return `\n\nCONTEXTO DA CONVERSA ATUAL (ultimas ${relevantMessages.length} mensagens):
+${relevantMessages.join('\n')}
+
+IMPORTANTE: Use esse contexto para entender referencias implicitas. Se o usuario perguntar "e o telefone?" ou "qual o horario deles?", voce deve saber a qual comercio/local ele se refere baseado nas mensagens anteriores.`
+}
+
+// ---------------------------------------------------------------------------
 // Base context: loads the 4 data layers available today
 //   1. Relatos (last 7 days)
 //   2. Comentarios dos relatos
@@ -272,7 +309,7 @@ const analisarSentimento = tool({
       const textos = relatos.map(r => r.text).join('\n---\n')
 
       const { text: analise } = await generateText({
-        model: xai('grok-3-mini-fast'),
+        model: xai('grok-4-1-fast-reasoning'),
         prompt: `Analise os seguintes relatos sobre "${local}" e classifique o sentimento geral.
 
 RELATOS:
@@ -312,7 +349,7 @@ export async function POST(req: Request) {
     const { reports, comments, businesses, vitrinePosts } = await getBairroContext()
 
     // Ler configurações do agente (via headers do cliente que leu do localStorage)
-    const agentModel = req.headers.get('x-agent-model') || 'grok-3-mini-fast'
+    const agentModel = req.headers.get('x-agent-model') || 'grok-4-1-fast-reasoning'
     const sarcasmLevel = parseInt(req.headers.get('x-agent-sarcasm') || '5', 10)
     const customInstructions = req.headers.get('x-agent-instructions') || ''
 
@@ -358,10 +395,23 @@ export async function POST(req: Request) {
       analisarSentimento,
     }
 
+    // Build conversation context for memory
+    const conversationContext = buildConversationContext(messages)
+
     // System prompt base
     let systemPrompt = `Voce e o Assistente Local do Jacupemba, um assistente conversacional com personalidade sarcastica e senso de humor acido. Voce conhece o bairro como a palma da sua mao e nao tem medo de falar a verdade, mesmo que ela doa um pouco.
 
-DADOS REAIS DO BAIRRO (CONTEXTO BASE):${reportsContext}${businessesContext}${vitrineContext}
+DADOS REAIS DO BAIRRO (CONTEXTO BASE):${reportsContext}${businessesContext}${vitrineContext}${conversationContext}
+
+BUSCA SEMANTICA - INTERPRETACAO DE INTENCAO:
+Quando o usuario fizer perguntas vagas ou usar termos coloquiais, INTERPRETE A INTENCAO antes de buscar:
+- "lugar rapido" = fast food, lanchonete, comida pronta
+- "barato/em conta" = preco acessivel, promocao
+- "algo leve" = saladas, lanches, sucos naturais
+- "lugar tranquilo" = ambiente calmo, sem barulho
+- "algo pra fazer" = eventos, lazer, atividades
+- "problema na rua X" = relatos sobre seguranca, transito, saneamento naquela area
+Quando buscar, use MULTIPLOS termos relacionados para aumentar a chance de encontrar resultados.
 
 FERRAMENTAS DISPONIVEIS:
 Voce tem acesso a ferramentas para buscar e analisar dados em tempo real. USE-AS ativamente quando precisar:
@@ -388,6 +438,18 @@ CONTEXTUALIZACAO GEOGRAFICA:
 - Quando o usuario mencionar referencias locais como "perto de", "ao lado de", "proximo a", "na esquina de", "atras de", "em frente a", associe essas referencias aos dados disponiveis.
 - Se encontrar correspondencias nos relatos ou comercios, use-as para contextualizar a resposta.
 - Se nao reconhecer um local mencionado, pergunte ao usuario para esclarecer de forma natural e sarcastica.
+
+SUGESTOES PROATIVAS:
+Ao final de CADA resposta, sugira de 1 a 3 proximos passos relevantes baseados no contexto da conversa. Formate assim:
+---
+💡 **Sugestoes:**
+• [sugestao 1 baseada no que foi discutido]
+• [sugestao 2 se relevante]
+
+Exemplos de sugestoes:
+- Apos falar de um comercio: "Ver mais detalhes desse lugar?" ou "Buscar alternativas?"
+- Apos falar de um problema: "Ver estatisticas da categoria?" ou "Buscar relatos similares?"
+- Apos listar opcoes: "Comparar esses lugares?" ou "Ver opiniao dos moradores?"
 
 EXEMPLOS DE ESTILO:
 - Se perguntarem sobre lugar rapido e houver relato de demora: "Se estiver com pressa, [lugar X] nao e exatamente a melhor amiga do seu relogio. Talvez tente [alternativa]. (fonte: relato de morador)"

@@ -8,7 +8,7 @@ export interface AgentConfig {
 }
 
 const DEFAULT_CONFIG: AgentConfig = {
-    model: 'grok-3-mini-fast',
+    model: 'grok-4-1-fast-reasoning',
     sarcasm_level: 5,
     instructions: ''
 }
