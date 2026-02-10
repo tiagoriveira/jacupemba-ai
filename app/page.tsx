@@ -5,13 +5,12 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield, ThumbsUp, ThumbsDown, Brain, Settings, Sparkles } from 'lucide-react'
+import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield, ThumbsUp, ThumbsDown, Brain, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getAgentConfig } from '@/lib/agentConfig'
 import { NotificationSystem, type Notification } from '@/components/NotificationSystem'
 import { notificationManager } from '@/lib/notificationManager'
-import { useContextNotifications } from '@/hooks/useContextNotifications'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -61,24 +60,6 @@ export default function Page() {
   
   // Notifications state
   const [notifications, setNotifications] = useState<Notification[]>([])
-  
-  // User preferences state
-  const [userPreferences, setUserPreferences] = useState<{
-    categoriasInteresse: string[]
-    tomResposta: string
-  } | null>(null)
-  
-  // Load user preferences
-  useEffect(() => {
-    const saved = localStorage.getItem('user-preferences')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      setUserPreferences({
-        categoriasInteresse: parsed.categoriasInteresse || [],
-        tomResposta: parsed.tomResposta || 'informal'
-      })
-    }
-  }, [])
 
   const CATEGORY_LABELS: Record<string, string> = {
     'seguranca': '🚨 Seguranca',
@@ -140,9 +121,6 @@ export default function Page() {
     })
     return unsubscribe
   }, [])
-  
-  // Enable context-aware notifications
-  useContextNotifications()
 
   // Calculate trending topics from Supabase
   useEffect(() => {
@@ -408,13 +386,6 @@ export default function Page() {
               <span className="hidden sm:inline">Historico</span>
             </Link>
             <Link
-              href="/preferencias"
-              className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-              title="Preferências"
-            >
-              <Settings className="h-4 w-4" />
-            </Link>
-            <Link
               href="/admin"
               className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 border border-red-300 transition-all duration-150 hover:bg-red-50 active:scale-[0.98]"
               title="Painel administrativo"
@@ -452,18 +423,6 @@ export default function Page() {
                   <p className="mt-4 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
                     Te ajudo com comércio, serviços, vagas e informações do bairro de Jacupemba, na maioria das vezes sou irônico, mas isso é quando estou de bom humor!
                   </p>
-                  
-                  {/* Active Preferences Indicator */}
-                  {userPreferences && userPreferences.categoriasInteresse.length > 0 && (
-                    <div className="mt-6 flex justify-center animate-in fade-in-0 duration-700 delay-500">
-                      <div className="flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 dark:bg-blue-950/30">
-                        <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        <span className="text-sm text-blue-700 dark:text-blue-300">
-                          Personalizado para {userPreferences.categoriasInteresse.length} {userPreferences.categoriasInteresse.length === 1 ? 'categoria' : 'categorias'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
