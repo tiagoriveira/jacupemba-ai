@@ -28,6 +28,7 @@ export type Report = {
   status: Status
   fingerprint: string
   created_at: string
+  is_ambassador?: boolean
 }
 
 export type ReportComment = {

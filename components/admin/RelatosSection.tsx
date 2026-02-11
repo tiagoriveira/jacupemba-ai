@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { AlertTriangle, Search, Check, X, Trash2, AlertCircle, Loader2 } from 'lucide-react'
+import { AlertTriangle, Search, Check, X, Trash2, AlertCircle, Loader2, Medal } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { analisarRelato, NIVEL_CONFIG, type ResultadoTriagem } from '@/lib/moderacao-triagem'
@@ -27,6 +27,9 @@ export function RelatosSection() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkProcessing, setIsBulkProcessing] = useState(false)
+  
+  // Embaixadores - gerenciados localmente por enquanto (sem Supabase)
+  const [ambassadorFingerprints, setAmbassadorFingerprints] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchRelatos()
@@ -34,7 +37,27 @@ export function RelatosSection() {
 
   useEffect(() => {
     fetchAllRelatos()
+    loadAmbassadors()
   }, [])
+
+  const loadAmbassadors = () => {
+    try {
+      const saved = localStorage.getItem('jacupemba-ambassadors')
+      if (saved) {
+        setAmbassadorFingerprints(new Set(JSON.parse(saved)))
+      }
+    } catch (error) {
+      console.error('Error loading ambassadors:', error)
+    }
+  }
+
+  const saveAmbassadors = (fingerprints: Set<string>) => {
+    try {
+      localStorage.setItem('jacupemba-ambassadors', JSON.stringify(Array.from(fingerprints)))
+    } catch (error) {
+      console.error('Error saving ambassadors:', error)
+    }
+  }
 
   const fetchAllRelatos = async () => {
     try {
@@ -223,6 +246,21 @@ export function RelatosSection() {
     } else {
       setSelectedIds(filteredRelatos.map(r => r.id))
     }
+  }
+
+  const toggleAmbassador = (fingerprint: string) => {
+    setAmbassadorFingerprints(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(fingerprint)) {
+        newSet.delete(fingerprint)
+        toast.success('Status de embaixador removido')
+      } else {
+        newSet.add(fingerprint)
+        toast.success('Usuario promovido a embaixador!')
+      }
+      saveAmbassadors(newSet)
+      return newSet
+    })
   }
 
   const filteredRelatos = relatosComTriagem.filter((relato) =>
@@ -507,6 +545,19 @@ export function RelatosSection() {
                     {/* Actions for approved/rejected */}
                     {(relato.status === 'aprovado' || relato.status === 'rejeitado') && (
                       <div className="flex gap-2">
+                        {relato.status === 'aprovado' && (
+                          <button
+                            onClick={() => toggleAmbassador(relato.fingerprint)}
+                            className={`rounded-lg p-2 text-white transition-colors ${
+                              ambassadorFingerprints.has(relato.fingerprint)
+                                ? 'bg-amber-500 hover:bg-amber-600'
+                                : 'bg-zinc-400 hover:bg-amber-500'
+                            }`}
+                            title={ambassadorFingerprints.has(relato.fingerprint) ? 'Remover Embaixador' : 'Promover a Embaixador'}
+                          >
+                            <Medal className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => revertStatus(relato.id)}
                           disabled={loadingId === relato.id}
