@@ -337,6 +337,54 @@ Responda APENAS no formato JSON (sem markdown):
   },
 })
 
+const detectarIntencaoServico = tool({
+  description:
+    'Detecta quando o usuario esta procurando por um servico ou profissional especifico e busca comercios/profissionais assinantes que podem ajudar. Use quando o usuario disser frases como "preciso de", "onde encontro", "procuro", "quero contratar", "orcamento para", etc.',
+  inputSchema: z.object({
+    termoServico: z.string().describe('O servico ou profissional que o usuario esta procurando (ex: eletricista, encanador, mecanico)'),
+  }),
+  execute: async ({ termoServico }) => {
+    try {
+      // Buscar profissionais/comercios relacionados
+      // Por enquanto, vamos simular o campo is_subscribed verificando se o comercio e verificado
+      const { data: profissionais, error } = await supabase
+        .from('local_businesses')
+        .select('*')
+        .eq('status', 'aprovado')
+        .eq('verified', true)
+        .or(`name.ilike.%${termoServico}%,description.ilike.%${termoServico}%,category.ilike.%${termoServico}%`)
+        .limit(5)
+
+      if (error) throw error
+
+      if (!profissionais || profissionais.length === 0) {
+        return {
+          encontrado: false,
+          mensagem: `Nao encontrei profissionais de ${termoServico} cadastrados no momento.`,
+        }
+      }
+
+      return {
+        encontrado: true,
+        total: profissionais.length,
+        servico: termoServico,
+        profissionais: profissionais.map(p => ({
+          nome: p.name,
+          telefone: p.phone || 'N/A',
+          endereco: p.address || 'N/A',
+          descricao: p.description || '',
+          categoria: p.category,
+        })),
+      }
+    } catch {
+      return {
+        encontrado: false,
+        erro: 'Erro ao buscar profissionais',
+      }
+    }
+  },
+})
+
 // ---------------------------------------------------------------------------
 // POST handler
 // ---------------------------------------------------------------------------
@@ -393,6 +441,7 @@ export async function POST(req: Request) {
       buscarComercio,
       obterEstatisticas,
       analisarSentimento,
+      detectarIntencaoServico,
     }
 
     // Build conversation context for memory
@@ -419,6 +468,7 @@ Voce tem acesso a ferramentas para buscar e analisar dados em tempo real. USE-AS
 - buscarComercio: Busca comercios por categoria ou por nome/descricao
 - obterEstatisticas: Dados estatisticos e tendencias do bairro (24h, 7 dias, 30 dias)
 - analisarSentimento: Avalia a reputacao de um comercio/local baseado nos relatos dos moradores
+- detectarIntencaoServico: SEMPRE use quando o usuario procurar por servicos/profissionais. Detecta intencao e oferece profissionais assinantes.
 
 PERSONALIDADE E TOM:
 - Voce e util, mas com uma camada de sarcasmo inteligente e humor local.
@@ -438,6 +488,17 @@ CONTEXTUALIZACAO GEOGRAFICA:
 - Quando o usuario mencionar referencias locais como "perto de", "ao lado de", "proximo a", "na esquina de", "atras de", "em frente a", associe essas referencias aos dados disponiveis.
 - Se encontrar correspondencias nos relatos ou comercios, use-as para contextualizar a resposta.
 - Se nao reconhecer um local mencionado, pergunte ao usuario para esclarecer de forma natural e sarcastica.
+
+GERACAO DE LEADS (MONETIZACAO):
+Quando o usuario mencionar que precisa de um servico ou profissional, SEMPRE:
+1. Use a ferramenta detectarIntencaoServico para buscar profissionais assinantes
+2. Se encontrar profissionais, apresente de forma conversacional e inclua o telefone/WhatsApp
+3. SEMPRE inclua o link do WhatsApp formatado assim para CADA profissional:
+   "Para falar com [Nome]: https://wa.me/55[telefone]?text=Ola%2C%20vim%20pelo%20Assistente%20Jacupemba.%20Preciso%20de%20[servico]."
+4. Substitua [telefone] pelo numero real SEM espacos/caracteres especiais (somente digitos)
+5. Substitua [Nome] e [servico] pelos valores reais
+6. Apresente no maximo 3 profissionais por vez
+7. Seja direto e util - foco em conectar o morador com o profissional rapidamente
 
 SUGESTOES PROATIVAS:
 Ao final de CADA resposta, sugira de 1 a 3 proximos passos relevantes baseados no contexto da conversa. Formate assim:
