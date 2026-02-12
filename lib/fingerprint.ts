@@ -1,8 +1,32 @@
-// User fingerprint for anonymous identification
-// Uses browser fingerprinting + random ID stored in localStorage
+/**
+ * Sistema de Fingerprinting Anônimo
+ * 
+ * @description
+ * Gera um identificador único para o usuário baseado em características do navegador.
+ * Usado para rastreamento anônimo de likes, comentários e histórico sem necessidade de login.
+ * 
+ * @module fingerprint
+ */
 
+/** Chave para armazenar fingerprint no localStorage */
 const FINGERPRINT_KEY = 'jacupemba_user_fp'
 
+/**
+ * Obtém ou gera um fingerprint único para o usuário
+ * 
+ * @description
+ * - Tenta recuperar fingerprint existente do localStorage
+ * - Se não existir, gera novo baseado em: userAgent, idioma, resolução, timezone + random
+ * - Persiste no localStorage para manter consistência entre sessões
+ * 
+ * @returns {string} Fingerprint único no formato "fp_[hash]_[timestamp]"
+ * 
+ * @example
+ * ```typescript
+ * const userId = getUserFingerprint()
+ * // => "fp_a1b2c3_1k2j3h4"
+ * ```
+ */
 export function getUserFingerprint(): string {
   if (typeof window === 'undefined') {
     return 'server-side'
@@ -37,7 +61,13 @@ export function getUserFingerprint(): string {
   return fingerprint
 }
 
-// Simple hash function
+/**
+ * Gera um hash simples de uma string
+ * 
+ * @param {string} str - String para gerar hash
+ * @returns {string} Hash no formato "fp_[hash]_[timestamp]"
+ * @private
+ */
 function simpleHash(str: string): string {
   let hash = 0
   for (let i = 0; i < str.length; i++) {

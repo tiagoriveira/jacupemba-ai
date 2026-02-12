@@ -1,12 +1,34 @@
+/**
+ * Cliente Supabase e Tipos TypeScript
+ * 
+ * @description
+ * Configuração do cliente Supabase para acesso ao banco de dados PostgreSQL.
+ * Inclui tipos TypeScript para todas as tabelas e seus relacionamentos.
+ * 
+ * @module supabase
+ */
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://okxsdipfepchalgyefqj.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rc3hkaXBlcGNoYWxneWVmcWoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNjc4MjI5MiwiZXhwIjoyMDUyMzU4MjkyfQ.7jlz3co'
 
+/**
+ * Cliente Supabase configurado
+ * @constant
+ */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+/**
+ * Status possíveis para moderação de conteúdo
+ * @typedef {'pendente' | 'aprovado' | 'rejeitado'} Status
+ */
 export type Status = 'pendente' | 'aprovado' | 'rejeitado'
 
+/**
+ * Categorias de relatos disponíveis
+ * @typedef ReportCategory
+ */
 export type ReportCategory =
   | 'seguranca'
   | 'emergencia'
@@ -21,6 +43,10 @@ export type ReportCategory =
   | 'transporte'
   | 'outros'
 
+/**
+ * Relato anônimo da comunidade
+ * @interface Report
+ */
 export type Report = {
   id: string
   category: ReportCategory
@@ -55,6 +81,10 @@ export type CommentLike = {
   created_at: string
 }
 
+/**
+ * Comércio ou serviço local verificado
+ * @interface Business
+ */
 export type Business = {
   id: string
   name: string
@@ -94,6 +124,10 @@ export type AgentFeedback = {
   created_at: string
 }
 
+/**
+ * Post da vitrine digital (expira em 48h)
+ * @interface VitrinePost
+ */
 export type VitrinePost = {
   id: string
   contact_name: string

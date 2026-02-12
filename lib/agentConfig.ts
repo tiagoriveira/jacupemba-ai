@@ -1,22 +1,51 @@
-// Gerenciamento de configurações do agente via localStorage
-// Este arquivo será a ponte até migrarmos para Supabase
+/**
+ * Sistema de Configuração do Agente IA
+ * 
+ * @description
+ * Gerencia configurações personalizáveis do agente (modelo, nível de sarcasmo, instruções).
+ * Atualmente usa localStorage. Futura migração para Supabase planejada.
+ * 
+ * @module agentConfig
+ */
 
+/**
+ * Interface de configuração do agente
+ * 
+ * @interface AgentConfig
+ * @property {string} model - Modelo xAI a ser usado (ex: "grok-4-1-fast-reasoning")
+ * @property {number} sarcasm_level - Nível de sarcasmo de 0 (formal) a 10 (tóxico)
+ * @property {string} instructions - Instruções customizadas adicionais para o agente
+ */
 export interface AgentConfig {
     model: string
     sarcasm_level: number
     instructions: string
 }
 
+/** Configuração padrão do agente */
 const DEFAULT_CONFIG: AgentConfig = {
     model: 'grok-4-1-fast-reasoning',
     sarcasm_level: 5,
     instructions: ''
 }
 
+/** Chave para armazenar config no localStorage */
 const STORAGE_KEY = 'jacupemba_agent_config'
 
 /**
  * Salva configurações do agente no localStorage
+ * 
+ * @param {AgentConfig} config - Configurações a serem salvas
+ * @throws {Error} Se falhar ao salvar (captura erro silenciosamente)
+ * 
+ * @example
+ * ```typescript
+ * saveAgentConfig({
+ *   model: 'grok-4-1-fast-reasoning',
+ *   sarcasm_level: 7,
+ *   instructions: 'Seja mais direto'
+ * })
+ * ```
  */
 export function saveAgentConfig(config: AgentConfig): void {
     try {
@@ -28,6 +57,15 @@ export function saveAgentConfig(config: AgentConfig): void {
 
 /**
  * Lê configurações do agente do localStorage
+ * 
+ * @returns {AgentConfig} Configurações salvas ou DEFAULT_CONFIG se não existir
+ * @throws {Error} Se falhar ao ler (retorna DEFAULT_CONFIG)
+ * 
+ * @example
+ * ```typescript
+ * const config = getAgentConfig()
+ * console.log(config.sarcasm_level) // => 5 (padrão)
+ * ```
  */
 export function getAgentConfig(): AgentConfig {
     try {
@@ -46,7 +84,23 @@ export function getAgentConfig(): AgentConfig {
 }
 
 /**
- * Aplica o nível de sarcasmo ao system prompt
+ * Aplica o nível de sarcasmo ao system prompt do agente
+ * 
+ * @param {string} basePrompt - Prompt base do agente
+ * @param {number} level - Nível de sarcasmo (0-10)
+ * @returns {string} Prompt com instrução de sarcasmo adicionada
+ * 
+ * @description
+ * Escala de sarcasmo:
+ * - 0: Extremamente educado e formal
+ * - 5: Sarcasmo equilibrado (padrão)
+ * - 10: Tóxico e sem filtros
+ * 
+ * @example
+ * ```typescript
+ * const prompt = applySarcasmToPrompt("Você é um assistente", 7)
+ * // Adiciona: "Tom: Sarcasmo forte. Seja cínico..."
+ * ```
  */
 export function applySarcasmToPrompt(basePrompt: string, level: number): string {
     const sarcasmInstructions = {

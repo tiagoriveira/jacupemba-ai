@@ -1,12 +1,35 @@
-// Sistema de triagem inteligente para moderação de relatos
+/**
+ * Sistema de Triagem Inteligente para Moderação
+ * 
+ * @description
+ * Analisa relatos automaticamente identificando nível de risco baseado em:
+ * - Palavras sensíveis (crime, violência)
+ * - Categoria do relato
+ * - Características do texto (CAPS, pontuação, URLs)
+ * 
+ * @module moderacao-triagem
+ */
 
+/**
+ * Níveis de risco possíveis
+ * @typedef {'baixo' | 'medio' | 'alto'} NivelRisco
+ */
 export type NivelRisco = 'baixo' | 'medio' | 'alto'
 
+/**
+ * Resultado da análise de triagem
+ * 
+ * @interface ResultadoTriagem
+ * @property {NivelRisco} nivelRisco - Classificação de risco
+ * @property {number} score - Score de 0-100 (quanto maior, mais sensível)
+ * @property {string[]} alertas - Lista de alertas identificados
+ * @property {number} prioridade - Prioridade 1 (baixo) a 3 (alto)
+ */
 export interface ResultadoTriagem {
   nivelRisco: NivelRisco
-  score: number // 0-100 (maior = mais sensível)
+  score: number
   alertas: string[]
-  prioridade: number // 1 (baixo) a 3 (alto)
+  prioridade: number
 }
 
 // Palavras que indicam situações sensíveis
@@ -23,6 +46,33 @@ const PALAVRAS_MEDIO_RISCO = [
   'barulho', 'briga', 'confusão', 'confusao', 'discussão', 'discussao'
 ]
 
+/**
+ * Analisa um relato e determina seu nível de risco
+ * 
+ * @param {string} texto - Texto do relato a ser analisado
+ * @param {string} categoria - Categoria do relato (seguranca, transito, etc.)
+ * @returns {ResultadoTriagem} Resultado da análise com nível de risco e alertas
+ * 
+ * @description
+ * Sistema de pontuação:
+ * - Palavras de alto risco: +40 pontos
+ * - Palavras de médio risco: +20 pontos
+ * - Categoria "segurança": +25 pontos
+ * - Texto muito curto (<20 chars): +15 pontos
+ * - CAPS LOCK excessivo: +15 pontos
+ * - URLs/telefones: +5 pontos
+ * 
+ * Classificação:
+ * - Score >= 50: Alto risco (prioridade 3)
+ * - Score >= 25: Médio risco (prioridade 2)
+ * - Score < 25: Baixo risco (prioridade 1)
+ * 
+ * @example
+ * ```typescript
+ * const resultado = analisarRelato("Teve um assalto na rua X", "seguranca")
+ * // => { nivelRisco: 'alto', score: 65, alertas: [...], prioridade: 3 }
+ * ```
+ */
 export function analisarRelato(texto: string, categoria: string): ResultadoTriagem {
   const textoLower = texto.toLowerCase()
   let score = 0
