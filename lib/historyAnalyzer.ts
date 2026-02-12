@@ -107,6 +107,7 @@ export function getHistoryFromLocalStorage(): HistoryItem[] {
     // Retornar últimas 10 conversas
     return parsed.slice(-10)
   } catch (error) {
+    // Usar console.error aqui pois logger pode causar import circular
     console.error('Error parsing history:', error)
     return []
   }

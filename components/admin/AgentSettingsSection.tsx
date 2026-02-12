@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Save, Loader2, MessageSquare, AlertTriangle, Cpu, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 import { saveAgentConfig } from '@/lib/agentConfig'
 
 interface AgentConfig {
@@ -52,7 +53,7 @@ export function AgentSettingsSection() {
                 .select('*')
 
             if (error) {
-                console.error('[v0] Error fetching config:', error)
+                logger.error('[v0] Error fetching config:', error)
                 toast.error('Erro ao carregar configurações')
                 return
             }
@@ -78,7 +79,7 @@ export function AgentSettingsSection() {
                 setConfig(newConfig)
             }
         } catch (error) {
-            console.error('[v0] Unexpected error fetching config:', error)
+            logger.error('[v0] Unexpected error fetching config:', error)
             toast.error('Erro inesperado ao carregar configurações')
         } finally {
             setLoading(false)
@@ -109,14 +110,14 @@ export function AgentSettingsSection() {
                 .upsert(updates, { onConflict: 'key' })
 
             if (error) {
-                console.error('[v0] Error saving config:', error)
+                logger.error('[v0] Error saving config:', error)
                 toast.error('Erro ao salvar configurações')
                 return
             }
 
             toast.success('Configurações salvas com sucesso!')
         } catch (error) {
-            console.error('[v0] Unexpected error saving config:', error)
+            logger.error('[v0] Unexpected error saving config:', error)
             toast.error('Erro inesperado ao salvar')
         } finally {
             setSaving(false)

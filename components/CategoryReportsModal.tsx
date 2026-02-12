@@ -5,6 +5,7 @@ import { X, MessageSquare, ChevronLeft, Heart, Send, Loader2, Clock, Trash2, Med
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
 import { getUserFingerprint } from '@/lib/fingerprint'
+import { logger } from '@/lib/logger'
 
 type ReportWithExtras = Report & {
     comments?: Array<{ id: string; text: string; created_at: string }>
@@ -59,7 +60,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
                 setAmbassadorFingerprints(new Set(JSON.parse(saved)))
             }
         } catch (error) {
-            console.error('Error loading ambassadors:', error)
+            logger.error('Error loading ambassadors:', error)
         }
     }
 
@@ -94,7 +95,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
 
             if (error) throw error
 
-            console.log('🔍 CategoryModal Debug:', {
+            logger.log('🔍 CategoryModal Debug:', {
                 category,
                 period,
                 cutoffTime: cutoffTime.toISOString(),
@@ -127,7 +128,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
 
             setReports(reportsWithExtras)
         } catch (error) {
-            console.error('Error fetching category reports:', error)
+            logger.error('Error fetching category reports:', error)
             setReports([])
         } finally {
             setIsLoading(false)
@@ -198,7 +199,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
             })
             setCommentLikeCounts(prev => ({ ...prev, ...commentCountsMap }))
         } catch (error) {
-            console.error('Error fetching comments/likes:', error)
+            logger.error('Error fetching comments/likes:', error)
         }
     }
 
@@ -222,7 +223,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
                 setReportLikeCounts(prev => ({ ...prev, [reportId]: (prev[reportId] || 0) + 1 }))
             }
         } catch (error) {
-            console.error('Error toggling report like:', error)
+            logger.error('Error toggling report like:', error)
         }
     }
 
@@ -246,7 +247,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
                 setCommentLikeCounts(prev => ({ ...prev, [commentId]: (prev[commentId] || 0) + 1 }))
             }
         } catch (error) {
-            console.error('Error toggling comment like:', error)
+            logger.error('Error toggling comment like:', error)
         }
     }
 
@@ -262,7 +263,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
             setCommentText(prev => ({ ...prev, [reportId]: '' }))
             await fetchCommentsAndLikes(reportId)
         } catch (error) {
-            console.error('Error submitting comment:', error)
+            logger.error('Error submitting comment:', error)
         } finally {
             setSubmittingComment(prev => ({ ...prev, [reportId]: false }))
         }
@@ -279,7 +280,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
             setReports(prev => prev.filter(r => r.id !== reportId))
             setExpandedReportId(null)
         } catch (error) {
-            console.error('Error deleting report:', error)
+            logger.error('Error deleting report:', error)
         }
     }
 
@@ -293,7 +294,7 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
             await supabase.from('report_comments').delete().eq('id', commentId).eq('fingerprint', userFingerprint)
             await fetchCommentsAndLikes(reportId)
         } catch (error) {
-            console.error('Error deleting comment:', error)
+            logger.error('Error deleting comment:', error)
         }
     }
 

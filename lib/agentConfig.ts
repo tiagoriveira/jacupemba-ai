@@ -51,6 +51,7 @@ export function saveAgentConfig(config: AgentConfig): void {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
     } catch (error) {
+        // Usar console.error aqui pois logger pode causar import circular
         console.error('Error saving agent config:', error)
     }
 }
@@ -78,6 +79,7 @@ export function getAgentConfig(): AgentConfig {
             ...config
         }
     } catch (error) {
+        // Usar console.error aqui pois logger pode causar import circular
         console.error('Error reading agent config:', error)
         return DEFAULT_CONFIG
     }

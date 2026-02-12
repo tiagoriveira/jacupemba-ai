@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, TrendingUp, Building2, Store, MessageSquare, Share2, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 import { toast } from 'sonner'
 
 interface ReportSummaryModalProps {
@@ -107,7 +108,7 @@ export function ReportSummaryModal({ isOpen, onClose }: ReportSummaryModalProps)
                 reportsGrowth: growth
             })
         } catch (error) {
-            console.error('Error fetching monthly stats:', error)
+            logger.error('Error fetching monthly stats:', error)
             toast.error('Erro ao carregar estatísticas')
         } finally {
             setIsLoading(false)

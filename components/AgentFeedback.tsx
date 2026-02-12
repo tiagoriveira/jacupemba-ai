@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFingerprint } from '@/lib/fingerprint'
+import { logger } from '@/lib/logger'
 
 interface AgentFeedbackProps {
   messageId: string
@@ -42,7 +43,7 @@ export function AgentFeedback({ messageId, onFeedbackSubmitted }: AgentFeedbackP
 
       onFeedbackSubmitted?.()
     } catch (error) {
-      console.error('Error submitting feedback:', error)
+      logger.error('Error submitting feedback:', error)
       setFeedback(null)
       toast.error('Erro ao enviar feedback')
     } finally {

@@ -2,26 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Edit, Loader2, DollarSign, ExternalLink } from 'lucide-react'
-import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import type { VitrinePost } from '@/lib/supabase'
+import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 import { VitrineUploadModal } from './VitrineUploadModal'
-
-interface VitrinePost {
-  id: string
-  contact_name: string
-  contact_phone: string
-  title: string
-  description: string
-  price: number
-  category: string
-  image_url: string
-  expires_at: string
-  status: 'pendente' | 'aprovado' | 'rejeitado'
-  created_at: string
-  business_id?: string
-  business_name?: string // Optional, for display if joined
-  payment_proof_url?: string
-}
 
 export function VitrineSection() {
   const [posts, setPosts] = useState<VitrinePost[]>([])
@@ -53,7 +38,7 @@ export function VitrineSection() {
       setPosts(data || [])
       setSelectedPosts([]) // Clear selection on refresh
     } catch (error) {
-      console.error('Error fetching vitrine posts:', error)
+      logger.error('Error fetching vitrine posts:', error)
     }
   }
 
@@ -75,7 +60,7 @@ export function VitrineSection() {
 
       await fetchPosts()
     } catch (error) {
-      console.error('Error updating status:', error)
+      logger.error('Error updating status:', error)
       toast.error('Erro ao atualizar status')
     } finally {
       setLoadingId(null)
@@ -96,7 +81,7 @@ export function VitrineSection() {
       toast.success('Post deletado com sucesso!')
       await fetchPosts()
     } catch (error) {
-      console.error('Error deleting:', error)
+      logger.error('Error deleting:', error)
       toast.error('Erro ao deletar')
     } finally {
       setLoadingId(null)
@@ -120,7 +105,7 @@ export function VitrineSection() {
       setSelectedPosts([])
       await fetchPosts()
     } catch (error) {
-      console.error('Error batch update:', error)
+      logger.error('Error batch update:', error)
       toast.error('Erro na atualização em lote')
     } finally {
       setProcessingBatch(false)

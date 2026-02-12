@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 
 interface EmpresaModalProps {
   isOpen: boolean
@@ -81,7 +82,7 @@ export function EmpresaModal({ isOpen, onClose, onSuccess }: EmpresaModalProps) 
       onSuccess()
       onClose()
     } catch (error) {
-      console.error('Error creating business:', error)
+      logger.error('Error creating business:', error)
       toast.error('Erro ao cadastrar empresa')
     } finally {
       setIsLoading(false)

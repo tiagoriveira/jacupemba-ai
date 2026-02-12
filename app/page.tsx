@@ -14,6 +14,7 @@ import { AgentFeedback } from '@/components/AgentFeedback'
 import { OnboardingTour } from '@/components/OnboardingTour'
 import { SuggestionChips, generateContextualSuggestions, INITIAL_SUGGESTIONS } from '@/components/SuggestionChips'
 import { generatePersonalizedChips } from '@/lib/historyAnalyzer'
+import { logger } from '@/lib/logger'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -320,7 +321,7 @@ export default function Page() {
       .join('')
   }
 
-  const handleMessageFeedback = (messageId: string, feedback: 'positive' | 'negative') => {
+  const handleMessageFeedback = async (messageId: string, feedback: 'positive' | 'negative') => {
     // Toggle: se já tem esse feedback, remove; senão, adiciona
     const currentFeedback = messageFeedback[messageId]
     const newFeedback = currentFeedback === feedback ? null : feedback
@@ -330,9 +331,20 @@ export default function Page() {
       [messageId]: newFeedback
     }))
 
-    // TODO: Quando backend estiver pronto, salvar em /api/feedback
-    // Por enquanto, só console.log
-    console.log('[FEEDBACK]', { messageId, feedback: newFeedback })
+    // Salvar feedback no backend via API
+    try {
+      await fetch('/api/agent-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message_id: messageId,
+          rating: newFeedback === 'positive' ? 5 : 1,
+          user_fingerprint: getUserFingerprint()
+        })
+      })
+    } catch (error) {
+      logger.error('Error saving feedback:', error)
+    }
   }
 
   const handleCloseReportModal = () => {
@@ -373,7 +385,7 @@ export default function Page() {
         }])
 
       if (error) {
-        console.error('Error submitting report:', error)
+        logger.error('Error submitting report:', error)
         alert('Erro ao enviar relato. Tente novamente.')
         return
       }

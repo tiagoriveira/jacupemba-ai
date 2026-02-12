@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
 import { getUserFingerprint } from '@/lib/fingerprint'
+import { logger } from '@/lib/logger'
 import { CategoryReportsModal } from './CategoryReportsModal'
 import {
   MessageSquare,
@@ -91,7 +92,7 @@ export function FeedRelatos() {
         setAmbassadorFingerprints(fingerprints)
       }
     } catch (error) {
-      console.error('Error loading ambassadors from API:', error)
+      logger.error('Error loading ambassadors from API:', error)
       // Fallback to localStorage if API fails
       try {
         const saved = localStorage.getItem('jacupemba-ambassadors')
@@ -198,7 +199,7 @@ export function FeedRelatos() {
         }
       }
     } catch (err) {
-      console.error('Erro ao buscar relatos:', err)
+      logger.error('Erro ao buscar relatos:', err)
     } finally {
       setLoading(false)
     }
@@ -285,7 +286,7 @@ export function FeedRelatos() {
         }))
       }
     } catch (error) {
-      console.error('Error toggling report like:', error)
+      logger.error('Error toggling report like:', error)
     }
   }
 
@@ -329,7 +330,7 @@ export function FeedRelatos() {
         }))
       }
     } catch (error) {
-      console.error('Error toggling comment like:', error)
+      logger.error('Error toggling comment like:', error)
     }
   }
 
@@ -386,7 +387,7 @@ export function FeedRelatos() {
         }
       }
     } catch (err) {
-      console.error('Erro ao adicionar comentario:', err)
+      logger.error('Erro ao adicionar comentario:', err)
     } finally {
       setSubmittingComment(false)
     }
@@ -394,7 +395,7 @@ export function FeedRelatos() {
 
   const deleteReport = async (reportId: string, reportFingerprint: string) => {
     if (reportFingerprint !== userFingerprint) {
-      console.error('Você só pode deletar seus próprios relatos')
+      logger.warn('Você só pode deletar seus próprios relatos')
       return
     }
 
@@ -414,13 +415,13 @@ export function FeedRelatos() {
         fetchReports() // Atualizar lista
       }
     } catch (error) {
-      console.error('Erro ao deletar relato:', error)
+      logger.error('Erro ao deletar relato:', error)
     }
   }
 
   const deleteComment = async (commentId: string, commentFingerprint: string) => {
     if (commentFingerprint !== userFingerprint) {
-      console.error('Você só pode deletar seus próprios comentários')
+      logger.warn('Você só pode deletar seus próprios comentários')
       return
     }
 
@@ -450,7 +451,7 @@ export function FeedRelatos() {
         }))
       }
     } catch (error) {
-      console.error('Erro ao deletar comentário:', error)
+      logger.error('Erro ao deletar comentário:', error)
     }
   }
 

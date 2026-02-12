@@ -5,6 +5,7 @@ import { Building2, Search, Check, X, Trash2, Phone, MapPin, AlertTriangle, Plus
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { EmpresaModal } from './EmpresaModal'
+import { logger } from '@/lib/logger'
 
 interface Empresa {
   id: string
@@ -50,7 +51,7 @@ export function EmpresasSection() {
       if (error) throw error
       setEmpresas(data || [])
     } catch (error) {
-      console.error('Error fetching businesses:', error)
+      logger.error('Error fetching businesses:', error)
     }
   }
 
@@ -72,7 +73,7 @@ export function EmpresasSection() {
 
       await fetchEmpresas()
     } catch (error) {
-      console.error('Error updating status:', error)
+      logger.error('Error updating status:', error)
       toast.error('Erro ao atualizar status')
     } finally {
       setLoadingId(null)
@@ -85,7 +86,7 @@ export function EmpresasSection() {
       // Generate a simple random token (in production this should be more secure)
       const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
-      console.log('Generating token for:', id, token); // Debug log
+      logger.log('Generating token for:', id, token)
 
       const { data, error } = await supabase
         .from('local_businesses')
@@ -94,16 +95,16 @@ export function EmpresasSection() {
         .select() // Add select to verify update
 
       if (error) {
-        console.error('Supabase Error:', error)
+        logger.error('Supabase Error:', error)
         throw error
       }
 
-      console.log('Update success:', data)
+      logger.log('Update success:', data)
 
       toast.success('Token de acesso gerado com sucesso!')
       await fetchEmpresas()
     } catch (error: any) {
-      console.error('Error generating token:', error)
+      logger.error('Error generating token:', error)
       toast.error(`Erro ao gerar token: ${error.message || 'Erro desconhecido'}`)
     } finally {
       setLoadingId(null)
@@ -130,7 +131,7 @@ export function EmpresasSection() {
       toast.success('Empresa deletada com sucesso!')
       await fetchEmpresas()
     } catch (error) {
-      console.error('Error deleting:', error)
+      logger.error('Error deleting:', error)
       toast.error('Erro ao deletar')
     } finally {
       setLoadingId(null)

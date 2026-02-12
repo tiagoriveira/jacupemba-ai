@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, Loader2, Upload, Image as ImageIcon, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 
 interface VitrineUploadModalProps {
   isOpen: boolean
@@ -113,7 +114,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
         .upload(filePath, file)
 
       if (uploadError) {
-        console.error('Storage upload error:', uploadError)
+        logger.error('Storage upload error:', uploadError)
         // Fallback: converter para base64
         return new Promise((resolve) => {
           const reader = new FileReader()
@@ -130,7 +131,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
 
       return data.publicUrl
     } catch (error) {
-      console.error('Error in uploadImage:', error)
+      logger.error('Error in uploadImage:', error)
       // Fallback: converter para base64
       return new Promise((resolve) => {
         const reader = new FileReader()
@@ -216,7 +217,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
       onSuccess()
       onClose()
     } catch (error) {
-      console.error('Error saving post:', error)
+      logger.error('Error saving post:', error)
       toast.error('Erro ao salvar post')
     } finally {
       setIsLoading(false)

@@ -5,6 +5,7 @@ import { AlertTriangle, Search, Check, X, Trash2, AlertCircle, Loader2, Medal } 
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { analisarRelato, NIVEL_CONFIG, type ResultadoTriagem } from '@/lib/moderacao-triagem'
+import { logger } from '@/lib/logger'
 
 interface Relato {
   id: string
@@ -51,7 +52,7 @@ export function RelatosSection() {
         setAmbassadorFingerprints(fingerprints)
       }
     } catch (error) {
-      console.error('Error loading ambassadors:', error)
+      logger.error('Error loading ambassadors:', error)
       // Fallback to localStorage if API fails
       try {
         const saved = localStorage.getItem('jacupemba-ambassadors')
@@ -92,7 +93,7 @@ export function RelatosSection() {
       // also refresh stats
       fetchAllRelatos()
     } catch (error) {
-      console.error('Error fetching relatos:', error)
+      logger.error('Error fetching relatos:', error)
       toast.error('Erro ao carregar relatos')
     } finally {
       setIsLoading(false)
@@ -135,7 +136,7 @@ export function RelatosSection() {
 
       await fetchRelatos()
     } catch (error) {
-      console.error('Error updating status:', error)
+      logger.error('Error updating status:', error)
       toast.error('Erro ao atualizar status')
     } finally {
       setLoadingId(null)
@@ -156,7 +157,7 @@ export function RelatosSection() {
       toast.success('Relato deletado com sucesso!')
       await fetchRelatos()
     } catch (error) {
-      console.error('Error deleting relato:', error)
+      logger.error('Error deleting relato:', error)
       toast.error('Erro ao deletar relato')
     } finally {
       setLoadingId(null)
@@ -176,7 +177,7 @@ export function RelatosSection() {
       toast.success('Relato revertido para pendente com sucesso!')
       await fetchRelatos()
     } catch (error) {
-      console.error('Error reverting status:', error)
+      logger.error('Error reverting status:', error)
       toast.error('Erro ao reverter status')
     } finally {
       setLoadingId(null)
@@ -203,7 +204,7 @@ export function RelatosSection() {
       setSelectedIds([])
       await fetchRelatos()
     } catch (error) {
-      console.error('Error bulk updating status:', error)
+      logger.error('Error bulk updating status:', error)
       toast.error('Erro ao atualizar relatos em lote')
     } finally {
       setIsBulkProcessing(false)
@@ -227,7 +228,7 @@ export function RelatosSection() {
       setSelectedIds([])
       await fetchRelatos()
     } catch (error) {
-      console.error('Error bulk deleting:', error)
+      logger.error('Error bulk deleting:', error)
       toast.error('Erro ao deletar relatos em lote')
     } finally {
       setIsBulkProcessing(false)
@@ -289,7 +290,7 @@ export function RelatosSection() {
         toast.success('Usuario promovido a embaixador!')
       }
     } catch (error) {
-      console.error('Error toggling ambassador:', error)
+      logger.error('Error toggling ambassador:', error)
       toast.error('Erro ao atualizar status de embaixador')
     }
   }
