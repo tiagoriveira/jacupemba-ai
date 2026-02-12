@@ -69,9 +69,29 @@ export type Business = {
   formas_pagamento: string | null
   link_social: string | null
   verified: boolean
+  is_subscribed: boolean
   status: Status
   created_at: string
   updated_at: string
+}
+
+export type BusinessReview = {
+  id: string
+  business_id: string
+  user_id: string
+  rating: number
+  comment: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AgentFeedback = {
+  id: string
+  message_id: string
+  user_id: string | null
+  rating: number
+  comment: string | null
+  created_at: string
 }
 
 export type VitrinePost = {

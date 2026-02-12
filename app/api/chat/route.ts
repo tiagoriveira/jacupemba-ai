@@ -284,12 +284,13 @@ const obterEstatisticas = tool({
 
 const analisarSentimento = tool({
   description:
-    'Analisa o sentimento (reputacao) de um comercio ou local com base nos relatos e comentarios dos moradores. Use quando o usuario perguntar sobre reputacao, opiniao, se um lugar e bom/ruim, o que as pessoas acham.',
+    'Analisa o sentimento (reputacao) de um comercio ou local com base nos relatos, comentarios e avaliacoes dos moradores. Use quando o usuario perguntar sobre reputacao, opiniao, se um lugar e bom/ruim, o que as pessoas acham.',
   inputSchema: z.object({
     local: z.string().describe('Nome do comercio ou local para analisar'),
   }),
   execute: async ({ local }) => {
     try {
+      // Buscar relatos que mencionam o local
       const { data: relatos } = await supabase
         .from('anonymous_reports')
         .select('*')
@@ -298,22 +299,62 @@ const analisarSentimento = tool({
         .order('created_at', { ascending: false })
         .limit(20)
 
-      if (!relatos || relatos.length === 0) {
+      // Buscar o comércio pelo nome
+      const { data: comercio } = await supabase
+        .from('local_businesses')
+        .select('id, name')
+        .eq('status', 'aprovado')
+        .ilike('name', `%${local}%`)
+        .single()
+
+      // Se encontrou o comércio, buscar reviews
+      let reviews: any[] = []
+      if (comercio) {
+        const { data: reviewsData } = await supabase
+          .from('business_reviews')
+          .select('rating, comment, created_at')
+          .eq('business_id', comercio.id)
+          .order('created_at', { ascending: false })
+          .limit(20)
+        
+        reviews = reviewsData || []
+      }
+
+      const totalMencoes = (relatos?.length || 0) + reviews.length
+
+      if (totalMencoes === 0) {
         return {
           local,
           totalMencoes: 0,
-          mensagem: 'Nenhum relato encontrado mencionando este local.',
+          mensagem: 'Nenhum relato ou avaliacao encontrada sobre este local.',
         }
       }
 
-      const textos = relatos.map(r => r.text).join('\n---\n')
+      // Preparar dados para análise
+      let contextTexto = ''
+      
+      if (relatos && relatos.length > 0) {
+        contextTexto += 'RELATOS DOS MORADORES:\n'
+        contextTexto += relatos.map(r => r.text).join('\n---\n')
+      }
+
+      if (reviews.length > 0) {
+        contextTexto += '\n\nAVALIAÇÕES (1-5 ESTRELAS):\n'
+        contextTexto += reviews.map(r => {
+          const stars = '⭐'.repeat(r.rating)
+          return `${stars} (${r.rating}/5)${r.comment ? ': ' + r.comment : ''}`
+        }).join('\n---\n')
+        
+        // Calcular média de reviews
+        const avgRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length
+        contextTexto += `\n\nMÉDIA DE AVALIAÇÕES: ${avgRating.toFixed(1)}/5 (${reviews.length} avaliações)`
+      }
 
       const { text: analise } = await generateText({
         model: xai('grok-4-1-fast-reasoning'),
-        prompt: `Analise os seguintes relatos sobre "${local}" e classifique o sentimento geral.
+        prompt: `Analise os seguintes dados sobre "${local}" e classifique o sentimento geral.
 
-RELATOS:
-${textos}
+${contextTexto}
 
 Responda APENAS no formato JSON (sem markdown):
 {
@@ -321,21 +362,31 @@ Responda APENAS no formato JSON (sem markdown):
   "negativos": <numero>,
   "neutros": <numero>,
   "sentimento_geral": "positivo" | "negativo" | "misto" | "neutro",
-  "resumo": "<resumo em 1-2 frases do que as pessoas dizem>"
+  "resumo": "<resumo em 1-2 frases do que as pessoas dizem>",
+  "media_avaliacoes": ${reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 'null'}
 }`,
       })
 
       try {
         const resultado = JSON.parse(analise.replace(/```json\n?|\n?```/g, '').trim())
-        return { local, totalMencoes: relatos.length, ...resultado }
+        return { 
+          local, 
+          totalMencoes,
+          totalRelatos: relatos?.length || 0,
+          totalAvaliacoes: reviews.length,
+          ...resultado 
+        }
       } catch {
-        return { local, totalMencoes: relatos.length, analise_texto: analise }
+        return { local, totalMencoes, analise_texto: analise }
       }
     } catch {
       return { local, totalMencoes: 0, erro: 'Erro ao analisar sentimento' }
     }
   },
 })
+
+// NOTA: Busca semântica removida temporariamente para evitar deadlock (fetch interno)
+// TODO: Implementar busca semântica diretamente no contexto desta rota sem fetch
 
 const detectarIntencaoServico = tool({
   description:
@@ -345,36 +396,73 @@ const detectarIntencaoServico = tool({
   }),
   execute: async ({ termoServico }) => {
     try {
-      // Buscar profissionais/comercios relacionados
-      // Por enquanto, vamos simular o campo is_subscribed verificando se o comercio e verificado
-      const { data: profissionais, error } = await supabase
+      // Buscar profissionais/comercios ASSINANTES relacionados
+      const { data: assinantes, error } = await supabase
         .from('local_businesses')
         .select('*')
         .eq('status', 'aprovado')
         .eq('verified', true)
+        .eq('is_subscribed', true)
         .or(`name.ilike.%${termoServico}%,description.ilike.%${termoServico}%,category.ilike.%${termoServico}%`)
-        .limit(5)
+        .limit(3)
 
       if (error) throw error
 
-      if (!profissionais || profissionais.length === 0) {
+      // Buscar profissionais NÃO assinantes (para mencionar sem facilitar contato)
+      const { data: naoAssinantes } = await supabase
+        .from('local_businesses')
+        .select('name, category')
+        .eq('status', 'aprovado')
+        .eq('verified', true)
+        .eq('is_subscribed', false)
+        .or(`name.ilike.%${termoServico}%,description.ilike.%${termoServico}%,category.ilike.%${termoServico}%`)
+        .limit(5)
+
+      if (!assinantes || assinantes.length === 0) {
+        // Se não há assinantes, informar sobre não-assinantes sem facilitar contato
+        if (naoAssinantes && naoAssinantes.length > 0) {
+          return {
+            encontrado: false,
+            temNaoAssinantes: true,
+            servico: termoServico,
+            mensagem: `Encontrei alguns profissionais de ${termoServico} no bairro, mas eles ainda nao sao parceiros do Jacupemba AI. Posso mencionar os nomes, mas nao tenho autorizacao para facilitar o contato direto.`,
+            naoAssinantes: naoAssinantes.map(p => p.name),
+          }
+        }
+
         return {
           encontrado: false,
           mensagem: `Nao encontrei profissionais de ${termoServico} cadastrados no momento.`,
         }
       }
 
-      return {
-        encontrado: true,
-        total: profissionais.length,
-        servico: termoServico,
-        profissionais: profissionais.map(p => ({
+      // Formatar profissionais assinantes com link de WhatsApp
+      const profissionaisFormatados = assinantes.map(p => {
+        // Limpar telefone (remover espaços, parênteses, hífens)
+        const telefoneLimpo = (p.phone || '').replace(/\D/g, '')
+        
+        // Gerar link de WhatsApp se tiver telefone
+        const whatsappLink = telefoneLimpo 
+          ? `https://wa.me/55${telefoneLimpo}?text=Ola%2C%20vim%20pelo%20Assistente%20Jacupemba.%20Preciso%20de%20${encodeURIComponent(termoServico)}.`
+          : null
+
+        return {
+          id: p.id,
           nome: p.name,
           telefone: p.phone || 'N/A',
           endereco: p.address || 'N/A',
           descricao: p.description || '',
           categoria: p.category,
-        })),
+          whatsappLink,
+        }
+      })
+
+      return {
+        encontrado: true,
+        total: profissionaisFormatados.length,
+        servico: termoServico,
+        profissionais: profissionaisFormatados,
+        mensagem: `Encontrei ${profissionaisFormatados.length} profissional(is) parceiro(s) que pode(m) ajudar com ${termoServico}.`,
       }
     } catch {
       return {
@@ -397,7 +485,8 @@ export async function POST(req: Request) {
     const { reports, comments, businesses, vitrinePosts } = await getBairroContext()
 
     // Ler configurações do agente (via headers do cliente que leu do localStorage)
-    const agentModel = req.headers.get('x-agent-model') || 'grok-4-1-fast-reasoning'
+    // Forçar uso do modelo grok-4-1-fast-reasoning em produção e local conforme solicitado
+    const agentModel = 'grok-4-1-fast-reasoning'
     const sarcasmLevel = parseInt(req.headers.get('x-agent-sarcasm') || '5', 10)
     const customInstructions = req.headers.get('x-agent-instructions') || ''
 
@@ -467,7 +556,7 @@ Voce tem acesso a ferramentas para buscar e analisar dados em tempo real. USE-AS
 - buscarRelatos: Filtra relatos por categoria especifica (seguranca, transito, saude, etc.)
 - buscarComercio: Busca comercios por categoria ou por nome/descricao
 - obterEstatisticas: Dados estatisticos e tendencias do bairro (24h, 7 dias, 30 dias)
-- analisarSentimento: Avalia a reputacao de um comercio/local baseado nos relatos dos moradores
+- analisarSentimento: Avalia a reputacao de um comercio/local baseado nos relatos e avaliacoes dos moradores
 - detectarIntencaoServico: SEMPRE use quando o usuario procurar por servicos/profissionais. Detecta intencao e oferece profissionais assinantes.
 
 PERSONALIDADE E TOM:
@@ -492,13 +581,19 @@ CONTEXTUALIZACAO GEOGRAFICA:
 GERACAO DE LEADS (MONETIZACAO):
 Quando o usuario mencionar que precisa de um servico ou profissional, SEMPRE:
 1. Use a ferramenta detectarIntencaoServico para buscar profissionais assinantes
-2. Se encontrar profissionais, apresente de forma conversacional e inclua o telefone/WhatsApp
-3. SEMPRE inclua o link do WhatsApp formatado assim para CADA profissional:
-   "Para falar com [Nome]: https://wa.me/55[telefone]?text=Ola%2C%20vim%20pelo%20Assistente%20Jacupemba.%20Preciso%20de%20[servico]."
-4. Substitua [telefone] pelo numero real SEM espacos/caracteres especiais (somente digitos)
-5. Substitua [Nome] e [servico] pelos valores reais
-6. Apresente no maximo 3 profissionais por vez
-7. Seja direto e util - foco em conectar o morador com o profissional rapidamente
+2. Se encontrar profissionais ASSINANTES:
+   - Apresente de forma conversacional com nome, descricao e endereco
+   - SEMPRE inclua o link whatsappLink retornado pela ferramenta para CADA profissional
+   - Formate como: "Para falar com [Nome]: [whatsappLink]"
+   - Seja direto e util - foco em conectar o morador rapidamente
+   - Apresente no maximo 3 profissionais por vez
+3. Se NAO encontrar assinantes mas houver profissionais nao-assinantes:
+   - Mencione apenas os NOMES dos profissionais
+   - Explique que eles nao sao parceiros e voce nao pode facilitar o contato direto
+   - Use tom sarcastico: "Eles existem, mas nao investiram em aparecer aqui."
+4. Se nao encontrar nenhum profissional:
+   - Informe que nao ha cadastrados no momento
+   - Sugira ao usuario reportar se conhecer algum
 
 SUGESTOES PROATIVAS:
 Ao final de CADA resposta, sugira de 1 a 3 proximos passos relevantes baseados no contexto da conversa. Formate assim:

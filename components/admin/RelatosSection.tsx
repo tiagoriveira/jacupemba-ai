@@ -12,6 +12,7 @@ interface Relato {
   text: string
   created_at: string
   status: 'pendente' | 'aprovado' | 'rejeitado'
+  fingerprint: string
 }
 
 interface RelatoComTriagem extends Relato {
@@ -40,22 +41,24 @@ export function RelatosSection() {
     loadAmbassadors()
   }, [])
 
-  const loadAmbassadors = () => {
+  const loadAmbassadors = async () => {
     try {
-      const saved = localStorage.getItem('jacupemba-ambassadors')
-      if (saved) {
-        setAmbassadorFingerprints(new Set(JSON.parse(saved)))
+      const response = await fetch('/api/ambassadors?status=active')
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        const fingerprints = new Set<string>(result.data.map((amb: any) => amb.fingerprint as string))
+        setAmbassadorFingerprints(fingerprints)
       }
     } catch (error) {
       console.error('Error loading ambassadors:', error)
-    }
-  }
-
-  const saveAmbassadors = (fingerprints: Set<string>) => {
-    try {
-      localStorage.setItem('jacupemba-ambassadors', JSON.stringify(Array.from(fingerprints)))
-    } catch (error) {
-      console.error('Error saving ambassadors:', error)
+      // Fallback to localStorage if API fails
+      try {
+        const saved = localStorage.getItem('jacupemba-ambassadors')
+        if (saved) {
+          setAmbassadorFingerprints(new Set(JSON.parse(saved)))
+        }
+      } catch {}
     }
   }
 
@@ -248,19 +251,47 @@ export function RelatosSection() {
     }
   }
 
-  const toggleAmbassador = (fingerprint: string) => {
-    setAmbassadorFingerprints(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(fingerprint)) {
-        newSet.delete(fingerprint)
+  const toggleAmbassador = async (fingerprint: string) => {
+    const isCurrentlyAmbassador = ambassadorFingerprints.has(fingerprint)
+    
+    try {
+      if (isCurrentlyAmbassador) {
+        // Remover embaixador
+        const response = await fetch('/api/ambassadors', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fingerprint })
+        })
+
+        if (!response.ok) throw new Error('Erro ao remover embaixador')
+
+        setAmbassadorFingerprints(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(fingerprint)
+          return newSet
+        })
         toast.success('Status de embaixador removido')
       } else {
-        newSet.add(fingerprint)
+        // Adicionar embaixador
+        const response = await fetch('/api/ambassadors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            fingerprint,
+            assigned_by: 'Admin',
+            notes: 'Promovido via painel admin'
+          })
+        })
+
+        if (!response.ok) throw new Error('Erro ao promover embaixador')
+
+        setAmbassadorFingerprints(prev => new Set([...prev, fingerprint]))
         toast.success('Usuario promovido a embaixador!')
       }
-      saveAmbassadors(newSet)
-      return newSet
-    })
+    } catch (error) {
+      console.error('Error toggling ambassador:', error)
+      toast.error('Erro ao atualizar status de embaixador')
+    }
   }
 
   const filteredRelatos = relatosComTriagem.filter((relato) =>

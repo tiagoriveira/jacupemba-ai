@@ -81,14 +81,24 @@ export function FeedRelatos() {
     loadAmbassadors()
   }, [])
   
-  const loadAmbassadors = () => {
+  const loadAmbassadors = async () => {
     try {
-      const saved = localStorage.getItem('jacupemba-ambassadors')
-      if (saved) {
-        setAmbassadorFingerprints(new Set(JSON.parse(saved)))
+      const response = await fetch('/api/ambassadors?status=active')
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        const fingerprints = new Set<string>(result.data.map((amb: any) => amb.fingerprint as string))
+        setAmbassadorFingerprints(fingerprints)
       }
     } catch (error) {
-      console.error('Error loading ambassadors:', error)
+      console.error('Error loading ambassadors from API:', error)
+      // Fallback to localStorage if API fails
+      try {
+        const saved = localStorage.getItem('jacupemba-ambassadors')
+        if (saved) {
+          setAmbassadorFingerprints(new Set(JSON.parse(saved)))
+        }
+      } catch {}
     }
   }
 

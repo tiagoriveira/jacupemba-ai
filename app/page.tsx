@@ -9,6 +9,9 @@ import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getAgentConfig } from '@/lib/agentConfig'
+import { getUserFingerprint } from '@/lib/fingerprint'
+import { AgentFeedback } from '@/components/AgentFeedback'
+import { OnboardingTour } from '@/components/OnboardingTour'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -55,6 +58,9 @@ export default function Page() {
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
   const [trendingTopics, setTrendingTopics] = useState<Array<{ category: string, count: number }>>([])
+  
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const CATEGORY_LABELS: Record<string, string> = {
     'seguranca': '🚨 Seguranca',
@@ -155,6 +161,19 @@ export default function Page() {
     return () => clearInterval(interval)
   }, [isReportModalOpen])
 
+  // Check if first visit and show onboarding
+  useEffect(() => {
+    const hasCompletedOnboarding = localStorage.getItem('jacupemba-onboarding-completed')
+    if (!hasCompletedOnboarding) {
+      setShowOnboarding(true)
+    }
+  }, [])
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('jacupemba-onboarding-completed', 'true')
+    setShowOnboarding(false)
+  }
+
   // Save to history when conversation is complete
   useEffect(() => {
     if (messages.length >= 2 && !isLoading) {
@@ -166,27 +185,49 @@ export default function Page() {
         const assistantText = getMessageText(lastAssistantMessage.parts)
 
         if (userText && assistantText) {
-          const historyItem = {
-            id: Date.now().toString(),
-            question: userText,
-            answer: assistantText,
-            timestamp: new Date().toISOString()
+          const saveToHistory = async () => {
+            const userFingerprint = getUserFingerprint()
+            
+            // Tentar salvar no backend
+            try {
+              await fetch('/api/conversation-history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  user_fingerprint: userFingerprint,
+                  query: userText,
+                  response_summary: assistantText.substring(0, 500) // Truncar para economizar espaço
+                })
+              })
+            } catch (error) {
+              console.error('Failed to save to backend, using localStorage fallback:', error)
+            }
+
+            // Sempre salvar no localStorage como fallback
+            const historyItem = {
+              id: Date.now().toString(),
+              question: userText,
+              answer: assistantText,
+              timestamp: new Date().toISOString()
+            }
+
+            const savedHistory = localStorage.getItem('chat-history')
+            const history = savedHistory ? JSON.parse(savedHistory) : []
+
+            // Check if this item already exists (avoid duplicates)
+            const exists = history.some((item: any) =>
+              item.question === userText && item.answer === assistantText
+            )
+
+            if (!exists) {
+              history.unshift(historyItem)
+              // Keep only last 50 items
+              if (history.length > 50) history.pop()
+              localStorage.setItem('chat-history', JSON.stringify(history))
+            }
           }
 
-          const savedHistory = localStorage.getItem('chat-history')
-          const history = savedHistory ? JSON.parse(savedHistory) : []
-
-          // Check if this item already exists (avoid duplicates)
-          const exists = history.some((item: any) =>
-            item.question === userText && item.answer === assistantText
-          )
-
-          if (!exists) {
-            history.unshift(historyItem)
-            // Keep only last 50 items
-            if (history.length > 50) history.pop()
-            localStorage.setItem('chat-history', JSON.stringify(history))
-          }
+          saveToHistory()
         }
       }
     }
@@ -489,30 +530,10 @@ export default function Page() {
                         </div>
                       )}
 
-                      {/* Feedback buttons - apenas para mensagens do assistente */}
+                      {/* Feedback do agente - apenas para mensagens do assistente */}
                       {!isUser && text && (
-                        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                          <span className="text-xs text-zinc-500 dark:text-zinc-400">Esta resposta foi útil?</span>
-                          <button
-                            onClick={() => handleMessageFeedback(message.id, 'positive')}
-                            className={`p-1.5 rounded-lg transition-all ${messageFeedback[message.id] === 'positive'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'
-                              }`}
-                            title="Resposta útil"
-                          >
-                            <ThumbsUp className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleMessageFeedback(message.id, 'negative')}
-                            className={`p-1.5 rounded-lg transition-all ${messageFeedback[message.id] === 'negative'
-                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              : 'text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'
-                              }`}
-                            title="Resposta não útil"
-                          >
-                            <ThumbsDown className="h-4 w-4" />
-                          </button>
+                        <div className="mt-3 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                          <AgentFeedback messageId={message.id} />
                         </div>
                       )}
                     </div>
@@ -695,6 +716,11 @@ export default function Page() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Onboarding Tour */}
+      {showOnboarding && (
+        <OnboardingTour onComplete={handleOnboardingComplete} />
       )}
     </div>
   )
