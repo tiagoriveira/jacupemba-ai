@@ -471,90 +471,106 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Content Below - Spacer */}
-              <div className="pt-8 pb-12">
-                {/* Chips personalizados baseados em histórico */}
-                {personalizedChips.length > 0 && (
-                  <div className="w-full max-w-3xl mb-10">
-                    <div className="flex items-center gap-2 mb-3 text-sm text-zinc-600 dark:text-zinc-400">
-                      <span className="font-medium">💡 Baseado em suas últimas conversas</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {personalizedChips.map((chip, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(chip.query)}
-                          className="group flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 transition-all hover:border-zinc-900 hover:bg-zinc-900 hover:text-white hover:shadow-md active:scale-95"
-                        >
-                          <Store className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
-                          <span>{chip.text}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sugestões iniciais (sempre visíveis) */}
-                <div className="w-full max-w-3xl mb-10">
-                  <SuggestionChips 
-                    suggestions={INITIAL_SUGGESTIONS} 
-                    onSuggestionClick={handleSuggestionClick} 
-                  />
-                </div>
-
-                {/* Feed do Bairro - Card de Acesso */}
-                <div className="w-full max-w-3xl mb-10">
-                  <Link
-                    href="/relatos"
-                    className="block group"
-                  >
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
-                      <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                              <MessageSquare className="h-6 w-6 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-white mb-1">Feed do Bairro</h3>
-                              <p className="text-sm text-zinc-300">Ultimos 7 dias de relatos</p>
-                            </div>
-                          </div>
-                          <ArrowUp className="h-5 w-5 text-white rotate-45 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                        </div>
-                        <p className="text-zinc-200 text-sm leading-relaxed">
-                          Veja todos os relatos da comunidade organizados por categoria. Filtre por periodo, comente e acompanhe o que esta acontecendo no bairro em tempo real.
-                        </p>
+              {/* Content Below - Container Central com Espaçamento Padronizado */}
+              <div className="w-full flex flex-col items-center pt-12 pb-16 px-4">
+                {/* Container Central - Largura Máxima Consistente */}
+                <div className="w-full max-w-3xl space-y-12">
+                  
+                  {/* Seção 1: Chips Personalizados (Histórico) */}
+                  {personalizedChips.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 px-1">
+                        <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                          💡 Baseado em suas últimas conversas
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {personalizedChips.map((chip, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSuggestionClick(chip.query)}
+                            className="group flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-900 hover:bg-zinc-900 hover:text-white hover:shadow-md active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
+                          >
+                            <Store className="h-4 w-4 transition-transform group-hover:scale-110" />
+                            <span>{chip.text}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  </Link>
-                </div>
+                  )}
 
-                {/* Suggestion Cards */}
-                <div className="grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
-                  {SUGGESTED_QUESTIONS.map((suggestion, index) => {
-                    const Icon = suggestion.icon
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion.text)}
-                        className="group flex items-start gap-2.5 rounded-xl border border-zinc-200 bg-white p-3 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-sm active:scale-[0.99]"
-                      >
-                        <div className="rounded-lg bg-zinc-100 p-1.5 transition-colors group-hover:bg-zinc-200">
-                          <Icon className="h-4 w-4 text-zinc-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="mb-0.5 text-xs font-medium text-zinc-400">
-                            {suggestion.category}
+                  {/* Seção 2: Chips de Ações Gerais */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 px-1">
+                      <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                        ⚡ Ações rápidas
+                      </span>
+                    </div>
+                    <SuggestionChips 
+                      suggestions={INITIAL_SUGGESTIONS} 
+                      onSuggestionClick={handleSuggestionClick} 
+                    />
+                  </div>
+
+                  {/* Seção 3: Feed do Bairro - Componente Escuro */}
+                  <div className="mt-16">
+                    <Link
+                      href="/relatos"
+                      className="block group"
+                    >
+                      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-800 p-6 md:p-8 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01] dark:from-zinc-800 dark:to-zinc-900">
+                        <div className="absolute top-0 right-0 w-32 h-32 md:w-40 md:h-40 bg-white/5 rounded-full -mr-16 -mt-16 md:-mr-20 md:-mt-20"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-start justify-between gap-4 mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2.5 md:p-3 bg-white/10 rounded-xl backdrop-blur-sm">
+                                <MessageSquare className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg md:text-xl font-bold text-white mb-1">
+                                  Feed do Bairro
+                                </h3>
+                                <p className="text-xs md:text-sm text-zinc-300">
+                                  Últimos 7 dias de relatos
+                                </p>
+                              </div>
+                            </div>
+                            <ArrowUp className="h-4 w-4 md:h-5 md:w-5 text-white/80 rotate-45 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                           </div>
-                          <div className="text-sm text-zinc-700">
-                            {suggestion.text}
-                          </div>
+                          <p className="text-zinc-200 text-sm md:text-base leading-relaxed">
+                            Veja todos os relatos da comunidade organizados por categoria. Filtre por período, comente e acompanhe o que está acontecendo no bairro em tempo real.
+                          </p>
                         </div>
-                      </button>
-                    )
-                  })}
+                      </div>
+                    </Link>
+                  </div>
+
+                  {/* Seção 4: Cards de Sugestões (Grid) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
+                    {SUGGESTED_QUESTIONS.map((suggestion, index) => {
+                      const Icon = suggestion.icon
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => handleSuggestionClick(suggestion.text)}
+                          className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                        >
+                          <div className="rounded-lg bg-zinc-100 p-2 transition-colors group-hover:bg-zinc-200 dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                            <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="mb-1 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+                              {suggestion.category}
+                            </div>
+                            <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                              {suggestion.text}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+
                 </div>
               </div>
             </div>
