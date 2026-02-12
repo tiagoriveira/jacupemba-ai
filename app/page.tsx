@@ -12,6 +12,8 @@ import { getAgentConfig } from '@/lib/agentConfig'
 import { getUserFingerprint } from '@/lib/fingerprint'
 import { AgentFeedback } from '@/components/AgentFeedback'
 import { OnboardingTour } from '@/components/OnboardingTour'
+import { SuggestionChips, generateContextualSuggestions, INITIAL_SUGGESTIONS } from '@/components/SuggestionChips'
+import { generatePersonalizedChips } from '@/lib/historyAnalyzer'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -174,6 +176,34 @@ export default function Page() {
     setShowOnboarding(false)
   }
 
+  // Handler para cliques em sugestões
+  const handleSuggestionClick = (query: string) => {
+    sendMessage({ text: query })
+  }
+
+  // Handler para novo chat
+  const handleNewChat = () => {
+    // Resetar sugestões para iniciais
+    setCurrentSuggestions(INITIAL_SUGGESTIONS)
+    // Limpar input
+    setInput('')
+    setSelectedImage(null)
+    // Recarregar a página para limpar o chat (força reset do useChat)
+    window.location.reload()
+  }
+
+  // Estado para sugestões contextuais
+  const [currentSuggestions, setCurrentSuggestions] = useState(INITIAL_SUGGESTIONS)
+  
+  // Estado para chips personalizados baseados em histórico
+  const [personalizedChips, setPersonalizedChips] = useState<{ text: string; query: string }[]>([])
+
+  // Carregar chips personalizados do histórico
+  useEffect(() => {
+    const chips = generatePersonalizedChips()
+    setPersonalizedChips(chips)
+  }, [])
+
   // Save to history when conversation is complete
   useEffect(() => {
     if (messages.length >= 2 && !isLoading) {
@@ -185,6 +215,10 @@ export default function Page() {
         const assistantText = getMessageText(lastAssistantMessage.parts)
 
         if (userText && assistantText) {
+          // Gerar sugestões contextuais baseadas na resposta do agente
+          const contextualSuggestions = generateContextualSuggestions(assistantText, userText)
+          setCurrentSuggestions(contextualSuggestions)
+
           const saveToHistory = async () => {
             const userFingerprint = getUserFingerprint()
             
@@ -264,8 +298,8 @@ export default function Page() {
 
     if (selectedImage) {
       messageContent.push({
-        type: 'image' as const,
-        image: selectedImage,
+        type: 'data-image' as const,
+        data: selectedImage,
       })
     }
 
@@ -277,15 +311,7 @@ export default function Page() {
     }
   }
 
-  const handleSuggestionClick = (question: string) => {
-    if (isLoading) return
-    if (question.includes('foto')) {
-      fileInputRef.current?.click()
-      return
-    }
-    sendMessage({ text: question })
-  }
-
+  
   const getMessageText = (parts: any[]): string => {
     if (!parts || !Array.isArray(parts)) return ''
     return parts
@@ -386,6 +412,16 @@ export default function Page() {
               <ShoppingBag className="h-4 w-4" />
               <span>Vitrine</span>
             </Link>
+            {messages.length > 0 && (
+              <button
+                onClick={handleNewChat}
+                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                title="Iniciar nova conversa"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>Novo Chat</span>
+              </button>
+            )}
             <Link
               href="/historico"
               className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
@@ -437,6 +473,35 @@ export default function Page() {
 
               {/* Content Below - Spacer */}
               <div className="pt-8 pb-12">
+                {/* Chips personalizados baseados em histórico */}
+                {personalizedChips.length > 0 && (
+                  <div className="w-full max-w-3xl mb-10">
+                    <div className="flex items-center gap-2 mb-3 text-sm text-zinc-600 dark:text-zinc-400">
+                      <span className="font-medium">💡 Baseado em suas últimas conversas</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {personalizedChips.map((chip, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleSuggestionClick(chip.query)}
+                          className="group flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 transition-all hover:border-zinc-900 hover:bg-zinc-900 hover:text-white hover:shadow-md active:scale-95"
+                        >
+                          <Store className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                          <span>{chip.text}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sugestões iniciais (sempre visíveis) */}
+                <div className="w-full max-w-3xl mb-10">
+                  <SuggestionChips 
+                    suggestions={INITIAL_SUGGESTIONS} 
+                    onSuggestionClick={handleSuggestionClick} 
+                  />
+                </div>
+
                 {/* Feed do Bairro - Card de Acesso */}
                 <div className="w-full max-w-3xl mb-10">
                   <Link
@@ -499,7 +564,7 @@ export default function Page() {
               {messages.map((message) => {
                 const text = getMessageText(message.parts)
                 const isUser = message.role === 'user'
-                const images = message.parts?.filter((p: any) => p.type === 'image') || []
+                const images = message.parts?.filter((p: any) => p.type === 'data-image') || []
 
                 return (
                   <div
@@ -517,7 +582,7 @@ export default function Page() {
                           {images.map((img: any, idx: number) => (
                             <img
                               key={idx}
-                              src={img.image || "/placeholder.svg"}
+                              src={img.data || "/placeholder.svg"}
                               alt="Imagem enviada"
                               className="max-h-60 rounded-lg object-contain"
                             />
@@ -535,6 +600,14 @@ export default function Page() {
                         <div className="mt-3 pt-2 border-t border-zinc-200 dark:border-zinc-700">
                           <AgentFeedback messageId={message.id} />
                         </div>
+                      )}
+
+                      {/* Sugestões clicáveis - apenas para última mensagem do assistente */}
+                      {!isUser && text && message.id === messages[messages.length - 1]?.id && (
+                        <SuggestionChips 
+                          suggestions={currentSuggestions} 
+                          onSuggestionClick={handleSuggestionClick} 
+                        />
                       )}
                     </div>
                   </div>

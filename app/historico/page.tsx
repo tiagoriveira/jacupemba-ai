@@ -32,6 +32,14 @@ export default function HistoricoPage() {
     }
   }
 
+  const deleteConversation = (id: string) => {
+    if (confirm('Deseja apagar esta conversa?')) {
+      const updatedHistory = history.filter(item => item.id !== id)
+      localStorage.setItem('chat-history', JSON.stringify(updatedHistory))
+      setHistory(updatedHistory)
+    }
+  }
+
   const formatDate = (date: Date) => {
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
@@ -128,6 +136,13 @@ export default function HistoricoPage() {
                         {truncateText(item.answer, 150)}
                       </p>
                     </div>
+                    <button
+                      onClick={() => deleteConversation(item.id)}
+                      className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:text-red-400"
+                      title="Apagar conversa"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-500 dark:text-zinc-500">

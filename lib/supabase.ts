@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://okxsdipfepchalgyefqj.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rc3hkaXBlcGNoYWxneWVmcWoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNjc4MjI5MiwiZXhwIjoyMDUyMzU4MjkyfQ.7jlz3co'
 
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder')
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export type Status = 'pendente' | 'aprovado' | 'rejeitado'
 
