@@ -38,19 +38,22 @@ export function SuggestionChips({ suggestions, onSuggestionClick }: SuggestionCh
   )
 }
 
-// Gera sugestões contextuais baseadas na resposta do agente
+// Gera sugestões contextuais baseadas na resposta do agente E no contexto da conversa atual
 export function generateContextualSuggestions(
   agentMessage: string,
-  lastUserMessage?: string
+  lastUserMessage?: string,
+  conversationContext?: string // Nova: todo o contexto da conversa atual
 ): Suggestion[] {
   const suggestions: Suggestion[] = []
   const lowerMessage = agentMessage.toLowerCase()
   const lowerUserMessage = lastUserMessage?.toLowerCase() || ''
+  const lowerConversation = conversationContext?.toLowerCase() || ''
 
-  // Contexto: Serviços/Profissionais
+  // Contexto: Serviços/Profissionais (baseado na conversa atual)
   if (lowerMessage.includes('eletricista') || lowerMessage.includes('encanador') || 
       lowerMessage.includes('profissional') || lowerMessage.includes('serviço') ||
-      lowerUserMessage.includes('preciso de') || lowerUserMessage.includes('procuro')) {
+      lowerUserMessage.includes('preciso de') || lowerUserMessage.includes('procuro') ||
+      lowerConversation.includes('serviço') || lowerConversation.includes('profissional')) {
     
     suggestions.push(
       {
@@ -68,10 +71,11 @@ export function generateContextualSuggestions(
     )
   }
 
-  // Contexto: Comércios/Restaurantes
+  // Contexto: Comércios/Restaurantes (baseado na conversa atual)
   if (lowerMessage.includes('restaurante') || lowerMessage.includes('loja') || 
       lowerMessage.includes('comércio') || lowerMessage.includes('comer') ||
-      lowerUserMessage.includes('onde') && lowerUserMessage.includes('comer')) {
+      lowerUserMessage.includes('onde') && lowerUserMessage.includes('comer') ||
+      lowerConversation.includes('restaurante') || lowerConversation.includes('comércio')) {
     
     suggestions.push(
       {
@@ -89,10 +93,11 @@ export function generateContextualSuggestions(
     )
   }
 
-  // Contexto: Segurança/Problemas
+  // Contexto: Segurança/Problemas (baseado na conversa atual)
   if (lowerMessage.includes('segurança') || lowerMessage.includes('problema') || 
       lowerMessage.includes('relato') || lowerMessage.includes('rua') ||
-      lowerUserMessage.includes('problema') || lowerUserMessage.includes('rua')) {
+      lowerUserMessage.includes('problema') || lowerUserMessage.includes('rua') ||
+      lowerConversation.includes('segurança') || lowerConversation.includes('relato')) {
     
     suggestions.push(
       {
@@ -110,9 +115,10 @@ export function generateContextualSuggestions(
     )
   }
 
-  // Contexto: Estatísticas/Dados
+  // Contexto: Estatísticas/Dados (baseado na conversa atual)
   if (lowerMessage.includes('estatística') || lowerMessage.includes('dados') || 
-      lowerMessage.includes('tendência') || lowerUserMessage.includes('como está')) {
+      lowerMessage.includes('tendência') || lowerUserMessage.includes('como está') ||
+      lowerConversation.includes('estatística') || lowerConversation.includes('tendência')) {
     
     suggestions.push(
       {

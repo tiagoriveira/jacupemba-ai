@@ -49,6 +49,7 @@ const SUGGESTED_QUESTIONS = [
   },
 ]
 
+
 export default function Page() {
   const [input, setInput] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -60,6 +61,8 @@ export default function Page() {
   const [reportText, setReportText] = useState('')
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
+  const [reportImage, setReportImage] = useState<string | null>(null)
+  const reportFileInputRef = useRef<HTMLInputElement>(null)
   const [trendingTopics, setTrendingTopics] = useState<Array<{ category: string, count: number }>>([])
   
   // Onboarding state
@@ -205,6 +208,22 @@ export default function Page() {
     setPersonalizedChips(chips)
   }, [])
 
+  // Carregar conversa do histórico se houver uma selecionada
+  useEffect(() => {
+    const continueConv = sessionStorage.getItem('continue-conversation')
+    if (continueConv) {
+      try {
+        const { question } = JSON.parse(continueConv)
+        // Enviar a pergunta para continuar a conversa
+        sendMessage({ text: question })
+        // Limpar o sessionStorage
+        sessionStorage.removeItem('continue-conversation')
+      } catch (error) {
+        // Falha silenciosa caso haja erro
+      }
+    }
+  }, [])
+
   // Save to history when conversation is complete
   useEffect(() => {
     if (messages.length >= 2 && !isLoading) {
@@ -216,8 +235,9 @@ export default function Page() {
         const assistantText = getMessageText(lastAssistantMessage.parts)
 
         if (userText && assistantText) {
-          // Gerar sugestões contextuais baseadas na resposta do agente
-          const contextualSuggestions = generateContextualSuggestions(assistantText, userText)
+          // Gerar sugestões contextuais baseadas na resposta do agente E no contexto completo da conversa atual
+          const conversationContext = messages.map(m => getMessageText(m.parts)).join(' ')
+          const contextualSuggestions = generateContextualSuggestions(assistantText, userText, conversationContext)
           setCurrentSuggestions(contextualSuggestions)
 
           const saveToHistory = async () => {
@@ -347,15 +367,38 @@ export default function Page() {
     }
   }
 
+  const handleReportImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string
+        setReportImage(base64)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveReportImage = () => {
+    setReportImage(null)
+    if (reportFileInputRef.current) {
+      reportFileInputRef.current.value = ''
+    }
+  }
+
   const handleCloseReportModal = () => {
-    if (reportText.trim() && !reportSubmitted) {
-      const confirmClose = window.confirm('Voce tem texto digitado. Deseja descartar e fechar?')
+    if ((reportText.trim() || reportImage) && !reportSubmitted) {
+      const confirmClose = window.confirm('Voce tem conteudo digitado. Deseja descartar e fechar?')
       if (!confirmClose) return
     }
     setIsReportModalOpen(false)
     setReportText('')
     setReportCategory('')
+    setReportImage(null)
     setReportSubmitted(false)
+    if (reportFileInputRef.current) {
+      reportFileInputRef.current.value = ''
+    }
   }
 
   const handleSubmitReport = async () => {
@@ -511,19 +554,6 @@ export default function Page() {
                     </div>
                   )}
 
-                  {/* Seção 2: Chips de Ações Gerais */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                      <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                        ⚡ Ações rápidas
-                      </span>
-                    </div>
-                    <SuggestionChips 
-                      suggestions={INITIAL_SUGGESTIONS} 
-                      onSuggestionClick={handleSuggestionClick} 
-                    />
-                  </div>
-
                   {/* Seção 3: Feed do Bairro - Componente Escuro */}
                   <div className="mt-16">
                     <Link
@@ -557,7 +587,7 @@ export default function Page() {
                     </Link>
                   </div>
 
-                  {/* Seção 4: Cards de Sugestões (Grid) */}
+                  {/* Seção 4: Cards de Sugestões (Grid) - Embaixo do Feed */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
                     {SUGGESTED_QUESTIONS.map((suggestion, index) => {
                       const Icon = suggestion.icon
@@ -792,6 +822,46 @@ export default function Page() {
                     disabled={!reportCategory}
                     className="w-full min-h-[160px] rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600"
                   />
+
+                  {/* Upload de Imagem no Relato */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
+                      Adicionar foto (opcional)
+                    </label>
+                    <input
+                      ref={reportFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReportImageSelect}
+                      className="hidden"
+                    />
+                    {reportImage ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={reportImage || "/placeholder.svg"}
+                          alt="Preview do relato"
+                          className="h-32 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveReportImage}
+                          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => reportFileInputRef.current?.click()}
+                        disabled={!reportCategory}
+                        className="flex items-center gap-2 rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 transition-all hover:border-zinc-300 hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
+                      >
+                        <ImagePlus className="h-5 w-5" />
+                        <span>Clique para adicionar uma foto</span>
+                      </button>
+                    )}
+                  </div>
 
                   <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
                     Evite incluir dados pessoais no relato.
