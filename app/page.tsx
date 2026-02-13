@@ -16,6 +16,38 @@ import { SuggestionChips, generateContextualSuggestions, INITIAL_SUGGESTIONS } f
 import { generatePersonalizedChips } from '@/lib/historyAnalyzer'
 import { logger } from '@/lib/logger'
 
+const SUGGESTED_QUESTIONS = [
+  {
+    icon: Store,
+    text: 'Preciso de um eletricista urgente',
+    category: 'Serviços'
+  },
+  {
+    icon: ImagePlus,
+    text: 'Envie uma foto do produto ou serviço que precisa',
+    category: 'Upload de Foto'
+  },
+  {
+    icon: Store,
+    text: 'Onde compro tinta spray no bairro?',
+    category: 'Comércio'
+  },
+  {
+    icon: Briefcase,
+    text: 'Tem vaga de emprego na área administrativa?',
+    category: 'Vagas'
+  },
+  {
+    icon: Calendar,
+    text: 'Que eventos têm esse fim de semana?',
+    category: 'Eventos'
+  },
+  {
+    icon: Store,
+    text: 'Preciso de um mecânico de confiança',
+    category: 'Serviços'
+  },
+]
 
 
 export default function Page() {
@@ -174,6 +206,22 @@ export default function Page() {
   useEffect(() => {
     const chips = generatePersonalizedChips()
     setPersonalizedChips(chips)
+  }, [])
+
+  // Carregar conversa do histórico se houver uma selecionada
+  useEffect(() => {
+    const continueConv = sessionStorage.getItem('continue-conversation')
+    if (continueConv) {
+      try {
+        const { question } = JSON.parse(continueConv)
+        // Enviar a pergunta para continuar a conversa
+        sendMessage({ text: question })
+        // Limpar o sessionStorage
+        sessionStorage.removeItem('continue-conversation')
+      } catch (error) {
+        // Falha silenciosa caso haja erro
+      }
+    }
   }, [])
 
   // Save to history when conversation is complete
@@ -539,7 +587,31 @@ export default function Page() {
                     </Link>
                   </div>
 
-
+                  {/* Seção 4: Cards de Sugestões (Grid) - Embaixo do Feed */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
+                    {SUGGESTED_QUESTIONS.map((suggestion, index) => {
+                      const Icon = suggestion.icon
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => handleSuggestionClick(suggestion.text)}
+                          className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                        >
+                          <div className="rounded-lg bg-zinc-100 p-2 transition-colors group-hover:bg-zinc-200 dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                            <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="mb-1 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+                              {suggestion.category}
+                            </div>
+                            <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                              {suggestion.text}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
 
                 </div>
               </div>

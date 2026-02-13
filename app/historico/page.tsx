@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MapPin, ArrowLeft, Trash2, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface HistoryItem {
   id: string
@@ -13,6 +14,7 @@ interface HistoryItem {
 
 export default function HistoricoPage() {
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const router = useRouter()
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('chat-history')
@@ -64,6 +66,16 @@ export default function HistoricoPage() {
   const truncateText = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text
     return text.substring(0, maxLength) + '...'
+  }
+
+  const continueConversation = (item: HistoryItem) => {
+    // Salvar a conversa selecionada no sessionStorage para ser carregada na página principal
+    sessionStorage.setItem('continue-conversation', JSON.stringify({
+      question: item.question,
+      answer: item.answer
+    }))
+    // Redirecionar para a página principal
+    router.push('/')
   }
 
   return (
@@ -125,7 +137,8 @@ export default function HistoricoPage() {
               {history.map((item) => (
                 <div
                   key={item.id}
-                  className="group rounded-2xl border border-zinc-200 bg-white p-4 transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                  onClick={() => continueConversation(item)}
+                  className="group rounded-2xl border border-zinc-200 bg-white p-4 transition-all hover:border-zinc-300 hover:shadow-md cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="flex-1">
@@ -137,7 +150,10 @@ export default function HistoricoPage() {
                       </p>
                     </div>
                     <button
-                      onClick={() => deleteConversation(item.id)}
+                      onClick={(e) => {
+                        e.stopPropagation() // Prevenir que o card seja clicado ao deletar
+                        deleteConversation(item.id)
+                      }}
                       className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:text-red-400"
                       title="Apagar conversa"
                     >
@@ -147,6 +163,9 @@ export default function HistoricoPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-500 dark:text-zinc-500">
                       {formatDate(item.timestamp)}
+                    </span>
+                    <span className="text-xs text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors">
+                      Clique para continuar →
                     </span>
                   </div>
                 </div>
