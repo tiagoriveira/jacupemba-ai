@@ -16,38 +16,7 @@ import { SuggestionChips, generateContextualSuggestions, INITIAL_SUGGESTIONS } f
 import { generatePersonalizedChips } from '@/lib/historyAnalyzer'
 import { logger } from '@/lib/logger'
 
-const SUGGESTED_QUESTIONS = [
-  {
-    icon: Store,
-    text: 'Preciso de um eletricista urgente',
-    category: 'Serviços'
-  },
-  {
-    icon: ImagePlus,
-    text: 'Envie uma foto do produto ou serviço que precisa',
-    category: 'Upload de Foto'
-  },
-  {
-    icon: Store,
-    text: 'Onde compro tinta spray no bairro?',
-    category: 'Comércio'
-  },
-  {
-    icon: Briefcase,
-    text: 'Tem vaga de emprego na área administrativa?',
-    category: 'Vagas'
-  },
-  {
-    icon: Calendar,
-    text: 'Que eventos têm esse fim de semana?',
-    category: 'Eventos'
-  },
-  {
-    icon: Store,
-    text: 'Preciso de um mecânico de confiança',
-    category: 'Serviços'
-  },
-]
+
 
 export default function Page() {
   const [input, setInput] = useState('')
@@ -218,8 +187,9 @@ export default function Page() {
         const assistantText = getMessageText(lastAssistantMessage.parts)
 
         if (userText && assistantText) {
-          // Gerar sugestões contextuais baseadas na resposta do agente
-          const contextualSuggestions = generateContextualSuggestions(assistantText, userText)
+          // Gerar sugestões contextuais baseadas na resposta do agente E no contexto completo da conversa atual
+          const conversationContext = messages.map(m => getMessageText(m.parts)).join(' ')
+          const contextualSuggestions = generateContextualSuggestions(assistantText, userText, conversationContext)
           setCurrentSuggestions(contextualSuggestions)
 
           const saveToHistory = async () => {
@@ -569,31 +539,7 @@ export default function Page() {
                     </Link>
                   </div>
 
-                  {/* Seção 4: Cards de Sugestões (Grid) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
-                    {SUGGESTED_QUESTIONS.map((suggestion, index) => {
-                      const Icon = suggestion.icon
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion.text)}
-                          className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
-                        >
-                          <div className="rounded-lg bg-zinc-100 p-2 transition-colors group-hover:bg-zinc-200 dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                            <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="mb-1 text-xs font-medium text-zinc-400 dark:text-zinc-500">
-                              {suggestion.category}
-                            </div>
-                            <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                              {suggestion.text}
-                            </div>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
+
 
                 </div>
               </div>
@@ -804,6 +750,46 @@ export default function Page() {
                     disabled={!reportCategory}
                     className="w-full min-h-[160px] rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600"
                   />
+
+                  {/* Upload de Imagem no Relato */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
+                      Adicionar foto (opcional)
+                    </label>
+                    <input
+                      ref={reportFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReportImageSelect}
+                      className="hidden"
+                    />
+                    {reportImage ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={reportImage || "/placeholder.svg"}
+                          alt="Preview do relato"
+                          className="h-32 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveReportImage}
+                          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => reportFileInputRef.current?.click()}
+                        disabled={!reportCategory}
+                        className="flex items-center gap-2 rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 transition-all hover:border-zinc-300 hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
+                      >
+                        <ImagePlus className="h-5 w-5" />
+                        <span>Clique para adicionar uma foto</span>
+                      </button>
+                    )}
+                  </div>
 
                   <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
                     Evite incluir dados pessoais no relato.
