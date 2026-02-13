@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { getApiUrl } from '@/lib/api-config'
 import { getUserFingerprint } from '@/lib/fingerprint'
 import { logger } from '@/lib/logger'
 
@@ -23,7 +24,7 @@ export function AgentFeedback({ messageId, onFeedbackSubmitted }: AgentFeedbackP
       setFeedback(type)
       const userFingerprint = getUserFingerprint()
 
-      const response = await fetch('/api/agent-feedback', {
+      const response = await fetch(getApiUrl('/api/agent-feedback'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

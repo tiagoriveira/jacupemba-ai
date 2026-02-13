@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import type { Report, ReportComment } from '@/lib/supabase'
 import { getUserFingerprint } from '@/lib/fingerprint'
 import { logger } from '@/lib/logger'
+import { getApiUrl } from '@/lib/api-config'
 import { CategoryReportsModal } from './CategoryReportsModal'
 import {
   MessageSquare,
@@ -84,7 +85,7 @@ export function FeedRelatos() {
   
   const loadAmbassadors = async () => {
     try {
-      const response = await fetch('/api/ambassadors?status=active')
+      const response = await fetch(getApiUrl('/api/ambassadors?status=active'))
       const result = await response.json()
       
       if (result.success && result.data) {

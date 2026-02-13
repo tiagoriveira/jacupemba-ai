@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, Star, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFingerprint } from '@/lib/fingerprint'
+import { getApiUrl } from '@/lib/api-config'
 
 interface BusinessRatingModalProps {
   isOpen: boolean
@@ -37,7 +38,7 @@ export function BusinessRatingModal({
       setIsSubmitting(true)
       const userFingerprint = getUserFingerprint()
 
-      const response = await fetch('/api/reviews', {
+      const response = await fetch(getApiUrl('/api/reviews'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { analisarRelato, NIVEL_CONFIG, type ResultadoTriagem } from '@/lib/moderacao-triagem'
 import { logger } from '@/lib/logger'
+import { getApiUrl } from '@/lib/api-config'
 
 interface Relato {
   id: string
@@ -44,7 +45,7 @@ export function RelatosSection() {
 
   const loadAmbassadors = async () => {
     try {
-      const response = await fetch('/api/ambassadors?status=active')
+      const response = await fetch(getApiUrl('/api/ambassadors?status=active'))
       const result = await response.json()
       
       if (result.success && result.data) {
@@ -258,7 +259,7 @@ export function RelatosSection() {
     try {
       if (isCurrentlyAmbassador) {
         // Remover embaixador
-        const response = await fetch('/api/ambassadors', {
+        const response = await fetch(getApiUrl('/api/ambassadors'), {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fingerprint })
@@ -274,7 +275,7 @@ export function RelatosSection() {
         toast.success('Status de embaixador removido')
       } else {
         // Adicionar embaixador
-        const response = await fetch('/api/ambassadors', {
+        const response = await fetch(getApiUrl('/api/ambassadors'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

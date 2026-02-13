@@ -15,6 +15,7 @@ import { OnboardingTour } from '@/components/OnboardingTour'
 import { SuggestionChips, generateContextualSuggestions, INITIAL_SUGGESTIONS } from '@/components/SuggestionChips'
 import { generatePersonalizedChips } from '@/lib/historyAnalyzer'
 import { logger } from '@/lib/logger'
+import { getApiUrl } from '@/lib/api-config'
 
 const SUGGESTED_QUESTIONS = [
   {
@@ -245,7 +246,7 @@ export default function Page() {
             
             // Tentar salvar no backend
             try {
-              await fetch('/api/conversation-history', {
+              await fetch(getApiUrl('/api/conversation-history'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -353,7 +354,7 @@ export default function Page() {
 
     // Salvar feedback no backend via API
     try {
-      await fetch('/api/agent-feedback', {
+      await fetch(getApiUrl('/api/agent-feedback'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
