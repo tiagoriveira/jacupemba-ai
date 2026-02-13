@@ -60,6 +60,8 @@ export default function Page() {
   const [reportText, setReportText] = useState('')
   const [reportCategory, setReportCategory] = useState('')
   const [reportSubmitted, setReportSubmitted] = useState(false)
+  const [reportImage, setReportImage] = useState<string | null>(null)
+  const reportFileInputRef = useRef<HTMLInputElement>(null)
   const [trendingTopics, setTrendingTopics] = useState<Array<{ category: string, count: number }>>([])
   
   // Onboarding state
@@ -347,15 +349,38 @@ export default function Page() {
     }
   }
 
+  const handleReportImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string
+        setReportImage(base64)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveReportImage = () => {
+    setReportImage(null)
+    if (reportFileInputRef.current) {
+      reportFileInputRef.current.value = ''
+    }
+  }
+
   const handleCloseReportModal = () => {
-    if (reportText.trim() && !reportSubmitted) {
-      const confirmClose = window.confirm('Voce tem texto digitado. Deseja descartar e fechar?')
+    if ((reportText.trim() || reportImage) && !reportSubmitted) {
+      const confirmClose = window.confirm('Voce tem conteudo digitado. Deseja descartar e fechar?')
       if (!confirmClose) return
     }
     setIsReportModalOpen(false)
     setReportText('')
     setReportCategory('')
+    setReportImage(null)
     setReportSubmitted(false)
+    if (reportFileInputRef.current) {
+      reportFileInputRef.current.value = ''
+    }
   }
 
   const handleSubmitReport = async () => {
@@ -510,19 +535,6 @@ export default function Page() {
                       </div>
                     </div>
                   )}
-
-                  {/* Seção 2: Chips de Ações Gerais */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                      <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                        ⚡ Ações rápidas
-                      </span>
-                    </div>
-                    <SuggestionChips 
-                      suggestions={INITIAL_SUGGESTIONS} 
-                      onSuggestionClick={handleSuggestionClick} 
-                    />
-                  </div>
 
                   {/* Seção 3: Feed do Bairro - Componente Escuro */}
                   <div className="mt-16">
