@@ -501,7 +501,7 @@ export default function Page() {
                   {/* Avatar - Larger */}
                   <div className="mb-12 mt-8 flex justify-center">
                     <img
-                      src="/avatar_jacupemba_v1.png"
+                      src="/avatar.png"
                       alt="Jacupemba"
                       className="h-28 w-28 md:h-32 md:w-32 object-contain animate-in zoom-in-50 duration-500 animate-float"
                     />
