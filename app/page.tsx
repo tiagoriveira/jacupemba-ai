@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, Shield, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, ThumbsUp, ThumbsDown } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getAgentConfig } from '@/lib/agentConfig'
@@ -485,14 +485,6 @@ export default function Page() {
               <History className="h-4 w-4" />
               <span>Historico</span>
             </Link>
-            <Link
-              href="/admin"
-              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-red-600 border border-red-300 transition-all duration-150 hover:bg-red-50 active:scale-[0.98]"
-              title="Painel administrativo"
-            >
-              <Shield className="h-4 w-4" />
-              <span>Admin</span>
-            </Link>
           </div>
         </div>
       </header>
@@ -504,14 +496,14 @@ export default function Page() {
             /* Empty State */
             <div>
               {/* Hero Welcome Block - Altura reduzida para mostrar conteúdo abaixo */}
-              <div className="flex min-h-[50vh] md:min-h-[60vh] lg:min-h-[65vh] items-center justify-center px-4">
+              <div className="flex min-h-[35vh] md:min-h-[40vh] lg:min-h-[40vh] items-center justify-center px-4">
                 <div className="text-center animate-in fade-in-0 duration-700">
                   {/* Avatar - Larger */}
-                  <div className="mb-6 flex justify-center">
+                  <div className="mb-6 mt-16 flex justify-center">
                     <img
-                      src="/avatar_jacupemba_v1.png"
+                      src="/avatar.png"
                       alt="Jacupemba"
-                      className="h-28 w-28 md:h-32 md:w-32 object-contain animate-in zoom-in-50 duration-500"
+                      className="h-28 w-28 md:h-32 md:w-32 object-contain animate-in zoom-in-50 duration-500 animate-float"
                     />
                   </div>
 
@@ -521,7 +513,7 @@ export default function Page() {
                   </h1>
 
                   {/* Subtitle with ironic touch */}
-                  <p className="mt-4 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
+                  <p className="mt-3 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
                     Te ajudo com comércio, serviços, vagas e informações do bairro de Jacupemba, na maioria das vezes sou irônico, mas isso é quando estou de bom humor!
                   </p>
                 </div>

@@ -481,6 +481,12 @@ export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json()
 
+    // Debug: Log incoming messages to check image data
+    console.log('[v0] Received messages:', messages.map(m => ({
+      role: m.role,
+      parts: m.parts?.map((p: any) => ({ type: p.type, hasData: !!p.data }))
+    })))
+
     // Load base context from all 4 data layers
     const { reports, comments, businesses, vitrinePosts } = await getBairroContext()
 
@@ -617,7 +623,7 @@ INSTRUCOES TECNICAS:
 - Responda SEMPRE em portugues brasileiro
 - Use APENAS dados reais do contexto ou ferramentas
 - Seja conciso, util e SEMPRE com humor acido
-- Quando usuario enviar imagem, analise e recomende relacionados`
+- Quando usuario enviar imagem: analise o conteudo da imagem e responda de forma contextual. Se for produto/servico, tente identificar e recomendar onde encontrar no bairro. Se for local, identifique e fale sobre ele. SEMPRE reconheca que recebeu a imagem antes de responder.`
 
     // Aplicar ajuste de sarcasmo baseado no nível configurado
     const sarcasmAdjustments: Record<number, string> = {

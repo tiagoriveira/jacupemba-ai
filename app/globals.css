@@ -124,6 +124,20 @@
   }
 }
 
+/* Floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
 /* Grok-style enhancements */
 @layer utilities {
   /* Smooth transitions */
