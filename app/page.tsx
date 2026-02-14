@@ -499,7 +499,7 @@ export default function Page() {
               <div className="flex min-h-[35vh] md:min-h-[40vh] lg:min-h-[40vh] items-center justify-center px-4">
                 <div className="text-center animate-in fade-in-0 duration-700">
                   {/* Avatar - Larger */}
-                  <div className="mb-12 mt-8 flex justify-center">
+                  <div className="mb-6 mt-16 flex justify-center">
                     <img
                       src="/avatar.png"
                       alt="Jacupemba"
@@ -513,7 +513,7 @@ export default function Page() {
                   </h1>
 
                   {/* Subtitle with ironic touch */}
-                  <p className="mt-4 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
+                  <p className="mt-3 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
                     Te ajudo com comércio, serviços, vagas e informações do bairro de Jacupemba, na maioria das vezes sou irônico, mas isso é quando estou de bom humor!
                   </p>
                 </div>
