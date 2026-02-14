@@ -69,12 +69,12 @@ export default function HistoricoPage() {
   }
 
   const continueConversation = (item: HistoryItem) => {
-    // Salvar a conversa selecionada no sessionStorage para ser carregada na página principal
+    // Salvar a conversa selecionada no sessionStorage com contexto para continuação
     sessionStorage.setItem('continue-conversation', JSON.stringify({
       question: item.question,
-      answer: item.answer
+      answer: item.answer,
+      contextMessage: `Continuando conversa anterior. O usuário perguntou: "${item.question}" e você respondeu: "${item.answer.substring(0, 300)}". Agora o usuário quer continuar essa conversa.`
     }))
-    // Redirecionar para a página principal
     router.push('/')
   }
 

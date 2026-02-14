@@ -214,13 +214,15 @@ export default function Page() {
     const continueConv = sessionStorage.getItem('continue-conversation')
     if (continueConv) {
       try {
-        const { question } = JSON.parse(continueConv)
-        // Enviar a pergunta para continuar a conversa
-        sendMessage({ text: question })
-        // Limpar o sessionStorage
+        const { question, answer, contextMessage } = JSON.parse(continueConv)
         sessionStorage.removeItem('continue-conversation')
-      } catch (error) {
-        // Falha silenciosa caso haja erro
+        // Enviar mensagem com contexto da conversa anterior para o agente não começar do zero
+        const continuationText = contextMessage
+          ? `[Contexto: ${contextMessage}]\n\nQuero continuar sobre: ${question}`
+          : question
+        sendMessage({ text: continuationText })
+      } catch {
+        // Falha silenciosa
       }
     }
   }, [])

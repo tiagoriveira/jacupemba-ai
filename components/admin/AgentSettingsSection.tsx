@@ -27,24 +27,13 @@ export function AgentSettingsSection() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
 
-    const preview = useMemo(() => {
+    // Preview simples baseado no nível de sarcasmo
+    const getPreview = () => {
         const level = config.sarcasm_level
-        let text = ''
-
-        if (level < 3) {
-            text = "Olá! Claro, posso te ajudar com isso. O que você precisa saber sobre Jacupemba?"
-        } else if (level < 7) {
-            text = "Ah, Jacupemba... O lugar onde o vento faz a curva e o nada acontece. Mas diz aí, o que você quer?"
-        } else {
-            text = "Olha só quem apareceu. Espero que não seja outra pergunta óbvia sobre a previsão do tempo. Fala logo."
-        }
-
-        if (config.instructions.length > 0) {
-            text += ` [Incluindo contexto personalizado: "${config.instructions.substring(0, 20)}..."]`
-        }
-
-        return text
-    }, [config])
+        if (level < 3) return "Olá! Claro, posso te ajudar com isso. O que você precisa saber sobre Jacupemba?"
+        if (level < 7) return "Ah, Jacupemba... O lugar onde o vento faz a curva e o nada acontece. Mas diz aí, o que você quer?"
+        return "Olha só quem apareceu. Espero que não seja outra pergunta óbvia sobre a previsão do tempo. Fala logo."
+    }
 
     const fetchConfig = useCallback(async () => {
         try {
@@ -53,46 +42,44 @@ export function AgentSettingsSection() {
                 .select('*')
 
             if (error) {
-                logger.error('[v0] Error fetching config:', error)
+                logger.error('Error fetching config:', error)
                 toast.error('Erro ao carregar configurações')
+                setLoading(false)
                 return
             }
 
             if (data && data.length > 0) {
-                const newConfig: AgentConfig = { ...config }
+                const newConfig: AgentConfig = {
+                    model: 'grok-4-1-fast-reasoning',
+                    sarcasm_level: 2,
+                    instructions: ''
+                }
 
                 data.forEach((item: ConfigItem) => {
-                    switch (item.key) {
-                        case 'agent_model':
-                            newConfig.model = item.value
-                            break
-                        case 'agent_sarcasm_level':
-                            const parsedLevel = parseInt(item.value, 10)
-                            newConfig.sarcasm_level = isNaN(parsedLevel) ? 2 : parsedLevel
-                            break
-                        case 'agent_instructions':
-                            newConfig.instructions = item.value || ''
-                            break
+                    if (item.key === 'agent_model') newConfig.model = item.value
+                    if (item.key === 'agent_sarcasm_level') {
+                        const level = parseInt(item.value, 10)
+                        newConfig.sarcasm_level = isNaN(level) ? 2 : level
                     }
+                    if (item.key === 'agent_instructions') newConfig.instructions = item.value || ''
                 })
 
                 setConfig(newConfig)
             }
         } catch (error) {
-            logger.error('[v0] Unexpected error fetching config:', error)
-            toast.error('Erro inesperado ao carregar configurações')
+            logger.error('Unexpected error:', error)
+            toast.error('Erro ao carregar')
         } finally {
             setLoading(false)
         }
     }, [])
 
-    const handleSave = useCallback(async () => {
+    const handleSave = async () => {
         if (saving) return
 
         try {
             setSaving(true)
 
-            // Salvar no localStorage (frontend-only, temporário)
             saveAgentConfig({
                 model: config.model,
                 sarcasm_level: config.sarcasm_level,
@@ -110,19 +97,19 @@ export function AgentSettingsSection() {
                 .upsert(updates, { onConflict: 'key' })
 
             if (error) {
-                logger.error('[v0] Error saving config:', error)
-                toast.error('Erro ao salvar configurações')
+                logger.error('Error saving:', error)
+                toast.error('Erro ao salvar')
                 return
             }
 
-            toast.success('Configurações salvas com sucesso!')
+            toast.success('Salvo com sucesso!')
         } catch (error) {
-            logger.error('[v0] Unexpected error saving config:', error)
-            toast.error('Erro inesperado ao salvar')
+            logger.error('Error:', error)
+            toast.error('Erro ao salvar')
         } finally {
             setSaving(false)
         }
-    }, [config, saving])
+    }
 
     useEffect(() => {
         fetchConfig()
@@ -137,11 +124,11 @@ export function AgentSettingsSection() {
     }
 
     return (
-        <div className="h-full bg-zinc-50 p-8">
+        <div className="h-full bg-zinc-50 dark:bg-zinc-950 p-8">
             <div className="mx-auto max-w-5xl space-y-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-zinc-900">Configurações do Agente</h1>
-                    <p className="mt-1 text-sm text-zinc-600">
+                    <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Configurações do Agente</h1>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                         Personalize o comportamento e a inteligência do Jacupemba AI
                     </p>
                 </div>
@@ -149,49 +136,41 @@ export function AgentSettingsSection() {
                 <div className="grid gap-6 lg:grid-cols-2">
                     {/* Left Column - Settings */}
                     <div className="space-y-6">
-                        <div className="rounded-xl bg-white p-6 border border-zinc-200 shadow-sm space-y-6">
+                        <div className="rounded-xl bg-white dark:bg-zinc-900 p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
                             {/* Model Selection */}
                             <div className="space-y-4">
-                                <div className="flex items-center gap-2 border-b border-zinc-100 pb-2">
-                                    <Cpu className="h-5 w-5 text-purple-600" />
-                                    <h2 className="text-lg font-semibold text-zinc-900">Modelo de IA</h2>
+                                <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                                    <Cpu className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Modelo de IA</h2>
                                 </div>
 
                                 {/* Single Grok Model Card */}
-                                <div className="flex w-full items-center gap-4 rounded-xl border border-zinc-900 bg-zinc-50 p-4 ring-1 ring-zinc-900">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden bg-black ring-2 ring-zinc-900">
-                                        <img
-                                            src="/logos/xai-logo.svg"
-                                            alt="xAI Logo"
-                                            className="h-6 w-6 object-contain"
-                                        />
+                                <div className="flex w-full items-center gap-4 rounded-xl border-2 border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-800 p-4">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-black dark:bg-zinc-100">
+                                        <Cpu className="h-6 w-6 text-white dark:text-zinc-900" />
                                     </div>
                                     <div className="text-left flex-1">
-                                        <p className="font-medium text-zinc-900">Grok 4.1</p>
-                                        <p className="text-xs text-zinc-500">Modelo avançado com raciocínio aprimorado da xAI</p>
+                                        <p className="font-medium text-zinc-900 dark:text-zinc-100">Grok 4.1</p>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400">Modelo avançado com raciocínio aprimorado</p>
                                     </div>
-                                    <div className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+                                    <div className="badge-grok bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                                         ATIVO
                                     </div>
                                 </div>
-                                <p className="text-xs text-zinc-500 italic">
-                                    Este é o modelo padrão do sistema. Ele oferece respostas rápidas e econômicas.
-                                </p>
                             </div>
 
                             {/* Personality */}
-                            <div className="space-y-4 pt-4 border-t border-zinc-100">
+                            <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                                 <div className="flex items-center gap-2 pb-2">
-                                    <Sparkles className="h-5 w-5 text-yellow-600" />
-                                    <h2 className="text-lg font-semibold text-zinc-900">Personalidade</h2>
+                                    <Sparkles className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Personalidade</h2>
                                 </div>
 
                                 <div>
                                     <div className="mb-4 flex items-center justify-between">
-                                        <label className="font-medium text-zinc-700">Nível de Sarcasmo</label>
-                                        <span className={`rounded-full px-3 py-1 text-sm font-bold ${config.sarcasm_level > 7 ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-900'
-                                            }`}>
-                                            {config.sarcasm_level > 9 ? 'TÓXICO' : `${config.sarcasm_level}/10`}
+                                        <label className="font-medium text-zinc-700 dark:text-zinc-300">Nível de Sarcasmo</label>
+                                        <span className={`badge-grok ${config.sarcasm_level > 7 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'}`}>
+                                            {config.sarcasm_level}/10
                                         </span>
                                     </div>
                                     <input
@@ -201,12 +180,12 @@ export function AgentSettingsSection() {
                                         step="1"
                                         value={config.sarcasm_level}
                                         onChange={(e) => setConfig(prev => ({ ...prev, sarcasm_level: parseInt(e.target.value, 10) }))}
-                                        className={`h-2 w-full cursor-pointer appearance-none rounded-lg accent-zinc-900 ${config.sarcasm_level > 7 ? 'bg-red-200' : 'bg-zinc-200'}`}
+                                        className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-zinc-200 dark:bg-zinc-700 accent-zinc-900 dark:accent-zinc-100"
                                     />
-                                    <div className="mt-2 flex justify-between text-xs text-zinc-500">
+                                    <div className="mt-2 flex justify-between text-xs text-zinc-500 dark:text-zinc-400">
                                         <span>Educado</span>
                                         <span>Brincalhão</span>
-                                        <span className={config.sarcasm_level > 7 ? 'text-red-500 font-bold' : ''}>Agressivo</span>
+                                        <span>Agressivo</span>
                                     </div>
                                 </div>
                             </div>
@@ -237,7 +216,7 @@ export function AgentSettingsSection() {
                                         AI
                                     </div>
                                     <div className="rounded-2xl rounded-tr-none bg-emerald-500/10 p-3 text-sm text-emerald-100 border border-emerald-500/20">
-                                        {preview}
+                                        {getPreview()}
                                     </div>
                                 </div>
                             </div>
@@ -249,8 +228,8 @@ export function AgentSettingsSection() {
                         </div>
 
                         {/* Instructions */}
-                        <div className="rounded-xl bg-white p-6 border border-zinc-200 shadow-sm">
-                            <label className="mb-2 block font-medium text-zinc-700">
+                        <div className="rounded-xl bg-white dark:bg-zinc-900 p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                            <label className="mb-2 block font-medium text-zinc-700 dark:text-zinc-300">
                                 Instruções do Sistema (System Prompt)
                             </label>
                             <textarea
@@ -258,9 +237,9 @@ export function AgentSettingsSection() {
                                 onChange={(e) => setConfig(prev => ({ ...prev, instructions: e.target.value }))}
                                 placeholder="Defina regras específicas de comportamento, gírias obrigatórias ou tópicos proibidos..."
                                 rows={6}
-                                className="w-full rounded-lg border border-zinc-300 p-3 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                                className="input-grok w-full"
                             />
-                            <p className="mt-2 text-xs text-zinc-500">
+                            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                                 Essas instruções têm prioridade sobre a personalidade padrão.
                             </p>
                         </div>
@@ -270,7 +249,7 @@ export function AgentSettingsSection() {
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-4 font-bold text-white transition-all hover:bg-zinc-800 disabled:opacity-70 hover:scale-[1.02] active:scale-[0.98]"
+                                className="btn-grok w-full flex items-center justify-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-70 px-6 py-4"
                             >
                                 {saving ? (
                                     <Loader2 className="h-5 w-5 animate-spin" />

@@ -1,0 +1,64 @@
+🛡️ Checklist: Casco Selado (Pré-Build Mobile)
+
+Objetivo: Garantir que o código web do Jacupemba AI não "vaze" ou quebre quando for transformado em aplicativo.
+
+1. O Princípio da Estaticidade (The Static Rule)
+
+O celular não é um servidor. Ele não consegue rodar código Node.js internamente.
+
+
+
+
+Next.js Export: No seu next.config.mjs, a linha output: 'export' deve estar ativa.
+
+
+
+
+Sem Rotas Dinâmicas de Servidor: Verifique se você não está usando getServerSideProps. No mobile, tudo deve ser useEffect ou chamadas de API via fetch para a URL completa da sua API na Vercel (ex: https://jacupemba.ai/api/chat e não apenas /api/chat ).
+
+2. Ativos Visuais (Branding)
+
+O sistema operacional (Android/iOS) exige arquivos específicos para não mostrar o ícone padrão "feio".
+
+
+
+
+Ícone do App: Você precisa de uma imagem quadrada de 1024x1024px (use um dos avatares que geramos).
+
+
+
+
+Splash Screen: Uma imagem de 2048x2048px que aparece enquanto o app carrega.
+
+
+
+
+Favicon vs App Icon: Garanta que o Windsurf configurou o caminho para o icon.png na pasta public.
+
+3. Permissões e Hardware
+
+O navegador pede permissão, o app nativo exige configuração prévia.
+
+
+
+
+Câmera: Se o usuário vai subir foto de relato, o arquivo de configuração do Capacitor/Expo deve declarar o uso da câmera.
+
+
+
+
+Localização: Essencial para o Jacupemba AI. Verifique se o código trata o caso de o usuário negar a permissão.
+
+4. Variáveis de Ambiente "Congeladas"
+
+
+
+
+Hardcoded Public Keys: No mobile, as chaves do Supabase (NEXT_PUBLIC_...) são gravadas no código durante o build. Elas não mudam depois. Verifique se você está usando as chaves de Produção e não as de teste local.
+
+
+
+
+Instrução para o Windsurf:
+"Revise o projeto com base no Checklist Casco Selado. Garanta que todas as chamadas de API usem URLs absolutas e que o output esteja configurado para exportação estática."
+

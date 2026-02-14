@@ -1,0 +1,11 @@
+.git
+node_modules
+.next
+ios
+coverage
+.env.local
+.env
+android/.gradle
+android/build
+android/app/build
+

@@ -53,7 +53,7 @@ export function AdminDashboard() {
           <div className="flex items-center justify-between px-4 py-4 md:px-6">
             <div className="flex items-center gap-3">
               <img
-                src="/avatar_jacupemba_v1.png"
+                src="/avatar.png"
                 alt="Jacupemba"
                 className="h-8 w-8 object-contain"
               />
@@ -74,14 +74,14 @@ export function AdminDashboard() {
             <nav className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => setIsReportModalOpen(true)}
-                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white transition-all duration-150 hover:from-blue-700 hover:to-blue-800 active:scale-[0.98]"
+                className="btn-grok flex items-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 <FileText className="h-4 w-4" />
                 <span>Relatório</span>
               </button>
               <Link
                 href="/"
-                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                className="btn-grok flex items-center gap-2 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
               >
                 <span>Voltar</span>
               </Link>
@@ -96,14 +96,14 @@ export function AdminDashboard() {
                   setIsReportModalOpen(true)
                   setIsMobileMenuOpen(false)
                 }}
-                className="w-full flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+                className="btn-grok w-full flex items-center gap-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
               >
                 <FileText className="h-4 w-4" />
                 <span>Relatório</span>
               </button>
               <Link
                 href="/"
-                className="w-full flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                className="btn-grok w-full flex items-center gap-2 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
               >
                 <span>Voltar</span>
               </Link>

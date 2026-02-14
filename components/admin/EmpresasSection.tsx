@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Building2, Search, Check, X, Trash2, Phone, MapPin, AlertTriangle, Plus, Loader2, Key, Copy, ExternalLink } from 'lucide-react'
+import { Building2, Search, Check, X, Trash2, Phone, MapPin, AlertTriangle, Plus, Loader2, Key, Copy, ExternalLink, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { EmpresaModal } from './EmpresaModal'
@@ -18,6 +18,7 @@ interface Empresa {
   verified: boolean
   status: 'pendente' | 'aprovado' | 'rejeitado'
   created_at: string
+  is_subscribed?: boolean
   access_token?: string
   puv?: string
   whatsapp_link?: string
@@ -175,7 +176,7 @@ export function EmpresasSection() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white transition-colors hover:bg-zinc-800"
+              className="btn-grok flex items-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               <Plus className="h-5 w-5" />
               Nova Empresa
@@ -190,31 +191,16 @@ export function EmpresasSection() {
         </div>
 
         {/* Filters */}
-        <div className="mt-6 flex flex-col gap-4 sm:flex-row">
-          <div className="relative flex-1">
+        <div className="mt-6">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar empresas..."
-              className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-10 pr-4 text-sm"
+              className="input-grok w-full pl-10"
             />
-          </div>
-
-          <div className="flex gap-2">
-            {(['todos', 'pendente', 'aprovado', 'rejeitado'] as const).map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filterStatus === status
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
-                  }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
           </div>
         </div>
       </div>
@@ -228,25 +214,34 @@ export function EmpresasSection() {
             </div>
           ) : (
             filteredEmpresas.map((empresa) => (
-              <div key={empresa.id} className="rounded-xl border border-zinc-200 bg-white p-6">
+              <div key={empresa.id} className={`card-grok p-6 ${empresa.is_subscribed ? 'border-2 border-amber-400 ring-2 ring-amber-400/20 dark:border-amber-500 dark:ring-amber-500/20' : ''}`}>
                 <div className="flex items-start gap-6">
-                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-zinc-100">
-                    <Building2 className="h-8 w-8 text-zinc-400" />
+                  <div className={`flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl ${empresa.is_subscribed ? 'bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20' : 'bg-zinc-100 dark:bg-zinc-800'}`}>
+                    {empresa.is_subscribed ? (
+                      <Star className="h-8 w-8 fill-amber-500 text-amber-500" />
+                    ) : (
+                      <Building2 className="h-8 w-8 text-zinc-400 dark:text-zinc-500" />
+                    )}
                   </div>
 
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-zinc-900">
+                          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                             {empresa.name}
                           </h3>
+                          {empresa.is_subscribed && (
+                            <span className="badge-grok bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700">
+                              ⭐ Premium
+                            </span>
+                          )}
                           {empresa.verified && (
-                            <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
+                            <span className="badge-grok bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                               Verificada
                             </span>
                           )}
-                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(empresa.status)}`}>
+                          <span className={`badge-grok ${getStatusColor(empresa.status)}`}>
                             {empresa.status}
                           </span>
                         </div>

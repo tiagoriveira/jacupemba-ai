@@ -13,6 +13,14 @@ export const metadata: Metadata = {
   title: 'Assistente Local - Bairro Conectado',
   description: 'Encontre serviços, comércios, vagas e eventos do seu bairro de forma rápida e fácil',
   generator: 'v0.app',
+  manifest: '/manifest.json',
+  themeColor: '#000000',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Jacupemba AI',
+  },
   icons: {
     icon: [
       {

@@ -15,7 +15,7 @@ const xai = createXai({
 async function expandQuery(query: string): Promise<string[]> {
   try {
     const { text } = await generateText({
-      model: xai('grok-beta'),
+      model: xai('grok-2-latest'),
       prompt: `Dado o termo de busca "${query}", gere 5 termos relacionados/sinônimos que ajudariam a encontrar resultados similares. Responda APENAS com os termos separados por vírgula, sem explicações.`
     })
     

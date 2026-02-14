@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Edit, Loader2, DollarSign, ExternalLink } from 'lucide-react'
+import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { VitrinePost } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -118,11 +118,6 @@ export function VitrineSection() {
     )
   }
 
-  const handleEdit = (post: VitrinePost) => {
-    setEditingPost(post)
-    setIsModalOpen(true)
-  }
-
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingPost(null)
@@ -176,7 +171,7 @@ export function VitrineSection() {
                 <button
                   onClick={() => handleBatchAction('aprovado')}
                   disabled={processingBatch}
-                  className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 flex gap-2 items-center transition-all"
+                  className="btn-grok flex gap-2 items-center bg-green-600 text-white hover:bg-green-700"
                 >
                   {processingBatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   Aprovar ({selectedPosts.length})
@@ -184,7 +179,7 @@ export function VitrineSection() {
                 <button
                   onClick={() => handleBatchAction('rejeitado')}
                   disabled={processingBatch}
-                  className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 flex gap-2 items-center transition-all"
+                  className="btn-grok flex gap-2 items-center bg-red-600 text-white hover:bg-red-700"
                 >
                   {processingBatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                   Rejeitar
@@ -193,7 +188,7 @@ export function VitrineSection() {
                   <button
                     onClick={() => handleBatchAction('pendente')}
                     disabled={processingBatch}
-                    className="rounded-lg bg-yellow-500 px-3 py-2 text-sm font-medium text-white hover:bg-yellow-600 flex gap-2 items-center transition-all"
+                    className="btn-grok flex gap-2 items-center bg-yellow-500 text-white hover:bg-yellow-600"
                   >
                     <AlertTriangle className="h-4 w-4" />
                     Reverter
@@ -206,7 +201,7 @@ export function VitrineSection() {
                 setEditingPost(null)
                 setIsModalOpen(true)
               }}
-              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white transition-colors hover:bg-zinc-800"
+              className="btn-grok flex items-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               <Plus className="h-5 w-5" />
               Novo Post
@@ -229,7 +224,7 @@ export function VitrineSection() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar posts..."
-              className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-10 pr-4 text-sm"
+              className="input-grok w-full pl-10"
             />
           </div>
 
@@ -242,7 +237,7 @@ export function VitrineSection() {
                   setSelectedPosts(filteredPosts.map(p => p.id))
                 }
               }}
-              className="rounded-lg px-4 py-2 text-sm font-medium transition-colors bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+              className="btn-grok bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
             >
               {selectedPosts.length === filteredPosts.length && filteredPosts.length > 0 ? 'Desmarcar Todos' : 'Selecionar Todos'}
             </button>
@@ -250,9 +245,9 @@ export function VitrineSection() {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filterStatus === status
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                className={`btn-grok ${filterStatus === status
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
                   }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -271,7 +266,7 @@ export function VitrineSection() {
             </div>
           ) : (
             filteredPosts.map((post) => (
-              <div key={post.id} className={`overflow-hidden rounded-xl border bg-white relative group transition-all ${selectedPosts.includes(post.id) ? 'border-zinc-900 ring-2 ring-zinc-900' : 'border-zinc-200'
+              <div key={post.id} className={`card-grok overflow-hidden relative group hover:shadow-lg ${selectedPosts.includes(post.id) ? 'ring-2 ring-zinc-900 dark:ring-zinc-100' : ''
                 }`}>
                 {/* Selection Checkbox */}
                 <div className="absolute top-3 right-3 z-10">
@@ -296,7 +291,7 @@ export function VitrineSection() {
                     </div>
                   )}
                   <div className="absolute left-3 top-3 flex gap-2">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(post.status)}`}>
+                    <span className={`badge-grok ${getStatusColor(post.status)}`}>
                       {post.status}
                     </span>
                   </div>
@@ -317,18 +312,6 @@ export function VitrineSection() {
                       <Clock className="h-4 w-4" />
                       <span>{getTimeRemaining(post.expires_at)}</span>
                     </div>
-                    {post.payment_proof_url && (
-                      <a
-                        href={post.payment_proof_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-blue-600 hover:underline mt-1"
-                      >
-                        <DollarSign className="h-4 w-4" />
-                        <span>Ver comprovante</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
                   </div>
 
                   <div className="mt-4 flex gap-2">
@@ -360,14 +343,6 @@ export function VitrineSection() {
                         </button>
                       </>
                     )}
-                    <button
-                      onClick={() => handleEdit(post)}
-                      disabled={loadingId === post.id}
-                      className="rounded-lg bg-blue-100 p-2 text-blue-700 hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Editar"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
                     <button
                       onClick={() => deletePost(post.id)}
                       disabled={loadingId === post.id}

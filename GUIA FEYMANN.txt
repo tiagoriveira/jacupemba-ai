@@ -1,0 +1,53 @@
+🏭 Guia Feynman: EAS Build (Sua Fábrica na Nuvem)
+
+Conceito: Como você não tem a "máquina de fazer apps" no seu computador, vamos usar a máquina de outra pessoa (Expo) via internet.
+
+1. O que é o EAS?
+
+Imagine que o seu código é uma receita de bolo. O EAS (Expo Application Services) é uma cozinha industrial profissional. Você manda a receita pelo GitHub, eles assam o bolo (compilam o app) e te entregam o bolo pronto (o arquivo .apk ou .ipa).
+
+2. Preparando a Cozinha (Configuração Única)
+
+1.
+Crie uma conta: Vá em expo.dev e crie sua conta gratuita.
+
+2.
+Instale a ferramenta no seu PC: No terminal do seu projeto, digite:
+npm install -g eas-cli
+
+3.
+Faça Login:
+eas login
+
+3. O Comando Mestre (Apertando o Botão)
+
+Para gerar o seu aplicativo Android (o mais fácil para começar), você usará apenas um comando:
+eas build --platform android --profile preview
+
+O que acontece depois desse comando?
+
+1.
+O EAS vai ler o seu código.
+
+2.
+Ele vai perguntar se você quer que eles gerem as "chaves de segurança" (Keystore). Diga SIM para tudo (deixe eles gerenciarem a complexidade).
+
+3.
+O código sobe para a nuvem.
+
+4.
+Você recebe um link de acompanhamento.
+
+5.
+Em cerca de 10-15 minutos, você recebe um QR Code.
+
+4. Instalando no Celular
+
+Aponte a câmera do seu Android para o QR Code. Ele vai baixar um arquivo .apk.
+Nota: O Android vai avisar que é um "App de fonte desconhecida". Isso é normal, pois você ainda não o colocou na loja oficial do Google.
+
+
+
+
+Dica de Ouro: Use o perfil --profile preview. Ele gera um arquivo que você pode instalar direto, sem precisar passar pela burocracia da Google Play Store no primeiro dia.
+

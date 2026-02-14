@@ -13,12 +13,12 @@ interface VitrineUploadModalProps {
   editPost?: {
     id: string
     title: string
-    description: string
-    price: number
+    description: string | null
+    price: number | null
     category: string
     contact_name: string
     contact_phone: string
-    image_url: string
+    image_url: string | null
   } | null
 }
 
@@ -26,10 +26,6 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
   const [isLoading, setIsLoading] = useState(false)
   const [imagePreview, setImagePreview] = useState<string>(editPost?.image_url || '')
   const [imageFile, setImageFile] = useState<File | null>(null)
-
-  // Payment proof state
-  const [paymentProofPreview, setPaymentProofPreview] = useState<string>('')
-  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null)
 
   const [formData, setFormData] = useState({
     contact_name: editPost?.contact_name || '',
@@ -50,6 +46,44 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
   ]
 
   const isCommercial = categories.find(c => c.value === formData.category)?.isCommercial ?? true
+
+  // Placeholders dinâmicos por categoria
+  const getPlaceholders = () => {
+    switch (formData.category) {
+      case 'vaga':
+        return {
+          title: 'Ex: Vaga para Vendedor - Loja de Roupas',
+          description: 'Requisitos, horário, salário, benefícios...'
+        }
+      case 'informativo':
+        return {
+          title: 'Ex: Campanha de Vacinação no Posto de Saúde',
+          description: 'Informações importantes para a comunidade...'
+        }
+      case 'servico':
+        return {
+          title: 'Ex: Conserto de Celulares - Especialista em iPhone',
+          description: 'Detalhes do serviço oferecido, garantia, tempo de execução...'
+        }
+      case 'produto':
+        return {
+          title: 'Ex: iPhone 13 Pro Max 256GB',
+          description: 'Estado do produto, acessórios inclusos, garantia...'
+        }
+      case 'comunicado':
+        return {
+          title: 'Ex: Festa Junina da Comunidade - Dia 24/06',
+          description: 'Data, horário, local e outras informações...'
+        }
+      default:
+        return {
+          title: 'Ex: Título do anúncio',
+          description: 'Detalhes do produto ou serviço...'
+        }
+    }
+  }
+
+  const placeholders = getPlaceholders()
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -77,31 +111,6 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
     reader.readAsDataURL(file)
   }
 
-  const handlePaymentProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validar tamanho (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Comprovante muito grande. Máximo 5MB')
-      return
-    }
-
-    // Validar tipo
-    if (!file.type.startsWith('image/')) {
-      toast.error('Comprovante deve ser uma imagem (screenshot do PIX)')
-      return
-    }
-
-    setPaymentProofFile(file)
-
-    // Preview
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setPaymentProofPreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-  }
 
   const uploadImage = async (file: File): Promise<string> => {
     try {
@@ -165,16 +174,10 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
       setIsLoading(true)
 
       let imageUrl = editPost?.image_url || ''
-      let paymentProofUrl = ''
 
       // Upload nova imagem se fornecida
       if (imageFile) {
         imageUrl = await uploadImage(imageFile)
-      }
-
-      // Upload comprovante se fornecido (base64 temporário)
-      if (paymentProofFile) {
-        paymentProofUrl = paymentProofPreview // Base64 temporário até Supabase Storage
       }
 
       // Calcular data de expiração (48h)
@@ -189,10 +192,9 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
         price: isCommercial ? parseFloat(formData.price) : 0,
         category: formData.category,
         image_url: imageUrl,
-        payment_proof_url: paymentProofUrl || null, // Novo campo
         aspect_ratio: formData.aspect_ratio,
         expires_at: expiresAt.toISOString(),
-        status: 'pendente' as const // Mudado para pendente até aprovação do Super Admin
+        status: 'pendente' as const
       }
 
       if (editPost) {
@@ -227,34 +229,34 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-auto rounded-xl bg-white shadow-xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in-0 duration-200">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-auto rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8">
           <div>
-            <h2 className="text-xl font-bold text-zinc-900">
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
               {editPost ? 'Editar Post da Vitrine' : 'Novo Post na Vitrine'}
             </h2>
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
               {editPost ? 'Atualize as informações do post' : 'Adicione um novo anúncio comercial (48h)'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+            className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-8">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Coluna Esquerda - Imagem */}
             <div className="space-y-4">
-              <label className="block text-sm font-medium text-zinc-900">
+              <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 Imagem {!editPost && '*'}
               </label>
 
-              <div className="relative aspect-square w-full overflow-hidden rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50">
+              <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                 {imagePreview ? (
                   <img
                     src={imagePreview}
@@ -282,79 +284,18 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                 </label>
               </div>
 
-              {/* Mockup for Carousel - Visual Only for now */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-900">Galeria (Carrossel)</label>
-                  <span className="text-xs text-zinc-400">Até 10 fotos</span>
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {/* Placeholder for adding more images */}
-                  <button type="button" className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100">
-                    <Plus className="h-6 w-6 text-zinc-300" />
-                  </button>
-                </div>
-                <p className="text-xs text-zinc-400">
-                  * Funcionalidade de carrossel será cobrada separadamente no futuro.
-                </p>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-zinc-900 mb-2">
+              <div>
+                <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
                   Formato
                 </label>
                 <select
                   value={formData.aspect_ratio}
                   onChange={(e) => setFormData({ ...formData, aspect_ratio: e.target.value as 'square' | 'vertical' })}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                  className="input-grok mt-1 w-full"
                 >
                   <option value="square">Quadrado (1:1)</option>
                   <option value="vertical">Vertical (9:16) - Estilo Reels</option>
                 </select>
-              </div>
-
-              {/* Comprovante PIX */}
-              <div className="mt-6 space-y-2 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 p-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-emerald-900">
-                    Comprovante de Pagamento (PIX)
-                  </label>
-                  <span className="text-xs text-emerald-600">Recomendado</span>
-                </div>
-                <p className="text-xs text-emerald-700">
-                  Anexe o print do PIX para agilizar a aprovação pelo admin
-                </p>
-
-                {paymentProofPreview ? (
-                  <div className="relative mt-2">
-                    <img
-                      src={paymentProofPreview}
-                      alt="Comprovante PIX"
-                      className="h-32 w-full rounded-lg object-cover border border-emerald-200"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentProofPreview('')
-                        setPaymentProofFile(null)
-                      }}
-                      className="absolute top-2 right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
-                    <Upload className="h-4 w-4" />
-                    Anexar Comprovante
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePaymentProofChange}
-                      className="hidden"
-                    />
-                  </label>
-                )}
               </div>
             </div>
 
@@ -362,7 +303,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
             <div className="space-y-4">
               {/* Vendedor */}
               <div>
-                <label className="block text-sm font-medium text-zinc-900">
+                <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   Nome do Vendedor *
                 </label>
                 <input
@@ -370,14 +311,14 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                   required
                   value={formData.contact_name}
                   onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                  className="input-grok mt-1 w-full"
                   placeholder="Nome ou empresa"
                 />
               </div>
 
               {/* Telefone */}
               <div>
-                <label className="block text-sm font-medium text-zinc-900">
+                <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   Telefone/WhatsApp *
                 </label>
                 <input
@@ -385,14 +326,14 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                   required
                   value={formData.contact_phone}
                   onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                  className="input-grok mt-1 w-full"
                   placeholder="(11) 98765-4321"
                 />
               </div>
 
               {/* Título */}
               <div>
-                <label className="block text-sm font-medium text-zinc-900">
+                <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   Título do Anúncio *
                 </label>
                 <input
@@ -400,21 +341,21 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
-                  placeholder="Ex: iPhone 13 Pro Max"
+                  className="input-grok mt-1 w-full"
+                  placeholder={placeholders.title}
                 />
               </div>
 
               {/* Preço e Categoria */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-900">
+                  <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
                     Categoria
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                    className="input-grok mt-1 w-full"
                   >
                     <option value="">Selecione</option>
                     {categories.map((cat) => (
@@ -427,7 +368,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
 
                 {isCommercial && (
                   <div>
-                    <label className="block text-sm font-medium text-zinc-900">
+                    <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
                       Preço (R$) *
                     </label>
                     <input
@@ -436,7 +377,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                       required
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                      className="input-grok mt-1 w-full"
                       placeholder="0.00"
                     />
                   </div>
@@ -445,34 +386,34 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
 
               {/* Descrição */}
               <div>
-                <label className="block text-sm font-medium text-zinc-900">
+                <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   Descrição
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2 focus:border-zinc-900 focus:outline-none"
+                  className="input-grok mt-1 w-full"
                   rows={3}
-                  placeholder="Detalhes do produto ou serviço..."
+                  placeholder={placeholders.description}
                 />
               </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="mt-6 flex gap-3 border-t border-zinc-200 pt-6">
+          <div className="mt-6 flex gap-3 border-t border-zinc-200 dark:border-zinc-800 pt-6">
             <button
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-grok flex-1 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-grok flex flex-1 items-center justify-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
                 <>

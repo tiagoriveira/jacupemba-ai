@@ -340,25 +340,25 @@ export function RelatosSection() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-            <p className="text-xs font-medium text-zinc-500">Total</p>
-            <p className="mt-1 text-2xl font-bold text-zinc-900">{stats.total}</p>
+          <div className="card-grok px-4 py-3 bg-zinc-50 dark:bg-zinc-900/50">
+            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{stats.total}</p>
           </div>
-          <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
-            <p className="text-xs font-medium text-yellow-700">Pendentes</p>
-            <p className="mt-1 text-2xl font-bold text-yellow-900">{stats.pendentes}</p>
+          <div className="card-grok px-4 py-3 border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20">
+            <p className="text-xs font-medium text-yellow-700 dark:text-yellow-400">Pendentes</p>
+            <p className="mt-1 text-2xl font-bold text-yellow-900 dark:text-yellow-100">{stats.pendentes}</p>
           </div>
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-xs font-medium text-red-700">Alto Risco</p>
-            <p className="mt-1 text-2xl font-bold text-red-900">{stats.altoRisco}</p>
+          <div className="card-grok px-4 py-3 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+            <p className="text-xs font-medium text-red-700 dark:text-red-400">Alto Risco</p>
+            <p className="mt-1 text-2xl font-bold text-red-900 dark:text-red-100">{stats.altoRisco}</p>
           </div>
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-            <p className="text-xs font-medium text-green-700">Aprovados</p>
-            <p className="mt-1 text-2xl font-bold text-green-900">{stats.aprovados}</p>
+          <div className="card-grok px-4 py-3 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
+            <p className="text-xs font-medium text-green-700 dark:text-green-400">Aprovados</p>
+            <p className="mt-1 text-2xl font-bold text-green-900 dark:text-green-100">{stats.aprovados}</p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-            <p className="text-xs font-medium text-zinc-500">Rejeitados</p>
-            <p className="mt-1 text-2xl font-bold text-zinc-700">{stats.rejeitados}</p>
+          <div className="card-grok px-4 py-3 bg-zinc-50 dark:bg-zinc-900/50">
+            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Rejeitados</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-700 dark:text-zinc-300">{stats.rejeitados}</p>
           </div>
         </div>
 
@@ -371,7 +371,7 @@ export function RelatosSection() {
               placeholder="Buscar relatos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 py-2 pl-10 pr-4 focus:border-zinc-500 focus:outline-none"
+              className="input-grok w-full pl-10"
             />
           </div>
           <div className="flex gap-2">
@@ -382,9 +382,9 @@ export function RelatosSection() {
                   setFilterStatus(status)
                   setSelectedIds([])
                 }}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filterStatus === status
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                className={`btn-grok ${filterStatus === status
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
                   }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -398,64 +398,60 @@ export function RelatosSection() {
       <div className="space-y-4 p-8">
 
         {/* Bulk Actions Bar */}
-        {filterStatus === 'pendente' && filteredRelatos.filter(r => r.status === 'pendente').length > 0 && (
-          <div className="rounded-lg border-2 border-zinc-300 bg-zinc-50 p-4">
+        {filteredRelatos.length > 0 && (
+          <div className="rounded-2xl border-2 border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50 p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.length === filteredRelatos.filter(r => r.status === 'pendente').length && selectedIds.length > 0}
-                    onChange={toggleSelectAll}
-                    className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                  />
-                  <span className="text-sm font-medium text-zinc-700">
-                    Selecionar todos
-                  </span>
-                </label>
-                {selectedIds.length > 0 && (
-                  <span className="text-sm font-semibold text-zinc-900">
-                    {selectedIds.length} relato(s) selecionado(s)
-                  </span>
-                )}
-              </div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length === filteredRelatos.length && filteredRelatos.length > 0}
+                  onChange={toggleSelectAll}
+                  className="h-5 w-5 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {selectedIds.length > 0
+                    ? `${selectedIds.length} de ${filteredRelatos.length} selecionado(s)`
+                    : `Selecionar todos (${filteredRelatos.length})`
+                  }
+                </span>
+              </label>
               {selectedIds.length > 0 && (
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => bulkUpdateStatus('aprovado')}
                     disabled={isBulkProcessing}
-                    className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn-grok flex items-center gap-2 bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isBulkProcessing ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Check className="h-4 w-4" />
                     )}
-                    Aprovar Selecionados
+                    Aprovar
                   </button>
                   <button
                     onClick={() => bulkUpdateStatus('rejeitado')}
                     disabled={isBulkProcessing}
-                    className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn-grok flex items-center gap-2 bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isBulkProcessing ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <X className="h-4 w-4" />
                     )}
-                    Rejeitar Selecionados
+                    Rejeitar
                   </button>
                   <button
                     onClick={bulkDelete}
                     disabled={isBulkProcessing}
-                    className="flex items-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn-grok flex items-center gap-2 bg-zinc-700 text-white hover:bg-zinc-800 dark:bg-zinc-600 dark:hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isBulkProcessing ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Trash2 className="h-4 w-4" />
                     )}
-                    Deletar Selecionados
+                    Deletar
                   </button>
                 </div>
               )}
@@ -476,10 +472,10 @@ export function RelatosSection() {
               return (
                 <div
                   key={relato.id}
-                  className={`rounded-lg border bg-white p-4 transition-all ${relato.status === 'pendente' && relato.triagem.nivelRisco === 'alto'
-                    ? 'border-red-300 shadow-lg'
-                    : 'border-zinc-200'
-                    } ${selectedIds.includes(relato.id) ? 'ring-2 ring-zinc-900' : ''
+                  className={`card-grok p-6 transition-all ${relato.status === 'pendente' && relato.triagem.nivelRisco === 'alto'
+                    ? 'border-red-300 shadow-lg dark:border-red-700'
+                    : ''
+                    } ${selectedIds.includes(relato.id) ? 'ring-2 ring-zinc-900 dark:ring-zinc-100' : ''
                     }`}
                 >
                   <div className="flex items-start gap-4">
@@ -497,7 +493,7 @@ export function RelatosSection() {
                     <div className="flex-1 space-y-2">
                       {/* Header com categoria e badge de risco */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+                        <span className="badge-grok">
                           {categoryLabels[relato.category] || relato.category}
                         </span>
                         {relato.status === 'pendente' && (
@@ -505,9 +501,9 @@ export function RelatosSection() {
                             {config.icon} {config.label}
                           </span>
                         )}
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${relato.status === 'aprovado' ? 'bg-green-100 text-green-700' :
-                          relato.status === 'rejeitado' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
+                        <span className={`badge-grok ${relato.status === 'aprovado' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          relato.status === 'rejeitado' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                           }`}>
                           {relato.status.charAt(0).toUpperCase() + relato.status.slice(1)}
                         </span>
