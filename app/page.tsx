@@ -499,7 +499,7 @@ export default function Page() {
               <div className="flex min-h-[35vh] md:min-h-[40vh] lg:min-h-[40vh] items-center justify-center px-4">
                 <div className="text-center animate-in fade-in-0 duration-700">
                   {/* Avatar - Larger */}
-                  <div className="mb-6 flex justify-center">
+                  <div className="mb-12 mt-8 flex justify-center">
                     <img
                       src="/avatar_jacupemba_v1.png"
                       alt="Jacupemba"

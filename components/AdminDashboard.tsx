@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Shield, AlertTriangle, Store, Building2, LogOut, ArrowLeft, Settings, FileText } from 'lucide-react'
+import { AlertTriangle, Store, Building2, LogOut, Settings, FileText, ChevronDown } from 'lucide-react'
 import { Toaster } from 'sonner'
 import Link from 'next/link'
 import { RelatosSection } from './admin/RelatosSection'
@@ -15,6 +15,7 @@ type Section = 'relatos' | 'vitrine' | 'empresas' | 'settings'
 export function AdminDashboard() {
   const [activeSection, setActiveSection] = useState<Section>('relatos')
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const sections = [
     {
@@ -46,43 +47,75 @@ export function AdminDashboard() {
   return (
     <>
       <Toaster position="top-right" richColors />
-      <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
-        {/* Sidebar */}
-        <aside className="w-64 flex-shrink-0 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex h-full flex-col">
-            {/* Header */}
-            <div className="border-b border-zinc-200 p-6 dark:border-zinc-800">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="rounded-lg bg-zinc-900 p-2 dark:bg-zinc-100">
-                  <Shield className="h-5 w-5 text-white dark:text-zinc-900" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    Admin Panel
-                  </h1>
-                  <p className="text-xs text-zinc-500">Jacupemba AI</p>
-                </div>
-              </div>
-
-              {/* Botão Relatório Mensal */}
-              <button
-                onClick={() => setIsReportModalOpen(true)}
-                className="w-full flex items-center gap-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-left transition-all hover:from-blue-700 hover:to-blue-800 active:scale-[0.98] shadow-md hover:shadow-lg"
-              >
-                <FileText className="h-5 w-5 text-white flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-white">
-                    Relatório Mensal
-                  </div>
-                  <div className="text-xs text-blue-100">
-                    Ver estatísticas dos últimos 30 dias
-                  </div>
-                </div>
-              </button>
+      <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
+        {/* Header Navigation - Same as initial interface */}
+        <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center justify-between px-4 py-4 md:px-6">
+            <div className="flex items-center gap-3">
+              <img
+                src="/avatar_jacupemba_v1.png"
+                alt="Jacupemba"
+                className="h-8 w-8 object-contain"
+              />
+              <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                Painel Admin
+              </h1>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 space-y-1 p-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden flex items-center gap-2 text-zinc-600 dark:text-zinc-400"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-2">
+              <button
+                onClick={() => setIsReportModalOpen(true)}
+                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white transition-all duration-150 hover:from-blue-700 hover:to-blue-800 active:scale-[0.98]"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Relatório</span>
+              </button>
+              <Link
+                href="/"
+                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              >
+                <span>Voltar</span>
+              </Link>
+            </nav>
+          </div>
+
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden border-t border-zinc-200 dark:border-zinc-800 px-4 py-4 space-y-2">
+              <button
+                onClick={() => {
+                  setIsReportModalOpen(true)
+                  setIsMobileMenuOpen(false)
+                }}
+                className="w-full flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Relatório</span>
+              </button>
+              <Link
+                href="/"
+                className="w-full flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                <span>Voltar</span>
+              </Link>
+            </div>
+          )}
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* Sidebar Navigation - Desktop */}
+          <aside className="hidden md:flex md:w-64 flex-shrink-0 border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+            <nav className="w-full space-y-1 p-4">
               {sections.map((section) => {
                 const Icon = section.icon
                 const isActive = activeSection === section.id
@@ -91,20 +124,23 @@ export function AdminDashboard() {
                   <button
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
-                    className={`flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors ${isActive
-                      ? 'bg-zinc-100 dark:bg-zinc-800'
-                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                      }`}
+                    className={`flex w-full items-start gap-3 rounded-lg p-3 text-left transition-all duration-150 ${
+                      isActive
+                        ? 'bg-zinc-100 dark:bg-zinc-800'
+                        : 'hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'
+                    }`}
                   >
-                    <Icon className={`h-5 w-5 flex-shrink-0 ${isActive
-                      ? 'text-zinc-900 dark:text-zinc-100'
-                      : 'text-zinc-500'
-                      }`} />
-                    <div className="flex-1">
-                      <div className={`text-sm font-medium ${isActive
+                    <Icon className={`h-5 w-5 flex-shrink-0 ${
+                      isActive
                         ? 'text-zinc-900 dark:text-zinc-100'
-                        : 'text-zinc-700 dark:text-zinc-300'
-                        }`}>
+                        : 'text-zinc-500'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-sm font-medium ${
+                        isActive
+                          ? 'text-zinc-900 dark:text-zinc-100'
+                          : 'text-zinc-700 dark:text-zinc-300'
+                      }`}>
                         {section.name}
                       </div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-500">
@@ -115,33 +151,42 @@ export function AdminDashboard() {
                 )
               })}
             </nav>
+          </aside>
 
-            {/* Footer */}
-            <div className="space-y-1 border-t border-zinc-200 p-4 dark:border-zinc-800">
-              <Link
-                href="/"
-                className="flex w-full items-center gap-3 rounded-lg p-3 text-left text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
-              >
-                <ArrowLeft className="h-5 w-5 text-zinc-500" />
-                <span>Voltar ao Chat</span>
-              </Link>
-              <button
-                onClick={() => window.location.reload()}
-                className="flex w-full items-center gap-3 rounded-lg p-3 text-left text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
-              >
-                <LogOut className="h-5 w-5 text-zinc-500" />
-                <span>Sair</span>
-              </button>
+          {/* Mobile Section Selector */}
+          <div className="md:hidden px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {sections.map((section) => {
+                const Icon = section.icon
+                const isActive = activeSection === section.id
+
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-all ${
+                      isActive
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                        : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {section.name}
+                  </button>
+                )
+              })}
             </div>
           </div>
-        </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          {activeSection === 'relatos' && <RelatosSection />}
-          {activeSection === 'vitrine' && <VitrineSection />}
-          {activeSection === 'empresas' && <EmpresasSection />}
-          {activeSection === 'settings' && <AgentSettingsSection />}
+          {/* Content Area */}
+          <div className="flex-1 overflow-auto">
+            <div className="bg-white dark:bg-zinc-950">
+              {activeSection === 'relatos' && <RelatosSection />}
+              {activeSection === 'vitrine' && <VitrineSection />}
+              {activeSection === 'empresas' && <EmpresasSection />}
+              {activeSection === 'settings' && <AgentSettingsSection />}
+            </div>
+          </div>
         </main>
       </div>
 
