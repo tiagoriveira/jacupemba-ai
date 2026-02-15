@@ -1,48 +1,42 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MapPin, ArrowLeft, Trash2, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Trash2, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
-interface HistoryItem {
-  id: string
-  question: string
-  answer: string
-  timestamp: Date
-}
+import {
+  listConversations,
+  deleteConversation as deleteConv,
+  clearAllConversations,
+  migrateOldHistory,
+  type Conversation,
+} from '@/lib/conversation-store'
 
 export default function HistoricoPage() {
-  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>([])
   const router = useRouter()
 
   useEffect(() => {
-    const savedHistory = localStorage.getItem('chat-history')
-    if (savedHistory) {
-      const parsed = JSON.parse(savedHistory)
-      setHistory(parsed.map((item: any) => ({
-        ...item,
-        timestamp: new Date(item.timestamp)
-      })))
-    }
+    migrateOldHistory()
+    setConversations(listConversations())
   }, [])
 
   const clearHistory = () => {
     if (confirm('Tem certeza que deseja limpar todo o histórico?')) {
-      localStorage.removeItem('chat-history')
-      setHistory([])
+      clearAllConversations()
+      setConversations([])
     }
   }
 
-  const deleteConversation = (id: string) => {
+  const handleDelete = (id: string) => {
     if (confirm('Deseja apagar esta conversa?')) {
-      const updatedHistory = history.filter(item => item.id !== id)
-      localStorage.setItem('chat-history', JSON.stringify(updatedHistory))
-      setHistory(updatedHistory)
+      deleteConv(id)
+      setConversations(listConversations())
     }
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr)
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
     const diffMins = Math.floor(diffMs / 60000)
@@ -63,19 +57,18 @@ export default function HistoricoPage() {
     })
   }
 
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text
-    return text.substring(0, maxLength) + '...'
+  const openConversation = (conv: Conversation) => {
+    sessionStorage.setItem('load-conversation', JSON.stringify(conv))
+    sessionStorage.setItem('active-conversation-id', conv.id)
+    router.push('/')
   }
 
-  const continueConversation = (item: HistoryItem) => {
-    // Salvar a conversa selecionada no sessionStorage com contexto para continuação
-    sessionStorage.setItem('continue-conversation', JSON.stringify({
-      question: item.question,
-      answer: item.answer,
-      contextMessage: `Continuando conversa anterior. O usuário perguntou: "${item.question}" e você respondeu: "${item.answer.substring(0, 300)}". Agora o usuário quer continuar essa conversa.`
-    }))
-    router.push('/')
+  const getLastAssistantMessage = (conv: Conversation): string => {
+    const lastMsg = [...conv.messages].reverse().find(m => m.role === 'assistant')
+    if (!lastMsg) return ''
+    return lastMsg.content.length > 120
+      ? lastMsg.content.substring(0, 120) + '...'
+      : lastMsg.content
   }
 
   return (
@@ -90,20 +83,18 @@ export default function HistoricoPage() {
             >
               <ArrowLeft className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
             </Link>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-zinc-900 dark:text-white">
-                Histórico
-              </h1>
-            </div>
+            <h1 className="text-xl font-semibold text-zinc-900 dark:text-white">
+              Histórico
+            </h1>
           </div>
 
-          {history.length > 0 && (
+          {conversations.length > 0 && (
             <button
               onClick={clearHistory}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20"
             >
               <Trash2 className="h-4 w-4" />
-              Limpar histórico
+              Limpar tudo
             </button>
           )}
         </div>
@@ -112,60 +103,63 @@ export default function HistoricoPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl px-4 py-6">
-          {history.length === 0 ? (
-            /* Empty State */
+          {conversations.length === 0 ? (
             <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <MessageSquare className="h-8 w-8 text-zinc-400 dark:text-zinc-500" />
               </div>
               <h2 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-white">
-                Você ainda não fez nenhuma consulta
+                Nenhuma conversa ainda
               </h2>
               <p className="mb-6 text-zinc-500 dark:text-zinc-400">
-                Suas conversas aparecerão aqui
+                Suas conversas com o Jacupemba AI aparecerão aqui
               </p>
               <Link
                 href="/"
                 className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
-                Fazer uma consulta
+                Iniciar conversa
               </Link>
             </div>
           ) : (
-            /* History List */
             <div className="space-y-3">
-              {history.map((item) => (
+              {conversations.map((conv) => (
                 <div
-                  key={item.id}
-                  onClick={() => continueConversation(item)}
+                  key={conv.id}
+                  onClick={() => openConversation(conv)}
                   className="group rounded-2xl border border-zinc-200 bg-white p-4 transition-all hover:border-zinc-300 hover:shadow-md cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <h3 className="mb-1 font-medium text-zinc-900 dark:text-white">
-                        {item.question}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="mb-1 font-medium text-zinc-900 dark:text-white truncate">
+                        {conv.title}
                       </h3>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {truncateText(item.answer, 150)}
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
+                        {getLastAssistantMessage(conv)}
                       </p>
                     </div>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation() // Prevenir que o card seja clicado ao deletar
-                        deleteConversation(item.id)
+                        e.stopPropagation()
+                        handleDelete(conv.id)
                       }}
-                      className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:text-red-400"
+                      className="shrink-0 rounded p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:text-red-400"
                       title="Apagar conversa"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                      {formatDate(item.timestamp)}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-zinc-500">
+                        {formatDate(conv.updated_at)}
+                      </span>
+                      <span className="text-xs text-zinc-400 dark:text-zinc-600">
+                        {conv.messages.length} msgs
+                      </span>
+                    </div>
                     <span className="text-xs text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors">
-                      Clique para continuar →
+                      Abrir conversa →
                     </span>
                   </div>
                 </div>

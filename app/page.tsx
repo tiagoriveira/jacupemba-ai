@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { Loader2, Briefcase, Calendar, Store, ImagePlus, X, History, ShoppingBag, MessageSquare, ArrowUp, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Loader2, AlertTriangle, TrendingUp, MapPin, Store, X, History, ShoppingBag, MessageSquare, ArrowUp, ImagePlus } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getAgentConfig } from '@/lib/agentConfig'
@@ -16,46 +16,69 @@ import { SuggestionChips, generateContextualSuggestions, INITIAL_SUGGESTIONS } f
 import { generatePersonalizedChips } from '@/lib/historyAnalyzer'
 import { logger } from '@/lib/logger'
 import { getApiUrl } from '@/lib/api-config'
+import {
+  createConversation,
+  addMessageToConversation,
+  getConversation,
+  migrateOldHistory,
+  type Conversation,
+  type ConversationMessage,
+} from '@/lib/conversation-store'
 
-const SUGGESTED_QUESTIONS = [
-  {
-    icon: Store,
-    text: 'Preciso de um eletricista urgente',
-    category: 'Serviços'
-  },
-  {
-    icon: ImagePlus,
-    text: 'Envie uma foto do produto ou serviço que precisa',
-    category: 'Upload de Foto'
-  },
-  {
-    icon: Store,
-    text: 'Onde compro tinta spray no bairro?',
-    category: 'Comércio'
-  },
-  {
-    icon: Briefcase,
-    text: 'Tem vaga de emprego na área administrativa?',
-    category: 'Vagas'
-  },
-  {
-    icon: Calendar,
-    text: 'Que eventos têm esse fim de semana?',
-    category: 'Eventos'
-  },
-  {
-    icon: Store,
-    text: 'Preciso de um mecânico de confiança',
-    category: 'Serviços'
-  },
-]
+const TRENDING_QUERIES: Record<string, { icon: any, text: string, query: string }> = {
+  'seguranca': { icon: AlertTriangle, text: 'Problemas de segurança recentes', query: 'Quais os relatos de segurança mais recentes do bairro?' },
+  'emergencia': { icon: AlertTriangle, text: 'Emergências no bairro', query: 'Houve alguma emergência recente no bairro?' },
+  'saude': { icon: MapPin, text: 'Saúde pública', query: 'Como está a situação de saúde pública no bairro?' },
+  'transito': { icon: MapPin, text: 'Trânsito e buracos', query: 'Quais os problemas de trânsito recentes?' },
+  'saneamento': { icon: MapPin, text: 'Saneamento básico', query: 'Como está o saneamento no bairro?' },
+  'iluminacao': { icon: MapPin, text: 'Iluminação pública', query: 'Tem problema de iluminação pública no bairro?' },
+  'convivencia': { icon: Store, text: 'Comunidade', query: 'O que está acontecendo na comunidade?' },
+  'animais': { icon: MapPin, text: 'Animais no bairro', query: 'Tem relatos sobre animais no bairro?' },
+  'eventos': { icon: TrendingUp, text: 'Eventos locais', query: 'Quais eventos estão acontecendo no bairro?' },
+  'comercio': { icon: Store, text: 'Comércio local', query: 'Quais comércios estão sendo comentados?' },
+  'transporte': { icon: MapPin, text: 'Transporte público', query: 'Como está o transporte público no bairro?' },
+  'outros': { icon: TrendingUp, text: 'Outros relatos', query: 'Quais são os últimos relatos do bairro?' },
+}
 
+
+// Helper: converter mensagens do store para formato UIMessage do ai-sdk
+function storedToUIMessages(msgs: ConversationMessage[]): any[] {
+  return msgs.map(m => ({
+    id: m.id,
+    role: m.role,
+    parts: [{ type: 'text', text: m.content }],
+  }))
+}
 
 export default function Page() {
   const [input, setInput] = useState('')
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+
+  // Carregar conversa do histórico (ANTES do useChat)
+  const [initialMessages] = useState(() => {
+    if (typeof window === 'undefined') return []
+    // Migrar histórico antigo na primeira vez
+    migrateOldHistory()
+    const loadData = sessionStorage.getItem('load-conversation')
+    if (loadData) {
+      sessionStorage.removeItem('load-conversation')
+      try {
+        const conv: Conversation = JSON.parse(loadData)
+        return storedToUIMessages(conv.messages)
+      } catch { return [] }
+    }
+    return []
+  })
+
+  // Setar activeConversationId após mount se veio do histórico
+  useEffect(() => {
+    const loadData = sessionStorage.getItem('active-conversation-id')
+    if (loadData) {
+      sessionStorage.removeItem('active-conversation-id')
+      setActiveConversationId(loadData)
+    }
+  }, [])
 
   // Feedback state - localStorage temporário até backend
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'negative' | null>>({})
@@ -106,10 +129,10 @@ export default function Page() {
   }
 
   const { messages, sendMessage, status } = useChat({
+    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
     transport: new DefaultChatTransport({
       api: '/api/chat',
       headers: () => {
-        // Ler configurações do localStorage e enviar via headers
         const config = getAgentConfig()
         return {
           'x-agent-model': config.model,
@@ -188,12 +211,9 @@ export default function Page() {
 
   // Handler para novo chat
   const handleNewChat = () => {
-    // Resetar sugestões para iniciais
+    setActiveConversationId(null)
     setCurrentSuggestions(INITIAL_SUGGESTIONS)
-    // Limpar input
     setInput('')
-    setSelectedImage(null)
-    // Recarregar a página para limpar o chat (força reset do useChat)
     window.location.reload()
   }
 
@@ -209,25 +229,8 @@ export default function Page() {
     setPersonalizedChips(chips)
   }, [])
 
-  // Carregar conversa do histórico se houver uma selecionada
-  useEffect(() => {
-    const continueConv = sessionStorage.getItem('continue-conversation')
-    if (continueConv) {
-      try {
-        const { question, answer, contextMessage } = JSON.parse(continueConv)
-        sessionStorage.removeItem('continue-conversation')
-        // Enviar mensagem com contexto da conversa anterior para o agente não começar do zero
-        const continuationText = contextMessage
-          ? `[Contexto: ${contextMessage}]\n\nQuero continuar sobre: ${question}`
-          : question
-        sendMessage({ text: continuationText })
-      } catch {
-        // Falha silenciosa
-      }
-    }
-  }, [])
 
-  // Save to history when conversation is complete
+  // Salvar conversa como thread completa
   useEffect(() => {
     if (messages.length >= 2 && !isLoading) {
       const lastUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0]
@@ -238,101 +241,42 @@ export default function Page() {
         const assistantText = getMessageText(lastAssistantMessage.parts)
 
         if (userText && assistantText) {
-          // Gerar sugestões contextuais baseadas na resposta do agente E no contexto completo da conversa atual
+          // Gerar sugestões contextuais
           const conversationContext = messages.map(m => getMessageText(m.parts)).join(' ')
           const contextualSuggestions = generateContextualSuggestions(assistantText, userText, conversationContext)
           setCurrentSuggestions(contextualSuggestions)
 
-          const saveToHistory = async () => {
-            const userFingerprint = getUserFingerprint()
-            
-            // Tentar salvar no backend
-            try {
-              await fetch(getApiUrl('/api/conversation-history'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  user_fingerprint: userFingerprint,
-                  query: userText,
-                  response_summary: assistantText.substring(0, 500) // Truncar para economizar espaço
-                })
-              })
-            } catch (error) {
-              console.error('Failed to save to backend, using localStorage fallback:', error)
-            }
-
-            // Sempre salvar no localStorage como fallback
-            const historyItem = {
-              id: Date.now().toString(),
-              question: userText,
-              answer: assistantText,
-              timestamp: new Date().toISOString()
-            }
-
-            const savedHistory = localStorage.getItem('chat-history')
-            const history = savedHistory ? JSON.parse(savedHistory) : []
-
-            // Check if this item already exists (avoid duplicates)
-            const exists = history.some((item: any) =>
-              item.question === userText && item.answer === assistantText
-            )
-
-            if (!exists) {
-              history.unshift(historyItem)
-              // Keep only last 50 items
-              if (history.length > 50) history.pop()
-              localStorage.setItem('chat-history', JSON.stringify(history))
-            }
+          // Salvar thread no conversation store
+          if (activeConversationId) {
+            addMessageToConversation(activeConversationId, 'user', userText)
+            addMessageToConversation(activeConversationId, 'assistant', assistantText)
+          } else {
+            const conv = createConversation(userText, assistantText)
+            setActiveConversationId(conv.id)
           }
 
-          saveToHistory()
+          // Backend fallback
+          try {
+            fetch(getApiUrl('/api/conversation-history'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_fingerprint: getUserFingerprint(),
+                query: userText,
+                response_summary: assistantText.substring(0, 500)
+              })
+            })
+          } catch {}
         }
       }
     }
   }, [messages, isLoading])
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string
-        setSelectedImage(base64)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const handleRemoveImage = () => {
-    setSelectedImage(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if ((!input.trim() && !selectedImage) || isLoading) return
-
-    const messageContent = []
-
-    if (input.trim()) {
-      messageContent.push({ type: 'text' as const, text: input })
-    }
-
-    if (selectedImage) {
-      messageContent.push({
-        type: 'data-image' as const,
-        data: selectedImage,
-      })
-    }
-
-    sendMessage({ parts: messageContent })
+    if (!input.trim() || isLoading) return
+    sendMessage({ text: input })
     setInput('')
-    setSelectedImage(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
   }
 
   
@@ -511,12 +455,12 @@ export default function Page() {
 
                   {/* Title */}
                   <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-4xl lg:text-5xl animate-in slide-in-from-bottom-4 duration-500 delay-200">
-                    Olá! Sou seu assistente local
+                    Olá! Sou o Jacupemba AI
                   </h1>
 
-                  {/* Subtitle with ironic touch */}
+                  {/* Subtitle */}
                   <p className="mt-3 max-w-2xl mx-auto text-base text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed animate-in slide-in-from-bottom-4 duration-500 delay-300">
-                    Te ajudo com comércio, serviços, vagas e informações do bairro de Jacupemba, na maioria das vezes sou irônico, mas isso é quando estou de bom humor!
+                    Seu assistente irônico do bairro. Pergunte sobre relatos, comércios e serviços locais — ou simplesmente fofoque.
                   </p>
                 </div>
               </div>
@@ -582,31 +526,43 @@ export default function Page() {
                     </Link>
                   </div>
 
-                  {/* Seção 4: Cards de Sugestões (Grid) - Embaixo do Feed */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
-                    {SUGGESTED_QUESTIONS.map((suggestion, index) => {
-                      const Icon = suggestion.icon
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion.text)}
-                          className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
-                        >
-                          <div className="rounded-lg bg-zinc-100 p-2 transition-colors group-hover:bg-zinc-200 dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                            <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="mb-1 text-xs font-medium text-zinc-400 dark:text-zinc-500">
-                              {suggestion.category}
-                            </div>
-                            <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                              {suggestion.text}
-                            </div>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
+                  {/* Seção 4: Trending Topics - Baseado em relatos reais */}
+                  {trendingTopics.length > 0 && (
+                    <div className="space-y-4 pt-4">
+                      <div className="flex items-center gap-2 px-1">
+                        <TrendingUp className="h-4 w-4 text-zinc-500" />
+                        <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                          Trending no bairro
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {trendingTopics.map((topic) => {
+                          const config = TRENDING_QUERIES[topic.category]
+                          if (!config) return null
+                          const Icon = config.icon
+                          return (
+                            <button
+                              key={topic.category}
+                              onClick={() => handleSuggestionClick(config.query)}
+                              className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all duration-150 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                            >
+                              <div className="rounded-lg bg-zinc-100 p-2 transition-colors group-hover:bg-zinc-200 dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                                <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="mb-1 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+                                  {CATEGORY_LABELS[topic.category] || topic.category} {getPopularityIndicator(topic.count)}
+                                </div>
+                                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                  {config.text}
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               </div>
@@ -687,52 +643,19 @@ export default function Page() {
       {/* Input Area */}
       <div className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto max-w-4xl px-4 py-4">
-          <form onSubmit={handleSubmit} className="relative space-y-3">
-            {selectedImage && (
-              <div className="relative inline-block">
-                <img
-                  src={selectedImage || "/placeholder.svg"}
-                  alt="Preview"
-                  className="h-24 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-
+          <form onSubmit={handleSubmit}>
             <div className="flex items-end gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 transition-colors focus-within:border-zinc-300 focus-within:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:focus-within:border-zinc-700">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-                className="m-2 ml-3 flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 transition-all duration-150 hover:bg-zinc-200 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-              >
-                <ImagePlus className="h-5 w-5" />
-              </button>
-
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Digite sua pergunta ou envie uma foto..."
+                placeholder="Pergunte algo sobre o bairro..."
                 disabled={isLoading}
-                className="flex-1 resize-none bg-transparent py-3.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                className="flex-1 resize-none bg-transparent py-3.5 pl-4 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
               <button
                 type="submit"
-                disabled={isLoading || (!input.trim() && !selectedImage)}
+                disabled={isLoading || !input.trim()}
                 className="m-2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 text-white transition-all duration-150 hover:bg-zinc-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {isLoading ? (

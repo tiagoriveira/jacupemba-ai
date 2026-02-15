@@ -11,6 +11,33 @@ const xai = createXai({
 })
 
 // ---------------------------------------------------------------------------
+// Rate limiter simples em memória (30 req/min por IP)
+// ---------------------------------------------------------------------------
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+const RATE_LIMIT = 30
+const RATE_WINDOW_MS = 60_000
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= RATE_LIMIT) return false
+  entry.count++
+  return true
+}
+
+// Limpar entradas expiradas a cada 5 min
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, val] of rateLimitMap) {
+    if (now > val.resetAt) rateLimitMap.delete(key)
+  }
+}, 300_000)
+
+// ---------------------------------------------------------------------------
 // Helper: format relative time for context readability
 // ---------------------------------------------------------------------------
 function formatRelativeTime(dateStr: string): string {
@@ -337,8 +364,7 @@ Responda APENAS no formato JSON (sem markdown):
   "negativos": <numero>,
   "neutros": <numero>,
   "sentimento_geral": "positivo" | "negativo" | "misto" | "neutro",
-  "resumo": "<resumo em 1-2 frases do que as pessoas dizem>",
-  "media_avaliacoes": ${reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 'null'}
+  "resumo": "<resumo em 1-2 frases do que as pessoas dizem>"
 }`,
       })
 
@@ -348,7 +374,6 @@ Responda APENAS no formato JSON (sem markdown):
           local, 
           totalMencoes,
           totalRelatos: relatos?.length || 0,
-          totalAvaliacoes: reviews.length,
           ...resultado 
         }
       } catch {
@@ -360,8 +385,63 @@ Responda APENAS no formato JSON (sem markdown):
   },
 })
 
-// NOTA: Busca semântica removida temporariamente para evitar deadlock (fetch interno)
-// TODO: Implementar busca semântica diretamente no contexto desta rota sem fetch
+const buscarVitrine = tool({
+  description:
+    'Busca anuncios ativos na vitrine digital do bairro. Use quando o usuario perguntar sobre produtos a venda, servicos anunciados, ofertas, promocoes ou quiser comprar algo no bairro.',
+  inputSchema: z.object({
+    termo: z.string().nullable().describe('Termo de busca no titulo ou descricao do anuncio'),
+    categoria: z
+      .string()
+      .nullable()
+      .describe('Categoria: produto, servico, comunicado, vaga, informativo. Null para todas.'),
+  }),
+  execute: async ({ termo, categoria }) => {
+    try {
+      let query = supabase
+        .from('vitrine_posts')
+        .select('*')
+        .eq('status', 'aprovado')
+        .gte('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (categoria) {
+        query = query.eq('category', categoria)
+      }
+      if (termo) {
+        query = query.or(`title.ilike.%${termo}%,description.ilike.%${termo}%`)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      if (!data || data.length === 0) {
+        return {
+          total: 0,
+          anuncios: [],
+          mensagem: termo
+            ? `Nenhum anuncio encontrado para "${termo}" na vitrine.`
+            : 'Nenhum anuncio ativo na vitrine no momento.',
+        }
+      }
+
+      return {
+        total: data.length,
+        anuncios: data.map(v => ({
+          titulo: v.title,
+          descricao: v.description || '',
+          preco: v.price ? `R$ ${Number(v.price).toFixed(2)}` : 'A combinar',
+          categoria: v.category,
+          vendedor: v.contact_name || 'Anonimo',
+          telefone: v.contact_phone || 'N/A',
+          expira: formatRelativeTime(v.expires_at),
+        })),
+      }
+    } catch {
+      return { total: 0, anuncios: [], erro: 'Erro ao buscar vitrine' }
+    }
+  },
+})
 
 const detectarIntencaoServico = tool({
   description:
@@ -453,14 +533,17 @@ const detectarIntencaoServico = tool({
 // ---------------------------------------------------------------------------
 
 export async function POST(req: Request) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  if (!checkRateLimit(clientIp)) {
+    return new Response(
+      JSON.stringify({ error: 'Calma lá, muitas perguntas de uma vez! Espere um momento antes de continuar.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } }
+    )
+  }
+
   try {
     const { messages }: { messages: UIMessage[] } = await req.json()
-
-    // Debug: Log incoming messages to check image data
-    console.log('[v0] Received messages:', messages.map(m => ({
-      role: m.role,
-      parts: m.parts?.map((p: any) => ({ type: p.type, hasData: !!p.data }))
-    })))
 
     // Load base context from all 4 data layers
     const { reports, comments, businesses, vitrinePosts } = await getBairroContext()
@@ -509,6 +592,7 @@ export async function POST(req: Request) {
     const agentTools = {
       buscarRelatos,
       buscarComercio,
+      buscarVitrine,
       obterEstatisticas,
       analisarSentimento,
       detectarIntencaoServico,
@@ -536,6 +620,7 @@ QUANDO USAR FERRAMENTAS:
 Voce tem ferramentas para buscar dados, mas USE-AS SOMENTE APOS coletar o contexto do usuario:
 - buscarRelatos: Filtra relatos por categoria
 - buscarComercio: Busca comercios por categoria/nome
+- buscarVitrine: Busca anuncios ativos na vitrine (produtos, servicos, vagas). Use quando o usuario quiser comprar algo ou ver ofertas.
 - obterEstatisticas: Dados estatisticos do bairro
 - analisarSentimento: Avalia reputacao de comercio
 - detectarIntencaoServico: Busca profissionais assinantes (use APOS coletar contexto de urgencia/problema)
@@ -598,7 +683,7 @@ INSTRUCOES TECNICAS:
 - Responda SEMPRE em portugues brasileiro
 - Use APENAS dados reais do contexto ou ferramentas
 - Seja conciso, util e SEMPRE com humor acido
-- Quando usuario enviar imagem: analise o conteudo da imagem e responda de forma contextual. Se for produto/servico, tente identificar e recomendar onde encontrar no bairro. Se for local, identifique e fale sobre ele. SEMPRE reconheca que recebeu a imagem antes de responder.`
+- Quando alguem quiser anunciar no bairro, informe sobre a Vitrine Digital acessivel pelo botao 'Vitrine' no topo da pagina.`
 
     // Aplicar ajuste de sarcasmo baseado no nível configurado
     const sarcasmAdjustments: Record<number, string> = {
@@ -622,24 +707,49 @@ INSTRUCOES TECNICAS:
       systemPrompt += `\n\nINSTRUÇÕES ADICIONAIS DO ADMIN:\n${customInstructions}`
     }
 
-    const result = streamText({
-      model: xai(agentModel as any), // Usar modelo configurado dinamicamente
-      system: systemPrompt,
-      messages: await convertToModelMessages(messages),
-      tools: agentTools,
-      stopWhen: stepCountIs(5),
-      abortSignal: req.signal,
-    })
+    const convertedMessages = await convertToModelMessages(messages)
 
-    return result.toUIMessageStreamResponse({
-      originalMessages: messages,
-      consumeSseStream: consumeStream,
-    })
+    // Tentar modelo principal com fallback
+    const modelsToTry = [agentModel, 'grok-3-fast']
+    let lastError: unknown = null
+
+    for (const modelId of modelsToTry) {
+      try {
+        const result = streamText({
+          model: xai(modelId as any),
+          system: systemPrompt,
+          messages: convertedMessages,
+          tools: agentTools,
+          stopWhen: stepCountIs(5),
+          abortSignal: req.signal,
+        })
+
+        return result.toUIMessageStreamResponse({
+          originalMessages: messages,
+          consumeSseStream: consumeStream,
+        })
+      } catch (modelError) {
+        console.error(`[Fallback] Modelo ${modelId} falhou:`, modelError)
+        lastError = modelError
+        continue
+      }
+    }
+
+    // Se todos os modelos falharem, retornar resposta graceful
+    console.error('Todos os modelos falharam:', lastError)
+    const fallbackMessage = `Eita, parece que estou com dificuldades técnicas no momento. 😅 Meu cérebro artificial está tirando uma folga não autorizada.\n\nEnquanto isso, você pode:\n- Acessar o **Feed do Bairro** para ver relatos recentes\n- Conferir a **Vitrine** para anúncios locais\n- Tentar novamente em alguns minutos\n\nSe o problema persistir, pode ser que o serviço de IA esteja temporariamente indisponível.`
+
+    return new Response(
+      JSON.stringify({
+        error: fallbackMessage,
+      }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    )
   } catch (error) {
     console.error('Error in chat API:', error)
     return new Response(
       JSON.stringify({
-        error: 'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.',
+        error: 'Desculpe, ocorreu um erro inesperado. Tente novamente em alguns instantes.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
