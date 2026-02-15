@@ -74,35 +74,42 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in-0 duration-150">
-      <div className="relative w-full max-w-md mx-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in-0 duration-200 p-4">
+      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom-4 zoom-in-95 duration-200 overflow-hidden">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          disabled={loading}
+          className="absolute right-4 top-4 z-10 rounded-full bg-zinc-100 dark:bg-zinc-800 p-2 text-zinc-600 dark:text-zinc-400 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-50"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-6 py-4">
-          <div>
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-              {mode === 'login' ? 'Entrar na Conta' : 'Criar Conta'}
-            </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Para anunciar na Vitrine
-            </p>
+        <div className="px-6 pt-8 pb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-900 dark:bg-zinc-100">
+              <UserIcon className="h-6 w-6 text-white dark:text-zinc-900" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                {mode === 'login' ? 'Bem-vindo' : 'Criar Conta'}
+              </h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Para anunciar na vitrine
+              </p>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 disabled:opacity-50"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="px-6 pb-6 space-y-5">
           {/* Google Sign In */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 rounded-xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="w-full flex items-center justify-center gap-3 rounded-2xl border-2 border-zinc-200 bg-white px-5 py-3.5 text-sm font-semibold text-zinc-900 transition-all hover:bg-zinc-50 hover:border-zinc-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700 shadow-sm"
           >
             <Chrome className="h-5 w-5" />
             Continuar com Google
@@ -113,9 +120,9 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-zinc-900 px-2 text-zinc-500 dark:text-zinc-400">
-                Ou continue com e-mail
+            <div className="relative flex justify-center text-xs font-medium uppercase tracking-wider">
+              <span className="bg-white dark:bg-zinc-900 px-3 text-zinc-400 dark:text-zinc-500">
+                Ou com e-mail
               </span>
             </div>
           </div>
@@ -123,12 +130,14 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                   Nome do Negócio
                 </label>
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                    <UserIcon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                  </div>
                   <input
                     type="text"
                     value={formData.name}
@@ -136,18 +145,20 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                     placeholder="Ex: Padaria do João"
                     required
                     disabled={loading}
-                    className="w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100"
+                    className="w-full rounded-2xl border-2 border-zinc-200 bg-white pl-14 pr-4 py-3.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-900 focus:outline-none disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100"
                   />
                 </div>
               </div>
             )}
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 E-mail
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                  <Mail className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                </div>
                 <input
                   type="email"
                   value={formData.email}
@@ -155,17 +166,19 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                   placeholder="seu@email.com"
                   required
                   disabled={loading}
-                  className="w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100"
+                  className="w-full rounded-2xl border-2 border-zinc-200 bg-white pl-14 pr-4 py-3.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-900 focus:outline-none disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100"
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 Senha
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                  <Lock className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                </div>
                 <input
                   type="password"
                   value={formData.password}
@@ -174,12 +187,12 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                   required
                   minLength={6}
                   disabled={loading}
-                  className="w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100"
+                  className="w-full rounded-2xl border-2 border-zinc-200 bg-white pl-14 pr-4 py-3.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-900 focus:outline-none disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100"
                 />
               </div>
               {mode === 'signup' && (
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                  Mínimo 6 caracteres
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">
+                  Mínimo de 6 caracteres
                 </p>
               )}
             </div>
@@ -187,34 +200,34 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-zinc-900 px-5 py-3.5 text-sm font-bold text-white transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-lg shadow-zinc-900/10 dark:shadow-zinc-100/10"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   Processando...
                 </>
               ) : (
-                <>{mode === 'login' ? 'Entrar' : 'Criar Conta'}</>
+                <>{mode === 'login' ? 'Entrar na Conta' : 'Criar Minha Conta'}</>
               )}
             </button>
           </form>
 
           {/* Toggle Mode */}
-          <div className="text-center">
+          <div className="text-center pt-2">
             <button
               type="button"
               onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
               disabled={loading}
-              className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 disabled:opacity-50"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 disabled:opacity-50 transition-colors"
             >
               {mode === 'login' ? (
                 <>
-                  Não tem conta? <span className="font-semibold">Criar agora</span>
+                  Não tem conta? <span className="font-bold underline underline-offset-2">Criar agora</span>
                 </>
               ) : (
                 <>
-                  Já tem conta? <span className="font-semibold">Entrar</span>
+                  Já tem conta? <span className="font-bold underline underline-offset-2">Fazer login</span>
                 </>
               )}
             </button>
