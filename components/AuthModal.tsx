@@ -3,16 +3,19 @@
 import { useState } from 'react'
 import { X, Loader2, Mail, Lock, User as UserIcon, Chrome } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
+  redirectToOnboarding?: boolean
 }
 
-export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, onSuccess, redirectToOnboarding = true }: AuthModalProps) {
   const { signIn, signUp, signInWithGoogle } = useAuth()
+  const router = useRouter()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [loading, setLoading] = useState(false)
   
@@ -39,7 +42,15 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         } else {
           toast.success('Conta criada! Verifique seu e-mail para confirmar.')
           onClose()
-          onSuccess?.()
+          
+          // Redirecionar para onboarding após signup
+          setTimeout(() => {
+            if (redirectToOnboarding) {
+              router.push('/vitrine/onboarding')
+            } else {
+              onSuccess?.()
+            }
+          }, 500)
         }
       } else {
         const { error } = await signIn(formData.email, formData.password)
@@ -49,7 +60,11 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         } else {
           toast.success('Login realizado com sucesso!')
           onClose()
-          onSuccess?.()
+          
+          // Redirecionar para painel após login
+          setTimeout(() => {
+            router.push('/painel-lojista')
+          }, 500)
         }
       }
     } catch (error) {
