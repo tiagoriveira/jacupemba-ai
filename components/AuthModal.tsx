@@ -31,19 +31,30 @@ export function AuthModal({ isOpen, onClose, onSuccess, redirectToOnboarding = t
     e.preventDefault()
     setLoading(true)
 
+    console.log('[v0] AuthModal - Iniciando autenticação', { mode, email: formData.email })
+
     try {
       if (mode === 'signup') {
+        console.log('[v0] AuthModal - Tentando criar conta', { 
+          email: formData.email, 
+          name: formData.name,
+          hasPassword: !!formData.password 
+        })
+        
         const { error } = await signUp(formData.email, formData.password, {
           name: formData.name,
         })
 
+        console.log('[v0] AuthModal - Resultado signup', { error: error?.message })
+
         if (error) {
+          console.error('[v0] AuthModal - Erro no signup:', error)
           toast.error(error.message)
         } else {
           toast.success('Conta criada! Verifique seu e-mail para confirmar.')
           onClose()
           
-          // Redirecionar para onboarding após signup
+          console.log('[v0] AuthModal - Redirecionando para onboarding')
           setTimeout(() => {
             if (redirectToOnboarding) {
               router.push('/vitrine/onboarding')
@@ -53,21 +64,27 @@ export function AuthModal({ isOpen, onClose, onSuccess, redirectToOnboarding = t
           }, 500)
         }
       } else {
+        console.log('[v0] AuthModal - Tentando fazer login', { email: formData.email })
+        
         const { error } = await signIn(formData.email, formData.password)
 
+        console.log('[v0] AuthModal - Resultado login', { error: error?.message })
+
         if (error) {
+          console.error('[v0] AuthModal - Erro no login:', error)
           toast.error('E-mail ou senha incorretos')
         } else {
           toast.success('Login realizado com sucesso!')
           onClose()
           
-          // Redirecionar para painel após login
+          console.log('[v0] AuthModal - Redirecionando para painel')
           setTimeout(() => {
             router.push('/painel-lojista')
           }, 500)
         }
       }
     } catch (error) {
+      console.error('[v0] AuthModal - Erro inesperado:', error)
       toast.error('Erro ao processar solicitação')
     } finally {
       setLoading(false)
@@ -75,13 +92,20 @@ export function AuthModal({ isOpen, onClose, onSuccess, redirectToOnboarding = t
   }
 
   const handleGoogleSignIn = async () => {
+    console.log('[v0] AuthModal - Iniciando login com Google')
     setLoading(true)
     try {
       const { error } = await signInWithGoogle()
+      console.log('[v0] AuthModal - Resultado Google login', { error: error?.message })
+      
       if (error) {
+        console.error('[v0] AuthModal - Erro no Google login:', error)
         toast.error('Erro ao conectar com Google')
+      } else {
+        console.log('[v0] AuthModal - Google login iniciado com sucesso')
       }
     } catch (error) {
+      console.error('[v0] AuthModal - Erro inesperado Google:', error)
       toast.error('Erro ao processar solicitação')
     } finally {
       setLoading(false)

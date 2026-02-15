@@ -40,42 +40,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
+    console.log('[v0] auth-context - signIn chamado', { email })
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
+      console.log('[v0] auth-context - signIn resultado', { 
+        error: error?.message, 
+        userId: data?.user?.id 
+      })
       return { error }
     } catch (error) {
+      console.error('[v0] auth-context - signIn exception:', error)
       return { error: error as Error }
     }
   }
 
   const signUp = async (email: string, password: string, metadata?: { name?: string }) => {
+    console.log('[v0] auth-context - signUp chamado', { email, metadata })
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: metadata,
         },
       })
+      console.log('[v0] auth-context - signUp resultado', { 
+        error: error?.message, 
+        userId: data?.user?.id,
+        needsConfirmation: !data?.session 
+      })
       return { error }
     } catch (error) {
+      console.error('[v0] auth-context - signUp exception:', error)
       return { error: error as Error }
     }
   }
 
   const signInWithGoogle = async () => {
+    console.log('[v0] auth-context - signInWithGoogle chamado')
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const redirectUrl = `${window.location.origin}/painel-lojista`
+      console.log('[v0] auth-context - Redirect URL:', redirectUrl)
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/painel-lojista`,
+          redirectTo: redirectUrl,
         },
       })
+      
+      console.log('[v0] auth-context - signInWithGoogle resultado', { 
+        error: error?.message,
+        hasData: !!data,
+        url: data?.url
+      })
+      
       return { error }
     } catch (error) {
+      console.error('[v0] auth-context - signInWithGoogle exception:', error)
       return { error: error as Error }
     }
   }
