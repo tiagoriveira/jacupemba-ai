@@ -295,7 +295,7 @@ export default function CriarAnuncioPage() {
                   <select
                     value={formData.aspect_ratio}
                     onChange={(e) => setFormData({ ...formData, aspect_ratio: e.target.value as 'square' | 'vertical' })}
-                    className="input-grok w-full"
+                    className="w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-900 transition-all focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100"
                   >
                     <option value="square">Quadrado (1:1)</option>
                     <option value="vertical">Vertical (9:16) - Estilo Reels</option>
@@ -315,7 +315,7 @@ export default function CriarAnuncioPage() {
                     required
                     value={formData.contact_name}
                     onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
-                    className="input-grok w-full"
+                    className="w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100"
                     placeholder="Nome ou empresa"
                   />
                 </div>
@@ -330,7 +330,7 @@ export default function CriarAnuncioPage() {
                     required
                     value={formData.contact_phone}
                     onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                    className="input-grok w-full"
+                    className="w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100"
                     placeholder="(11) 98765-4321"
                   />
                 </div>
@@ -345,7 +345,7 @@ export default function CriarAnuncioPage() {
                     required
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="input-grok w-full"
+                    className="w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100"
                     placeholder={placeholders.title}
                   />
                 </div>
@@ -359,7 +359,7 @@ export default function CriarAnuncioPage() {
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="input-grok w-full"
+                      className="w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-900 transition-all focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100"
                     >
                       {CATEGORIES.map((cat) => (
                         <option key={cat.value} value={cat.value}>
@@ -380,7 +380,7 @@ export default function CriarAnuncioPage() {
                         required
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="input-grok w-full"
+                        className="w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100"
                         placeholder="0.00"
                       />
                     </div>
@@ -397,7 +397,7 @@ export default function CriarAnuncioPage() {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="input-grok w-full min-h-[120px]"
+                className="w-full min-h-[120px] rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100"
                 placeholder={placeholders.description}
               />
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
