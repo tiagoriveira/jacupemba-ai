@@ -49,19 +49,27 @@ export function AuthModal({ isOpen, onClose, onSuccess, redirectToOnboarding = t
 
         if (error) {
           console.error('[v0] AuthModal - Erro no signup:', error)
-          toast.error(error.message)
-        } else {
-          toast.success('Conta criada! Verifique seu e-mail para confirmar.')
-          onClose()
           
-          console.log('[v0] AuthModal - Redirecionando para onboarding')
+          // Tratamento de erros específicos de cadastro
+          if (error.message?.includes('already registered')) {
+            toast.error('Este e-mail já está cadastrado. Tente fazer login.')
+          } else {
+            toast.error(error.message || 'Erro ao criar conta')
+          }
+        } else {
+          // Mensagem clara sobre confirmação de email
+          toast.success('Conta criada com sucesso!', { duration: 3000 })
+          toast.info('Verifique seu e-mail e clique no link de confirmação para ativar sua conta.', { 
+            duration: 8000 
+          })
+          
+          // Limpar formulário
+          setFormData({ name: '', email: '', password: '' })
+          
+          // Mudar para modo login após alguns segundos
           setTimeout(() => {
-            if (redirectToOnboarding) {
-              router.push('/vitrine/onboarding')
-            } else {
-              onSuccess?.()
-            }
-          }, 500)
+            setMode('login')
+          }, 2000)
         }
       } else {
         console.log('[v0] AuthModal - Tentando fazer login', { email: formData.email })
@@ -72,7 +80,17 @@ export function AuthModal({ isOpen, onClose, onSuccess, redirectToOnboarding = t
 
         if (error) {
           console.error('[v0] AuthModal - Erro no login:', error)
-          toast.error('E-mail ou senha incorretos')
+          
+          // Tratamento específico para email não confirmado
+          if (error.message?.includes('Email not confirmed')) {
+            toast.error('Por favor, confirme seu e-mail antes de fazer login. Verifique sua caixa de entrada.', {
+              duration: 5000,
+            })
+          } else if (error.message?.includes('Invalid login credentials')) {
+            toast.error('E-mail ou senha incorretos')
+          } else {
+            toast.error(error.message || 'Erro ao fazer login')
+          }
         } else {
           toast.success('Login realizado com sucesso!')
           onClose()
