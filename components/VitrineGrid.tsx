@@ -124,6 +124,14 @@ export function VitrineGrid() {
                 <p className="text-xs text-zinc-500">Comunidade local</p>
               </div>
             </div>
+            <Link
+              href="/painel-lojista"
+              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98]"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              <span className="hidden sm:inline">Anunciar Aqui</span>
+              <span className="sm:hidden">Anunciar</span>
+            </Link>
           </div>
 
           {/* Filter Tabs */}
@@ -224,17 +232,17 @@ export function VitrineGrid() {
       {/* Detail Modal */}
       {selectedPost && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-md sm:items-center sm:p-4 animate-in fade-in-0 duration-200"
           onClick={() => setSelectedPost(null)}
         >
           <div
-            className="relative w-full max-w-lg overflow-hidden rounded-t-3xl bg-white sm:rounded-2xl sm:shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-lg overflow-hidden rounded-t-2xl bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close */}
             <button
               onClick={() => setSelectedPost(null)}
-              className="absolute right-4 top-4 z-10 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+              className="absolute right-4 top-4 z-10 rounded-full bg-white/90 dark:bg-zinc-800/90 p-2 text-zinc-900 dark:text-zinc-100 backdrop-blur-sm transition-all hover:bg-white dark:hover:bg-zinc-800 shadow-lg"
             >
               <X className="h-5 w-5" />
             </button>
@@ -329,50 +337,64 @@ export function VitrineGrid() {
             })()}
 
             {/* Content */}
-            <div className="p-6">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div className="flex-1">
-                  <span className="mb-2 inline-block rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600">
-                    {getCatConfig(selectedPost.category).label}
-                  </span>
-                  <h2 className="text-xl font-bold text-zinc-900">{selectedPost.title}</h2>
+            <div className="p-6 space-y-5">
+              {/* Category Badge & Expiration */}
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  {(() => {
+                    const Icon = getCatConfig(selectedPost.category).icon
+                    return <Icon className="h-3.5 w-3.5" />
+                  })()}
+                  {getCatConfig(selectedPost.category).label}
+                </span>
+                <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                  getHoursRemaining(selectedPost.expires_at) <= 6 
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
+                    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                }`}>
+                  <Clock className="h-3 w-3" />
+                  Expira em {getHoursRemaining(selectedPost.expires_at)}h
                 </div>
-                {(selectedPost.price && selectedPost.price > 0) ? (
-                  <div className="flex-shrink-0 rounded-xl bg-zinc-900 px-4 py-2">
-                    <span className="text-lg font-bold text-white">
-                      R$ {Number(selectedPost.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex-shrink-0 rounded-xl bg-zinc-100 px-4 py-2">
-                    <span className="text-sm font-medium text-zinc-600">A combinar</span>
-                  </div>
-                )}
               </div>
 
+              {/* Title */}
+              <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-tight">
+                {selectedPost.title}
+              </h2>
+
+              {/* Price */}
+              {(selectedPost.price && selectedPost.price > 0) ? (
+                <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+                  R$ {Number(selectedPost.price).toFixed(2).replace('.', ',')}
+                </div>
+              ) : (
+                <div className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">
+                  Preço a combinar
+                </div>
+              )}
+
+              {/* Description */}
               {selectedPost.description && (
-                <p className="mb-4 text-sm text-zinc-600 leading-relaxed">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
                   {selectedPost.description}
                 </p>
               )}
 
+              {/* Divider */}
+              <div className="border-t border-zinc-200 dark:border-zinc-800" />
+
               {/* Seller Info */}
-              <div className="mb-4 rounded-xl bg-zinc-50 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-200">
-                      <User className="h-5 w-5 text-zinc-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-zinc-900">{selectedPost.contact_name || 'Anonimo'}</p>
-                      <p className="text-xs text-zinc-500">{selectedPost.contact_phone || 'Sem telefone'}</p>
-                    </div>
-                  </div>
-                  <div className={`flex items-center gap-1 text-xs font-medium ${getHoursRemaining(selectedPost.expires_at) <= 6 ? 'text-red-500' : 'text-zinc-400'
-                    }`}>
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>Expira em {getHoursRemaining(selectedPost.expires_at)}h</span>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <User className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {selectedPost.contact_name || 'Anunciante'}
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    📞 {selectedPost.contact_phone || 'Sem telefone'}
+                  </p>
                 </div>
               </div>
 
@@ -380,14 +402,14 @@ export function VitrineGrid() {
               <div className="flex gap-3">
                 <button
                   onClick={() => handleWhatsAppClick(selectedPost)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3.5 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-[0.98] shadow-lg shadow-green-600/20"
                 >
                   <MessageCircle className="h-5 w-5" />
                   Contato via WhatsApp
                 </button>
                 <button
                   onClick={(e) => handleShare(selectedPost, e)}
-                  className="flex items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-zinc-600 transition-colors hover:bg-zinc-50"
+                  className="flex items-center justify-center rounded-2xl border-2 border-zinc-200 dark:border-zinc-700 px-4 py-3.5 text-zinc-700 dark:text-zinc-300 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.98]"
                   title="Compartilhar"
                 >
                   <Share2 className="h-5 w-5" />

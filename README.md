@@ -1,53 +1,72 @@
-# Jacupemba AI - Assistente Local Inteligente
+# 🏘️ Jacupemba AI - Assistente Local Inteligente
 
-> Plataforma hiperlocal que conecta moradores do bairro Jacupemba (Rio de Janeiro) através de IA, permitindo relatos comunitários, descoberta de comércios locais e uma vitrine digital para produtos e serviços.
+> **Versão Lucrativa & Simplificada** - Plataforma hiperlocal focada em **Chat de Fofocas** (relatos comunitários) e **Vitrine Monetizada** (anúncios pagos de 48h).
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com)
 [![Next.js 15](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
+[![Asaas](https://img.shields.io/badge/Pagamentos-Asaas-00A859?style=flat-square)](https://asaas.com)
 
 ---
 
-## O que é?
+## 🎯 Visão Geral
 
-Jacupemba AI é um assistente conversacional que conhece o bairro de Jacupemba. Ele permite aos moradores:
+Jacupemba AI conecta moradores do bairro através de dois pilares:
 
-- **Relatar problemas**: Segurança, trânsito, iluminação, saneamento (sistema anônimo com moderação)
-- **Descobrir comércios**: Encontrar restaurantes, mercados, farmácias e serviços locais verificados
-- **Vitrine digital**: Anunciar produtos/serviços por 48h com carrossel de até 5 imagens
-- **Chat inteligente**: Conversar com IA que contextualiza e resume informações do bairro
+### 1. **Chat de Fofocas** (Gratuito)
+- Relatos anônimos da comunidade (segurança, trânsito, eventos, etc.)
+- Agente IA sarcástico que responde perguntas sobre o bairro
+- Sistema de likes e comentários
+- Moderação pelo Super Admin
+
+### 2. **Vitrine Digital** (Monetizado)
+- **Posts de 48h** em categorias pagas (Produto R$ 15, Serviço R$ 15, Comunicado R$ 20) ou grátis (Vagas/Informativos)
+- **Sistema de Republicação**: Posts pagos podem ser republicados infinitamente mediante pagamento; posts grátis têm limite de 3 republicações
+- **Pagamentos via Asaas** (PIX/Boleto/Cartão)
+- **Autenticação obrigatória** (Google OAuth ou Email/Senha) para anunciar
 
 ---
 
-## Stack Tecnológica
+## 🛠️ Stack Tecnológica
 
 | Camada | Tecnologia |
 |--------|-----------|
 | **Frontend** | Next.js 15 (App Router), React 19, TailwindCSS v4 |
-| **UI Components** | shadcn/ui, Radix UI |
-| **Backend** | Next.js API Routes, Vercel Edge Functions |
+| **UI Components** | shadcn/ui, Radix UI, Sonner (toasts) |
+| **Backend** | Next.js API Routes (Server Actions) |
 | **Banco de Dados** | Supabase (PostgreSQL) com RLS |
-| **IA** | xAI Grok via Vercel AI SDK 6 |
-| **Deploy** | Vercel |
+| **Autenticação** | Supabase Auth (Google OAuth + Email/Senha) |
+| **Pagamentos** | Asaas (PIX, Boleto, Cartão) |
+| **IA** | xAI Grok-4 via Vercel AI SDK |
+| **Deploy** | Vercel + Supabase | Vercel Analytics |
 | **Auth** | Fingerprinting anônimo (FingerprintJS) |
 
 ---
 
-## Principais Funcionalidades
+## ✨ Funcionalidades Principais
 
-### 1. Chat com Agente IA
+### 💬 Chat de Fofocas (Usuário Final)
+- Agente IA **sarcástico** com personalidade local
+- Busca em relatos comunitários via ferramentas (tools)
+- Histórico de conversas salvo
+- Sugestões contextuais inteligentes
+- **Sem necessidade de login**
 
-- Agente conversacional com personalidade carioca e irônica
-- 3 ferramentas (tools): buscar relatos, buscar empresas, estatísticas
-- Sistema de RAG básico conectado ao banco de dados
-- Streaming de respostas em tempo real
+### 🏪 Vitrine Digital (Lojistas)
+- **Painel do Lojista** (requer autenticação)
+- Criação de posts com imagens/vídeos
+- **Validade de 48 horas** para todos os posts
+- **Republicação controlada**:
+  - Posts Pagos: Republicação infinita (R$ 15-20 por republicação)
+  - Posts Grátis: Máximo 3 republicações, depois novo post
+- Status em tempo real: Ativo/Expirado/Pendente Aprovação
+- Integração com checkout Asaas
 
-### 2. Feed de Relatos
-
-- Relatos anônimos categorizados
-- Sistema de likes (1 por fingerprint)
-- Comentários com suporte a threads (respostas aninhadas)
-- Filtros por categoria e período (24h, 7d, 30d)
+### 🛡️ Painel Super Admin
+- **Moderação de Relatos**: Aprovar/Rejeitar/Deletar em massa
+- **Moderação de Vitrine**: Aprovar posts antes de irem ao ar
+- **Configurações do Agente IA**: Modelo, nível de sarcasmo, instruções
+- Sistema de triagem automática (alto/médio/baixo risco)
 - Moderação obrigatória antes de publicação
 
 ### 3. Vitrine Digital (Explorar)

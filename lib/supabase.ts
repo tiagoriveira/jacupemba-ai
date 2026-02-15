@@ -54,7 +54,6 @@ export type Report = {
   status: Status
   fingerprint: string
   created_at: string
-  is_ambassador?: boolean
 }
 
 export type ReportComment = {
@@ -105,16 +104,6 @@ export type Business = {
   updated_at: string
 }
 
-export type BusinessReview = {
-  id: string
-  business_id: string
-  user_id: string
-  rating: number
-  comment: string | null
-  created_at: string
-  updated_at: string
-}
-
 export type AgentFeedback = {
   id: string
   message_id: string
@@ -144,4 +133,10 @@ export type VitrinePost = {
   status: Status
   created_at: string
   updated_at: string
+  business_id: string | null
+  repost_count: number
+  max_reposts: number
+  is_paid: boolean
+  user_id: string | null
+  payment_id: string | null
 }

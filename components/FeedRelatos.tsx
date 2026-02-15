@@ -71,45 +71,20 @@ export function FeedRelatos() {
   // Modal de categoria dedicado
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
   const [categoryModalData, setCategoryModalData] = useState<{ category: string; categoryLabel: string } | null>(null)
-  
-  // Embaixadores
-  const [ambassadorFingerprints, setAmbassadorFingerprints] = useState<Set<string>>(new Set())
 
   const getCatInfo = (cat: string) => CATEGORY_INFO[cat as keyof typeof CATEGORY_INFO] || CATEGORY_INFO.outros
 
   useEffect(() => {
     // Initialize user fingerprint
     setUserFingerprint(getUserFingerprint())
-    loadAmbassadors()
   }, [])
-  
-  const loadAmbassadors = async () => {
-    try {
-      const response = await fetch(getApiUrl('/api/ambassadors?status=active'))
-      const result = await response.json()
-      
-      if (result.success && result.data) {
-        const fingerprints = new Set<string>(result.data.map((amb: any) => amb.fingerprint as string))
-        setAmbassadorFingerprints(fingerprints)
-      }
-    } catch (error) {
-      logger.error('Error loading ambassadors from API:', error)
-      // Fallback to localStorage if API fails
-      try {
-        const saved = localStorage.getItem('jacupemba-ambassadors')
-        if (saved) {
-          setAmbassadorFingerprints(new Set(JSON.parse(saved)))
-        }
-      } catch {}
-    }
-  }
 
   useEffect(() => {
     if (userFingerprint) {
       fetchReports()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, userFingerprint, ambassadorFingerprints])
+  }, [period, userFingerprint])
 
   const fetchReports = async () => {
     try {
@@ -131,24 +106,10 @@ export function FeedRelatos() {
       const { data, error } = await query
 
       if (!error && data) {
-        // Aplicar ordenacao com boost para embaixadores (24h)
+        // Ordenar por data de criação (mais recentes primeiro)
         const sortedData = data.sort((a, b) => {
-          const isAmbassadorA = ambassadorFingerprints.has(a.fingerprint)
-          const isAmbassadorB = ambassadorFingerprints.has(b.fingerprint)
-          
           const createdAtA = new Date(a.created_at).getTime()
           const createdAtB = new Date(b.created_at).getTime()
-          const now = Date.now()
-          const twentyFourHours = 24 * 60 * 60 * 1000
-          
-          const isRecentA = (now - createdAtA) < twentyFourHours
-          const isRecentB = (now - createdAtB) < twentyFourHours
-          
-          // Embaixadores recentes (menos de 24h) no topo
-          if (isAmbassadorA && isRecentA && !(isAmbassadorB && isRecentB)) return -1
-          if (isAmbassadorB && isRecentB && !(isAmbassadorA && isRecentA)) return 1
-          
-          // Depois, ordenar por data normalmente
           return createdAtB - createdAtA
         })
         

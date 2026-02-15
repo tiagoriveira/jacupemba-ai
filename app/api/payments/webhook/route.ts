@@ -1,73 +1,93 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
-const ASAAS_WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN
+const ASAAS_WEBHOOK_SECRET = process.env.ASAAS_WEBHOOK_SECRET
 
 export async function POST(req: Request) {
   try {
     // Validar token do webhook (segurança)
     const token = req.headers.get('asaas-access-token')
     
-    if (ASAAS_WEBHOOK_TOKEN && token !== ASAAS_WEBHOOK_TOKEN) {
-      console.error('[v0] Invalid webhook token')
+    if (ASAAS_WEBHOOK_SECRET && token !== ASAAS_WEBHOOK_SECRET) {
+      console.error('[Asaas Webhook] Token inválido')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const payload = await req.json()
     
-    console.log('[v0] Webhook received:', {
+    console.log('[Asaas Webhook] Evento recebido:', {
       event: payload.event,
       paymentId: payload.payment?.id,
       status: payload.payment?.status
     })
 
-    // Processar evento
     const event = payload.event
     const payment = payload.payment
 
-    // Registrar evento no Supabase para auditoria
-    const supabase = createClient()
-    
-    const { error: logError } = await supabase
-      .from('payment_events')
-      .insert({
-        event_type: event,
-        payment_id: payment?.id,
-        status: payment?.status,
-        value: payment?.value,
-        customer_id: payment?.customer,
-        payload: payload
-      })
+    // Processar pagamentos confirmados
+    if (event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED') {
+      console.log('[Asaas Webhook] Pagamento confirmado:', payment.id)
+      
+      const externalReference = payment.externalReference
+      
+      if (externalReference === 'new_post') {
+        // Novo post pago - precisa ser criado após pagamento
+        // O frontend deve ter salvado os dados do post em algum lugar
+        console.log('[Asaas Webhook] Novo post pago confirmado')
+      } else {
+        // Republicação de post existente
+        const postId = externalReference
+        
+        // Buscar post
+        const { data: post, error: fetchError } = await supabase
+          .from('vitrine_posts')
+          .select('*')
+          .eq('id', postId)
+          .single()
 
-    if (logError) {
-      console.error('[v0] Error logging webhook:', logError)
+        if (!fetchError && post) {
+          // Republicar: resetar expires_at e incrementar contador
+          const newExpiresAt = new Date()
+          newExpiresAt.setHours(newExpiresAt.getHours() + 48)
+
+          const { error: updateError } = await supabase
+            .from('vitrine_posts')
+            .update({
+              repost_count: post.repost_count + 1,
+              expires_at: newExpiresAt.toISOString(),
+              status: 'aprovado',
+              payment_id: payment.id,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', postId)
+
+          if (updateError) {
+            console.error('[Asaas Webhook] Erro ao republicar post:', updateError)
+          } else {
+            console.log('[Asaas Webhook] Post republicado:', postId)
+          }
+        }
+      }
     }
 
-    // Processar eventos específicos
+    // Processar outros eventos
     switch (event) {
-      case 'PAYMENT_RECEIVED':
-      case 'PAYMENT_CONFIRMED':
-        console.log('[v0] Payment confirmed:', payment.id)
-        // Aqui você pode liberar acesso, enviar email, etc.
-        break
-
       case 'PAYMENT_OVERDUE':
-        console.log('[v0] Payment overdue:', payment.id)
-        // Enviar lembrete
+        console.log('[Asaas Webhook] Pagamento vencido:', payment.id)
         break
 
       case 'PAYMENT_DELETED':
-        console.log('[v0] Payment deleted:', payment.id)
+        console.log('[Asaas Webhook] Pagamento deletado:', payment.id)
         break
 
       default:
-        console.log('[v0] Unhandled event:', event)
+        console.log('[Asaas Webhook] Evento não processado:', event)
     }
 
     return NextResponse.json({ received: true })
 
   } catch (error) {
-    console.error('[v0] Webhook processing error:', error)
+    console.error('[Asaas Webhook] Erro ao processar:', error)
     return NextResponse.json(
       { error: 'Erro ao processar webhook' },
       { status: 500 }

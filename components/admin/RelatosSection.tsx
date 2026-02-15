@@ -30,9 +30,6 @@ export function RelatosSection() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkProcessing, setIsBulkProcessing] = useState(false)
-  
-  // Embaixadores - gerenciados localmente por enquanto (sem Supabase)
-  const [ambassadorFingerprints, setAmbassadorFingerprints] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchRelatos()
@@ -40,29 +37,7 @@ export function RelatosSection() {
 
   useEffect(() => {
     fetchAllRelatos()
-    loadAmbassadors()
   }, [])
-
-  const loadAmbassadors = async () => {
-    try {
-      const response = await fetch(getApiUrl('/api/ambassadors?status=active'))
-      const result = await response.json()
-      
-      if (result.success && result.data) {
-        const fingerprints = new Set<string>(result.data.map((amb: any) => amb.fingerprint as string))
-        setAmbassadorFingerprints(fingerprints)
-      }
-    } catch (error) {
-      logger.error('Error loading ambassadors:', error)
-      // Fallback to localStorage if API fails
-      try {
-        const saved = localStorage.getItem('jacupemba-ambassadors')
-        if (saved) {
-          setAmbassadorFingerprints(new Set(JSON.parse(saved)))
-        }
-      } catch {}
-    }
-  }
 
   const fetchAllRelatos = async () => {
     try {
@@ -250,49 +225,6 @@ export function RelatosSection() {
       setSelectedIds([])
     } else {
       setSelectedIds(filteredRelatos.map(r => r.id))
-    }
-  }
-
-  const toggleAmbassador = async (fingerprint: string) => {
-    const isCurrentlyAmbassador = ambassadorFingerprints.has(fingerprint)
-    
-    try {
-      if (isCurrentlyAmbassador) {
-        // Remover embaixador
-        const response = await fetch(getApiUrl('/api/ambassadors'), {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fingerprint })
-        })
-
-        if (!response.ok) throw new Error('Erro ao remover embaixador')
-
-        setAmbassadorFingerprints(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(fingerprint)
-          return newSet
-        })
-        toast.success('Status de embaixador removido')
-      } else {
-        // Adicionar embaixador
-        const response = await fetch(getApiUrl('/api/ambassadors'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            fingerprint,
-            assigned_by: 'Admin',
-            notes: 'Promovido via painel admin'
-          })
-        })
-
-        if (!response.ok) throw new Error('Erro ao promover embaixador')
-
-        setAmbassadorFingerprints(prev => new Set([...prev, fingerprint]))
-        toast.success('Usuario promovido a embaixador!')
-      }
-    } catch (error) {
-      logger.error('Error toggling ambassador:', error)
-      toast.error('Erro ao atualizar status de embaixador')
     }
   }
 
@@ -574,19 +506,6 @@ export function RelatosSection() {
                     {/* Actions for approved/rejected */}
                     {(relato.status === 'aprovado' || relato.status === 'rejeitado') && (
                       <div className="flex gap-2">
-                        {relato.status === 'aprovado' && (
-                          <button
-                            onClick={() => toggleAmbassador(relato.fingerprint)}
-                            className={`rounded-lg p-2 text-white transition-colors ${
-                              ambassadorFingerprints.has(relato.fingerprint)
-                                ? 'bg-amber-500 hover:bg-amber-600'
-                                : 'bg-zinc-400 hover:bg-amber-500'
-                            }`}
-                            title={ambassadorFingerprints.has(relato.fingerprint) ? 'Remover Embaixador' : 'Promover a Embaixador'}
-                          >
-                            <Medal className="h-4 w-4" />
-                          </button>
-                        )}
                         <button
                           onClick={() => revertStatus(relato.id)}
                           disabled={loadingId === relato.id}

@@ -1,20 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, Store, Building2, LogOut, Settings, FileText, ChevronDown } from 'lucide-react'
+import { AlertTriangle, Store, ChevronDown } from 'lucide-react'
 import { Toaster } from 'sonner'
 import Link from 'next/link'
 import { RelatosSection } from './admin/RelatosSection'
 import { VitrineSection } from './admin/VitrineSection'
-import { EmpresasSection } from './admin/EmpresasSection'
-import { AgentSettingsSection } from './admin/AgentSettingsSection'
-import { ReportSummaryModal } from './admin/ReportSummaryModal'
 
-type Section = 'relatos' | 'vitrine' | 'empresas' | 'settings'
+type Section = 'relatos' | 'vitrine'
 
 export function AdminDashboard() {
   const [activeSection, setActiveSection] = useState<Section>('relatos')
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const sections = [
@@ -29,18 +25,6 @@ export function AdminDashboard() {
       name: 'Vitrine',
       icon: Store,
       description: 'Gerenciar posts comerciais'
-    },
-    {
-      id: 'empresas' as Section,
-      name: 'Empresas',
-      icon: Building2,
-      description: 'Gerenciar empresas locais'
-    },
-    {
-      id: 'settings' as Section,
-      name: 'Configurações',
-      icon: Settings,
-      description: 'Ajustar Agente IA'
     }
   ]
 
@@ -72,13 +56,6 @@ export function AdminDashboard() {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-2">
-              <button
-                onClick={() => setIsReportModalOpen(true)}
-                className="btn-grok flex items-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
-                <FileText className="h-4 w-4" />
-                <span>Relatório</span>
-              </button>
               <Link
                 href="/"
                 className="btn-grok flex items-center gap-2 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
@@ -91,16 +68,6 @@ export function AdminDashboard() {
           {/* Mobile Menu */}
           {isMobileMenuOpen && (
             <div className="md:hidden border-t border-zinc-200 dark:border-zinc-800 px-4 py-4 space-y-2">
-              <button
-                onClick={() => {
-                  setIsReportModalOpen(true)
-                  setIsMobileMenuOpen(false)
-                }}
-                className="btn-grok w-full flex items-center gap-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-              >
-                <FileText className="h-4 w-4" />
-                <span>Relatório</span>
-              </button>
               <Link
                 href="/"
                 className="btn-grok w-full flex items-center gap-2 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
@@ -183,18 +150,10 @@ export function AdminDashboard() {
             <div className="bg-white dark:bg-zinc-950">
               {activeSection === 'relatos' && <RelatosSection />}
               {activeSection === 'vitrine' && <VitrineSection />}
-              {activeSection === 'empresas' && <EmpresasSection />}
-              {activeSection === 'settings' && <AgentSettingsSection />}
             </div>
           </div>
         </main>
       </div>
-
-      {/* Modal de Relatório Mensal */}
-      <ReportSummaryModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-      />
     </>
   )
 }

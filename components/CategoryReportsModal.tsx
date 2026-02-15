@@ -42,27 +42,12 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
 
     // Fingerprint
     const [userFingerprint, setUserFingerprint] = useState('')
-    
-    // Embaixadores
-    const [ambassadorFingerprints, setAmbassadorFingerprints] = useState<Set<string>>(new Set())
 
     useEffect(() => {
         if (isOpen && category) {
             fetchReportsByCategory()
-            loadAmbassadors()
         }
     }, [isOpen, category])
-    
-    const loadAmbassadors = () => {
-        try {
-            const saved = localStorage.getItem('jacupemba-ambassadors')
-            if (saved) {
-                setAmbassadorFingerprints(new Set(JSON.parse(saved)))
-            }
-        } catch (error) {
-            logger.error('Error loading ambassadors:', error)
-        }
-    }
 
     const fetchReportsByCategory = async () => {
         try {
@@ -353,16 +338,11 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
                             {reports.map((report) => {
                                 const isExpanded = expandedReportId === report.id
                                 const reportComments = comments[report.id] || []
-                                const isAmbassador = ambassadorFingerprints.has(report.fingerprint)
 
                                 return (
                                     <div
                                         key={report.id}
-                                        className={`rounded-lg border transition-all hover:border-zinc-600 ${
-                                            isAmbassador 
-                                                ? 'border-amber-500/50 bg-gradient-to-br from-amber-900/20 to-amber-800/10 shadow-lg'
-                                                : 'border-zinc-700 bg-zinc-800'
-                                        }`}
+                                        className="rounded-lg border border-zinc-700 bg-zinc-800 transition-all hover:border-zinc-600"
                                     >
                                         {/* Card principal - sempre visível */}
                                         <div
@@ -375,12 +355,6 @@ export function CategoryReportsModal({ category, categoryLabel, isOpen, onClose,
 
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4 text-xs text-zinc-400">
-                                                    {isAmbassador && (
-                                                        <span className="flex items-center gap-1 text-amber-400 font-medium">
-                                                            <Medal className="h-3.5 w-3.5" />
-                                                            Embaixador
-                                                        </span>
-                                                    )}
                                                     <span className="flex items-center gap-1">
                                                         <Clock className="h-3.5 w-3.5" />
                                                         {formatTimeAgo(report.created_at)}

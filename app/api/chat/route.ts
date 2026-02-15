@@ -307,26 +307,13 @@ const analisarSentimento = tool({
         .ilike('name', `%${local}%`)
         .single()
 
-      // Se encontrou o comércio, buscar reviews
-      let reviews: any[] = []
-      if (comercio) {
-        const { data: reviewsData } = await supabase
-          .from('business_reviews')
-          .select('rating, comment, created_at')
-          .eq('business_id', comercio.id)
-          .order('created_at', { ascending: false })
-          .limit(20)
-        
-        reviews = reviewsData || []
-      }
-
-      const totalMencoes = (relatos?.length || 0) + reviews.length
+      const totalMencoes = relatos?.length || 0
 
       if (totalMencoes === 0) {
         return {
           local,
           totalMencoes: 0,
-          mensagem: 'Nenhum relato ou avaliacao encontrada sobre este local.',
+          mensagem: 'Nenhum relato encontrado sobre este local.',
         }
       }
 
@@ -336,18 +323,6 @@ const analisarSentimento = tool({
       if (relatos && relatos.length > 0) {
         contextTexto += 'RELATOS DOS MORADORES:\n'
         contextTexto += relatos.map(r => r.text).join('\n---\n')
-      }
-
-      if (reviews.length > 0) {
-        contextTexto += '\n\nAVALIAÇÕES (1-5 ESTRELAS):\n'
-        contextTexto += reviews.map(r => {
-          const stars = '⭐'.repeat(r.rating)
-          return `${stars} (${r.rating}/5)${r.comment ? ': ' + r.comment : ''}`
-        }).join('\n---\n')
-        
-        // Calcular média de reviews
-        const avgRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length
-        contextTexto += `\n\nMÉDIA DE AVALIAÇÕES: ${avgRating.toFixed(1)}/5 (${reviews.length} avaliações)`
       }
 
       const { text: analise } = await generateText({
