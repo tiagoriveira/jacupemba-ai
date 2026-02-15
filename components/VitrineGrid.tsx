@@ -3,7 +3,10 @@
 import { useState, useEffect } from 'react'
 import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth-context'
+import { AuthModal } from '@/components/AuthModal'
 
 interface VitrinePost {
   id: string
@@ -41,11 +44,14 @@ function formatPrice(price: number | null) {
 }
 
 export function VitrineGrid() {
+  const router = useRouter()
+  const { user } = useAuth()
   const [posts, setPosts] = useState<VitrinePost[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPost, setSelectedPost] = useState<VitrinePost | null>(null)
   const [filter, setFilter] = useState<'todos' | CategoryType>('todos')
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [showAuthModal, setShowAuthModal] = useState(false)
 
   useEffect(() => {
     async function fetchPosts() {
@@ -105,6 +111,14 @@ export function VitrineGrid() {
 
   const getCatConfig = (cat: string) => CATEGORY_CONFIG[cat as CategoryType] || CATEGORY_CONFIG.produto
 
+  const handleAnunciarClick = () => {
+    if (user) {
+      router.push('/painel-lojista')
+    } else {
+      setShowAuthModal(true)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header */}
@@ -124,14 +138,14 @@ export function VitrineGrid() {
                 <p className="text-xs text-zinc-500">Comunidade local</p>
               </div>
             </div>
-            <Link
-              href="/painel-lojista"
+            <button
+              onClick={handleAnunciarClick}
               className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98]"
             >
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Anunciar Aqui</span>
               <span className="sm:hidden">Anunciar</span>
-            </Link>
+            </button>
           </div>
 
           {/* Filter Tabs */}
@@ -419,6 +433,16 @@ export function VitrineGrid() {
           </div>
         </div>
       )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          setShowAuthModal(false)
+          router.push('/painel-lojista')
+        }}
+      />
     </div>
   )
 }
