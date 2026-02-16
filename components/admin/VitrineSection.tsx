@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Loader2 } from 'lucide-react'
+import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Loader2, RefreshCw, Edit } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { VitrinePost } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -118,6 +118,32 @@ export function VitrineSection() {
     )
   }
 
+  const republishPost = async (post: VitrinePost) => {
+    if (!confirm('Republicar este post por mais 48h?')) return
+    try {
+      setLoadingId(post.id)
+      const newExpiry = new Date()
+      newExpiry.setHours(newExpiry.getHours() + 48)
+      const { error } = await supabase
+        .from('vitrine_posts')
+        .update({ expires_at: newExpiry.toISOString(), status: 'aprovado' })
+        .eq('id', post.id)
+      if (error) throw error
+      toast.success('Post republicado por +48h!')
+      await fetchPosts()
+    } catch (error) {
+      logger.error('Error republishing:', error)
+      toast.error('Erro ao republicar')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleEditPost = (post: VitrinePost) => {
+    setEditingPost(post)
+    setIsModalOpen(true)
+  }
+
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingPost(null)
@@ -130,10 +156,10 @@ export function VitrineSection() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'aprovado': return 'bg-green-100 text-green-700'
-      case 'rejeitado': return 'bg-red-100 text-red-700'
-      case 'pendente': return 'bg-yellow-100 text-yellow-700'
-      default: return 'bg-zinc-100 text-zinc-700'
+      case 'aprovado': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+      case 'rejeitado': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+      case 'pendente': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+      default: return 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
     }
   }
 
@@ -157,11 +183,11 @@ export function VitrineSection() {
       />
 
       {/* Header */}
-      <div className="border-b border-zinc-200 bg-white px-8 py-6">
+      <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900">Vitrine</h1>
-            <p className="mt-1 text-sm text-zinc-600">
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Vitrine</h1>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               Modere posts comerciais da vitrine (48h)
             </p>
           </div>
@@ -206,9 +232,9 @@ export function VitrineSection() {
               <Plus className="h-5 w-5" />
               Novo Post
             </button>
-            <div className="flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-700" />
-              <span className="text-sm font-semibold text-yellow-700">
+            <div className="flex items-center gap-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 px-4 py-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-700 dark:text-yellow-400" />
+              <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
                 {pendentesCount} pendentes
               </span>
             </div>
@@ -261,8 +287,8 @@ export function VitrineSection() {
       <div className="p-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
           {filteredPosts.length === 0 ? (
-            <div className="col-span-full rounded-xl border border-dashed border-zinc-300 p-12 text-center">
-              <p className="text-sm text-zinc-600">Nenhum post encontrado</p>
+            <div className="col-span-full rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-12 text-center">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">Nenhum post encontrado</p>
             </div>
           ) : (
             filteredPosts.map((post) => (
@@ -278,7 +304,7 @@ export function VitrineSection() {
                   />
                 </div>
 
-                <div className="relative aspect-square bg-zinc-100">
+                <div className="relative aspect-square bg-zinc-100 dark:bg-zinc-800">
                   {post.image_url ? (
                     <img
                       src={post.image_url}
@@ -287,7 +313,7 @@ export function VitrineSection() {
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center">
-                      <Store className="h-12 w-12 text-zinc-300" />
+                      <Store className="h-12 w-12 text-zinc-300 dark:text-zinc-600" />
                     </div>
                   )}
                   <div className="absolute left-3 top-3 flex gap-2">
@@ -298,12 +324,12 @@ export function VitrineSection() {
                 </div>
 
                 <div className="p-4">
-                  <h3 className="font-semibold text-zinc-900">{post.title}</h3>
-                  <p className="text-lg font-bold text-zinc-900 mt-1">
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{post.title}</h3>
+                  <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mt-1">
                     R$ {Number(post.price).toFixed(2)}
                   </p>
 
-                  <div className="mt-3 space-y-1 text-sm text-zinc-600">
+                  <div className="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
                     <div className="flex items-center gap-2">
                       <Store className="h-4 w-4" />
                       <span>{post.contact_name || 'Sem nome'}</span>
@@ -320,7 +346,7 @@ export function VitrineSection() {
                         <button
                           onClick={() => updateStatus(post.id, 'aprovado')}
                           disabled={loadingId === post.id}
-                          className="flex-1 rounded-lg bg-green-100 py-2 text-sm font-medium text-green-700 hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex-1 rounded-lg bg-green-100 dark:bg-green-900/30 py-2 text-sm font-medium text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {loadingId === post.id ? (
                             <Loader2 className="inline h-4 w-4 animate-spin" />
@@ -332,7 +358,7 @@ export function VitrineSection() {
                         <button
                           onClick={() => updateStatus(post.id, 'rejeitado')}
                           disabled={loadingId === post.id}
-                          className="flex-1 rounded-lg bg-red-100 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex-1 rounded-lg bg-red-100 dark:bg-red-900/30 py-2 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {loadingId === post.id ? (
                             <Loader2 className="inline h-4 w-4 animate-spin" />
@@ -343,10 +369,33 @@ export function VitrineSection() {
                         </button>
                       </>
                     )}
+                    {new Date(post.expires_at) < new Date() && (
+                      <button
+                        onClick={() => republishPost(post)}
+                        disabled={loadingId === post.id}
+                        className="flex-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Republicar por +48h"
+                      >
+                        {loadingId === post.id ? (
+                          <Loader2 className="inline h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="inline h-4 w-4" />
+                        )}
+                        {' '}Republicar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleEditPost(post)}
+                      disabled={loadingId === post.id}
+                      className="rounded-lg bg-zinc-100 dark:bg-zinc-800 p-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      title="Editar"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
                     <button
                       onClick={() => deletePost(post.id)}
                       disabled={loadingId === post.id}
-                      className="rounded-lg bg-zinc-100 p-2 text-zinc-700 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg bg-zinc-100 dark:bg-zinc-800 p-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
                       title="Deletar"
                     >
                       {loadingId === post.id ? (

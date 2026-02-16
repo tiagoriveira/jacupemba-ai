@@ -5,22 +5,31 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const phone = searchParams.get('phone')
+    const email = searchParams.get('email')
 
-    if (!phone) {
+    if (!phone && !email) {
       return NextResponse.json(
-        { error: 'phone é obrigatório' },
+        { error: 'phone ou email é obrigatório' },
         { status: 400 }
       )
     }
 
-    // Buscar por contact_phone usando LIKE para match parcial (com ou sem DDD formatado)
-    const digits = phone.replace(/\D/g, '')
-
-    const { data: posts, error } = await supabase
+    // Build query - search by email or phone
+    let query = supabase
       .from('vitrine_posts')
       .select('*')
-      .like('contact_phone', `%${digits.slice(-9)}%`)
       .order('created_at', { ascending: false })
+
+    if (email) {
+      // Try email-based lookup first (for authenticated users)
+      query = query.eq('contact_email', email)
+    } else if (phone) {
+      // Fallback: phone-based lookup
+      const digits = phone.replace(/\D/g, '')
+      query = query.like('contact_phone', `%${digits.slice(-9)}%`)
+    }
+
+    const { data: posts, error } = await query
 
     if (error) {
       console.error('Erro ao buscar posts:', error)
@@ -37,7 +46,7 @@ export async function GET(request: NextRequest) {
       const isExpired = expiresAt < now
       const isActive = post.status === 'aprovado' && !isExpired
       const hoursRemaining = isExpired ? 0 : Math.max(0, Math.round((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60)))
-      
+
       const canRepost = isExpired && (
         post.is_paid || // Posts pagos sempre podem republicar (com pagamento)
         post.repost_count < post.max_reposts // Posts grátis: verificar limite

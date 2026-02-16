@@ -1,6 +1,6 @@
 'use client'
 
-import { Lightbulb, MapPin, Store, TrendingUp, Users, Zap, Star, MessageSquare } from 'lucide-react'
+import { MapPin, TrendingUp, MessageSquare, ShoppingBag } from 'lucide-react'
 
 interface Suggestion {
   icon: React.ElementType
@@ -26,9 +26,9 @@ export function SuggestionChips({ suggestions, onSuggestionClick }: SuggestionCh
             <button
               key={index}
               onClick={() => onSuggestionClick(suggestion.query)}
-              className="group flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 transition-all hover:border-zinc-900 hover:bg-zinc-900 hover:text-white hover:shadow-md active:scale-95"
+              className="group flex items-center gap-1.5 rounded-full border border-zinc-300 bg-zinc-100 px-3 py-1.5 text-xs text-zinc-600 transition-all hover:border-zinc-400 hover:bg-zinc-200 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
             >
-              <Icon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+              <Icon className="h-3 w-3" />
               <span>{suggestion.text}</span>
             </button>
           )
@@ -38,177 +38,67 @@ export function SuggestionChips({ suggestions, onSuggestionClick }: SuggestionCh
   )
 }
 
-// Gera sugestões contextuais baseadas na resposta do agente E no contexto da conversa atual
+// Gera sugestões contextuais baseadas na resposta do agente, focando no que foi discutido
 export function generateContextualSuggestions(
   agentMessage: string,
   lastUserMessage?: string,
-  conversationContext?: string // Nova: todo o contexto da conversa atual
+  conversationContext?: string
 ): Suggestion[] {
   const suggestions: Suggestion[] = []
   const lowerMessage = agentMessage.toLowerCase()
   const lowerUserMessage = lastUserMessage?.toLowerCase() || ''
-  const lowerConversation = conversationContext?.toLowerCase() || ''
 
-  // Contexto: Serviços/Profissionais (baseado na conversa atual)
-  if (lowerMessage.includes('eletricista') || lowerMessage.includes('encanador') || 
-      lowerMessage.includes('profissional') || lowerMessage.includes('serviço') ||
-      lowerUserMessage.includes('preciso de') || lowerUserMessage.includes('procuro') ||
-      lowerConversation.includes('serviço') || lowerConversation.includes('profissional')) {
-    
+  // Se agente está fazendo pergunta, não mostrar sugestões (usuário deve responder)
+  if (agentMessage.includes('?') && agentMessage.split('?').length >= 3) {
+    return []
+  }
+
+  // Contexto: conversa sobre segurança/problemas
+  if (lowerMessage.includes('segurança') || lowerMessage.includes('relato') ||
+    lowerUserMessage.includes('segurança') || lowerUserMessage.includes('problema')) {
     suggestions.push(
-      {
-        icon: Zap,
-        text: 'Outros serviços',
-        query: 'Quais outros serviços estão disponíveis?',
-        category: 'servico'
-      },
-      {
-        icon: Store,
-        text: 'Material de construção',
-        query: 'Onde tem loja de material de construção?',
-        category: 'comercio'
-      }
+      { icon: MapPin, text: 'Mais relatos', query: 'Tem mais relatos recentes sobre isso?', category: 'relato' },
+      { icon: TrendingUp, text: 'Últimos 30 dias', query: 'Como estava isso nos últimos 30 dias?', category: 'estatistica' }
     )
   }
 
-  // Contexto: Comércios/Restaurantes (baseado na conversa atual)
-  if (lowerMessage.includes('restaurante') || lowerMessage.includes('loja') || 
-      lowerMessage.includes('comércio') || lowerMessage.includes('comer') ||
-      lowerUserMessage.includes('onde') && lowerUserMessage.includes('comer') ||
-      lowerConversation.includes('restaurante') || lowerConversation.includes('comércio')) {
-    
+  // Contexto: conversa sobre vitrine/produtos
+  if (lowerMessage.includes('vitrine') || lowerMessage.includes('anúncio') ||
+    lowerUserMessage.includes('comprar') || lowerUserMessage.includes('produto')) {
     suggestions.push(
-      {
-        icon: Store,
-        text: 'Delivery barato',
-        query: 'Onde tem comida barata para delivery?',
-        category: 'comercio'
-      },
-      {
-        icon: Store,
-        text: 'Farmácia 24h',
-        query: 'Onde tem farmácia aberta agora?',
-        category: 'comercio'
-      }
+      { icon: ShoppingBag, text: 'Outros anúncios', query: 'Tem outros anúncios na vitrine?', category: 'comercio' },
     )
   }
 
-  // Contexto: Segurança/Problemas (baseado na conversa atual)
-  if (lowerMessage.includes('segurança') || lowerMessage.includes('problema') || 
-      lowerMessage.includes('relato') || lowerMessage.includes('rua') ||
-      lowerUserMessage.includes('problema') || lowerUserMessage.includes('rua') ||
-      lowerConversation.includes('segurança') || lowerConversation.includes('relato')) {
-    
+  // Contexto: conversa sobre trânsito/infraestrutura
+  if (lowerMessage.includes('trânsito') || lowerMessage.includes('buraco') ||
+    lowerMessage.includes('iluminação') || lowerMessage.includes('saneamento')) {
     suggestions.push(
-      {
-        icon: MapPin,
-        text: 'Relatos recentes',
-        query: 'Quais são os relatos mais recentes do bairro?',
-        category: 'relato'
-      },
-      {
-        icon: TrendingUp,
-        text: 'Tendências de segurança',
-        query: 'Como está a situação de segurança no bairro?',
-        category: 'estatistica'
-      }
+      { icon: MapPin, text: 'Outras ruas', query: 'E nas outras ruas, como está?', category: 'relato' },
     )
   }
 
-  // Contexto: Estatísticas/Dados (baseado na conversa atual)
-  if (lowerMessage.includes('estatística') || lowerMessage.includes('dados') || 
-      lowerMessage.includes('tendência') || lowerUserMessage.includes('como está') ||
-      lowerConversation.includes('estatística') || lowerConversation.includes('tendência')) {
-    
+  // Contexto: conversa sobre estatísticas
+  if (lowerMessage.includes('estatística') || lowerMessage.includes('tendência') ||
+    lowerMessage.includes('total de')) {
     suggestions.push(
-      {
-        icon: TrendingUp,
-        text: 'Tendências do mês',
-        query: 'Quais são as tendências do último mês no bairro?',
-        category: 'estatistica'
-      },
-      {
-        icon: Users,
-        text: 'Resumo geral',
-        query: 'Me dá um resumo completo do bairro',
-        category: 'estatistica'
-      }
+      { icon: TrendingUp, text: 'Comparar períodos', query: 'Como era no mês passado?', category: 'estatistica' },
     )
   }
 
-  // Contexto: Mencionou comércio específico com contato (só se tiver nome próprio + telefone/endereço)
-  const hasBusinessName = /\*\*[A-Z][^*]+\*\*/.test(agentMessage) // Detecta nomes em negrito (padrão do agente)
-  const hasContact = lowerMessage.includes('tel:') || lowerMessage.includes('telefone') || 
-                     lowerMessage.includes('whatsapp') || lowerMessage.includes('wa.me')
-  
-  if (hasBusinessName && hasContact) {
-    suggestions.push({
-      icon: Star,
-      text: 'Avaliar este local',
-      query: 'Quero avaliar este comércio',
-      category: 'local'
-    })
-  }
-
-  // Contexto: Agente fez pergunta de refinamento (detectar emojis + interrogação)
-  const isAskingQuestion = agentMessage.includes('?') && 
-                          (agentMessage.includes('🍽️') || agentMessage.includes('⚡') || 
-                           agentMessage.includes('💊') || agentMessage.includes('🛒'))
-  
-  // Se agente está fazendo pergunta, não mostrar sugestões genéricas (usuário deve responder)
-  if (isAskingQuestion) {
-    // Não adicionar sugestões genéricas quando agente pergunta
-    return suggestions.slice(0, 2) // Máximo 2 contextuais se houver
-  }
-
-  // Se não houver contexto específico, sugestões gerais
+  // Fallback sutil — apenas 2 opções genéricas se nenhum contexto foi detectado
   if (suggestions.length === 0) {
     suggestions.push(
-      {
-        icon: Zap,
-        text: 'Preciso de um serviço',
-        query: 'Preciso encontrar um profissional para um serviço',
-        category: 'servico'
-      },
-      {
-        icon: Store,
-        text: 'Onde comer?',
-        query: 'Onde tem um lugar bom e barato para comer?',
-        category: 'comercio'
-      },
-      {
-        icon: MapPin,
-        text: 'Relatos do bairro',
-        query: 'Quais são os últimos relatos do bairro?',
-        category: 'relato'
-      },
-      {
-        icon: TrendingUp,
-        text: 'Como está o Jacupemba?',
-        query: 'Me dá um resumo de como está o bairro',
-        category: 'estatistica'
-      }
+      { icon: MapPin, text: 'Relatos recentes', query: 'Quais são os últimos relatos do bairro?', category: 'relato' },
+      { icon: MessageSquare, text: 'Resumo do bairro', query: 'Me dá um resumo do que está rolando no bairro', category: 'estatistica' }
     )
   }
 
-  // Limitar a máximo 4 sugestões
-  return suggestions.slice(0, 4)
+  return suggestions.slice(0, 3)
 }
 
-// Sugestões iniciais para primeira interação
+// Sugestões iniciais para primeira interação — focadas em informação, não recomendação
 export const INITIAL_SUGGESTIONS: Suggestion[] = [
-  {
-    icon: Zap,
-    text: 'Preciso de um serviço',
-    query: 'Preciso encontrar um profissional para um serviço',
-    category: 'servico'
-  },
-  {
-    icon: Store,
-    text: 'Onde comer?',
-    query: 'Onde tem um lugar bom e barato para comer?',
-    category: 'comercio'
-  },
   {
     icon: MapPin,
     text: 'Relatos do bairro',
@@ -217,8 +107,14 @@ export const INITIAL_SUGGESTIONS: Suggestion[] = [
   },
   {
     icon: TrendingUp,
-    text: 'Como está o Jacupemba?',
+    text: 'Resumo do Jacupemba',
     query: 'Me dá um resumo de como está o bairro',
     category: 'estatistica'
+  },
+  {
+    icon: ShoppingBag,
+    text: 'Vitrine digital',
+    query: 'O que tem na vitrine digital hoje?',
+    category: 'comercio'
   }
 ]

@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 48)
 
-    // Se for categoria paga, retornar necessidade de pagamento
-    if (categoryConfig.is_paid) {
+    // Se for categoria paga e NÃO tem payment_id, retornar necessidade de pagamento
+    if (categoryConfig.is_paid && !body.payment_id) {
       return NextResponse.json({
         success: false,
         requires_payment: true,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Categoria grátis: criar post pendente de aprovação
+    // Criar post (grátis ou pago com payment_id)
     const { data: newPost, error } = await supabase
       .from('vitrine_posts')
       .insert({
@@ -75,9 +75,10 @@ export async function POST(request: NextRequest) {
         aspect_ratio: aspect_ratio || 'square',
         expires_at: expiresAt.toISOString(),
         status: 'pendente',
-        is_paid: false,
+        is_paid: categoryConfig.is_paid,
+        payment_id: body.payment_id || null,
         repost_count: 0,
-        max_reposts: 3
+        max_reposts: categoryConfig.is_paid ? 999 : 3
       })
       .select()
       .single()

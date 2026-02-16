@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Store, Plus, RefreshCw, Trash2, Clock, AlertCircle, CheckCircle, XCircle, ArrowLeft, Phone, Search } from 'lucide-react'
+import { Loader2, Store, Plus, RefreshCw, Trash2, Clock, AlertCircle, CheckCircle, XCircle, ArrowLeft, LogOut, Mail, Lock, Eye, EyeOff, UserPlus, LogIn } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import Link from 'next/link'
+import { useAuth } from '@/lib/auth-context'
 
 interface Post {
   id: string
@@ -43,58 +44,58 @@ const CATEGORY_COLORS: Record<string, string> = {
   informativo: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
 }
 
-function formatPhone(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 11)
-  if (digits.length <= 2) return digits
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-}
-
 export default function PainelLojistaPage() {
   const router = useRouter()
+  const { user, loading: authLoading, signIn, signUp, signOut } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(false)
-  const [phone, setPhone] = useState('')
-  const [identified, setIdentified] = useState(false)
 
-  // Recuperar telefone salvo no localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('jacupemba_lojista_phone')
-    if (saved) {
-      setPhone(saved)
-      setIdentified(true)
-    }
-  }, [])
+  // Auth form states
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [authError, setAuthError] = useState('')
+  const [authSubmitting, setAuthSubmitting] = useState(false)
 
-  // Buscar posts quando identificado
+  // Buscar posts quando autenticado
   useEffect(() => {
-    if (identified && phone) {
+    if (user) {
       fetchPosts()
     }
-  }, [identified])
+  }, [user])
 
-  const handleIdentify = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
-    const digits = phone.replace(/\D/g, '')
-    if (digits.length < 10) {
-      toast.error('Informe um telefone válido com DDD')
-      return
+    setAuthError('')
+    setAuthSubmitting(true)
+
+    try {
+      if (authMode === 'login') {
+        await signIn(email, password)
+      } else {
+        await signUp(email, password)
+        toast.success('Conta criada! Verifique seu email para confirmação.')
+      }
+    } catch (err: unknown) {
+      const error = err as Error
+      setAuthError(error.message || 'Erro na autenticação')
+    } finally {
+      setAuthSubmitting(false)
     }
-    localStorage.setItem('jacupemba_lojista_phone', phone)
-    setIdentified(true)
   }
 
-  const handleChangePhone = () => {
-    localStorage.removeItem('jacupemba_lojista_phone')
-    setIdentified(false)
+  const handleSignOut = async () => {
+    await signOut()
     setPosts([])
   }
 
   const fetchPosts = async () => {
-    const digits = phone.replace(/\D/g, '')
+    if (!user?.phone && !user?.email) return
+    const identifier = user?.phone?.replace(/\D/g, '') || user?.email || ''
     try {
       setLoading(true)
-      const response = await fetch(`/api/vitrine/my-posts?phone=${digits}`)
+      const response = await fetch(`/api/vitrine/my-posts?phone=${encodeURIComponent(identifier)}&email=${encodeURIComponent(user?.email || '')}`)
       const data = await response.json()
 
       if (data.success) {
@@ -152,8 +153,17 @@ export default function PainelLojistaPage() {
     }
   }
 
-  // Tela de identificação por telefone
-  if (!identified) {
+  // Loading state
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+      </div>
+    )
+  }
+
+  // Auth screen (not logged in)
+  if (!user) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
         <Toaster position="top-right" richColors />
@@ -178,32 +188,82 @@ export default function PainelLojistaPage() {
             <Store className="h-12 w-12 text-zinc-900 dark:text-zinc-100" />
           </div>
           <h1 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            Gerencie seus Anúncios
+            {authMode === 'login' ? 'Acesse seu Painel' : 'Crie sua Conta'}
           </h1>
           <p className="mb-8 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
-            Informe seu telefone para ver e gerenciar seus posts na vitrine.
+            {authMode === 'login'
+              ? 'Faça login para gerenciar seus anúncios na vitrine.'
+              : 'Cadastre-se para começar a anunciar na vitrine.'}
           </p>
 
-          <form onSubmit={handleIdentify} className="w-full max-w-sm space-y-4">
+          <form onSubmit={handleAuth} className="w-full max-w-sm space-y-4">
             <div className="relative">
-              <Phone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+              <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
               <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(formatPhone(e.target.value))}
-                placeholder="(27) 99999-9999"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
                 className="input-grok w-full pl-12 py-3.5 text-base"
                 required
               />
             </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Sua senha"
+                className="input-grok w-full pl-12 pr-12 py-3.5 text-base"
+                required
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+
+            {authError && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-400">
+                {authError}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3.5 font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              disabled={authSubmitting}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3.5 font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
-              <Search className="h-5 w-5" />
-              Ver Meus Anúncios
+              {authSubmitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : authMode === 'login' ? (
+                <>
+                  <LogIn className="h-5 w-5" />
+                  Entrar
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-5 w-5" />
+                  Criar Conta
+                </>
+              )}
             </button>
           </form>
+
+          <button
+            onClick={() => {
+              setAuthMode(authMode === 'login' ? 'register' : 'login')
+              setAuthError('')
+            }}
+            className="mt-4 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+          >
+            {authMode === 'login' ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
+          </button>
 
           <div className="mt-6 flex items-center gap-2">
             <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
@@ -240,7 +300,7 @@ export default function PainelLojistaPage() {
                     Painel do Anunciante
                   </h1>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {phone}
+                    {user.email}
                   </p>
                 </div>
               </div>
@@ -252,10 +312,11 @@ export default function PainelLojistaPage() {
                   Voltar
                 </Link>
                 <button
-                  onClick={handleChangePhone}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                  onClick={handleSignOut}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 >
-                  Trocar
+                  <LogOut className="h-4 w-4" />
+                  Sair
                 </button>
               </div>
             </div>
@@ -290,7 +351,7 @@ export default function PainelLojistaPage() {
             <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 py-20 dark:border-zinc-800">
               <Store className="h-12 w-12 text-zinc-300 dark:text-zinc-700" />
               <p className="mt-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                Nenhum post encontrado para este telefone
+                Nenhum post encontrado
               </p>
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
                 Crie seu primeiro anúncio para aparecer na vitrine

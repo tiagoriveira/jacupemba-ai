@@ -4,7 +4,7 @@ import React from "react"
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
-import { Loader2, AlertTriangle, TrendingUp, MapPin, Store, X, History, ShoppingBag, MessageSquare, ArrowUp } from 'lucide-react'
+import { Loader2, AlertTriangle, TrendingUp, MapPin, Store, X, History, ShoppingBag, MessageSquare, ArrowUp, ImagePlus } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getUserFingerprint } from '@/lib/fingerprint'
@@ -86,7 +86,7 @@ export default function Page() {
   const [reportImage, setReportImage] = useState<string | null>(null)
   const reportFileInputRef = useRef<HTMLInputElement>(null)
   const [trendingTopics, setTrendingTopics] = useState<Array<{ category: string, count: number }>>([])
-  
+
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
 
@@ -129,6 +129,9 @@ export default function Page() {
   const { messages, sendMessage, status } = useChat({
     initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
     api: '/api/chat',
+    headers: {
+      'x-user-fingerprint': typeof window !== 'undefined' ? getUserFingerprint() : '',
+    },
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
@@ -207,7 +210,7 @@ export default function Page() {
 
   // Estado para sugestões contextuais
   const [currentSuggestions, setCurrentSuggestions] = useState(INITIAL_SUGGESTIONS)
-  
+
   // Estado para chips personalizados baseados em histórico
   const [personalizedChips, setPersonalizedChips] = useState<{ text: string; query: string }[]>([])
 
@@ -254,7 +257,7 @@ export default function Page() {
                 response_summary: assistantText.substring(0, 500)
               })
             })
-          } catch {}
+          } catch { }
         }
       }
     }
@@ -267,7 +270,7 @@ export default function Page() {
     setInput('')
   }
 
-  
+
   const getMessageText = (parts: any[]): string => {
     if (!parts || !Array.isArray(parts)) return ''
     return parts
@@ -457,7 +460,7 @@ export default function Page() {
               <div className="w-full flex flex-col items-center pt-12 pb-16 px-4">
                 {/* Container Central - Largura Máxima Consistente */}
                 <div className="w-full max-w-3xl space-y-12">
-                  
+
                   {/* Seção 1: Chips Personalizados (Histórico) */}
                   {personalizedChips.length > 0 && (
                     <div className="space-y-4">
@@ -601,9 +604,9 @@ export default function Page() {
 
                       {/* Sugestões clicáveis - apenas para última mensagem do assistente */}
                       {!isUser && text && message.id === messages[messages.length - 1]?.id && (
-                        <SuggestionChips 
-                          suggestions={currentSuggestions} 
-                          onSuggestionClick={handleSuggestionClick} 
+                        <SuggestionChips
+                          suggestions={currentSuggestions}
+                          onSuggestionClick={handleSuggestionClick}
                         />
                       )}
                     </div>

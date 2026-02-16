@@ -80,7 +80,7 @@ export function VitrineGrid() {
 
   const filteredPosts = posts.filter(p => {
     const matchesFilter = filter === 'todos' || p.category === filter
-    const matchesSearch = !searchTerm.trim() || 
+    const matchesSearch = !searchTerm.trim() ||
       p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
     return matchesFilter && matchesSearch
@@ -113,27 +113,27 @@ export function VitrineGrid() {
   const getCatConfig = (cat: string) => CATEGORY_CONFIG[cat as CategoryType] || CATEGORY_CONFIG.produto
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/90 backdrop-blur-lg">
+      <header className="sticky top-0 z-10 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-lg">
         <div className="mx-auto max-w-5xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
                 href="/"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="hidden sm:inline">Voltar</span>
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-zinc-900">Explorar</h1>
-                <p className="text-xs text-zinc-500">Comunidade local</p>
+                <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Explorar</h1>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Comunidade local</p>
               </div>
             </div>
             <Link
               href="/painel-lojista"
-              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98]"
+              className="flex items-center gap-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 px-4 py-2 text-sm font-semibold text-white dark:text-zinc-900 transition-all hover:bg-zinc-800 dark:hover:bg-zinc-200 active:scale-[0.98]"
             >
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Anunciar Aqui</span>
@@ -150,7 +150,7 @@ export function VitrineGrid() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar anúncios..."
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+              className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 py-2.5 pl-10 pr-4 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none transition-colors focus:border-zinc-400 dark:focus:border-zinc-600 focus:bg-white dark:focus:bg-zinc-800"
             />
           </div>
 
@@ -167,8 +167,8 @@ export function VitrineGrid() {
                 key={tab.value}
                 onClick={() => setFilter(tab.value)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filter === tab.value
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700'
                   }`}
               >
                 {tab.label}
@@ -184,16 +184,16 @@ export function VitrineGrid() {
           <div className="columns-2 gap-0 sm:columns-3 lg:columns-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="mb-0 w-full break-inside-avoid">
-                <div className={`animate-pulse bg-zinc-200 ${i % 3 === 0 ? 'aspect-[9/16]' : 'aspect-square'}`} />
+                <div className={`animate-pulse bg-zinc-200 dark:bg-zinc-800 ${i % 3 === 0 ? 'aspect-[9/16]' : 'aspect-square'}`} />
               </div>
             ))}
           </div>
         </div>
       ) : filteredPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-          <ShoppingBag className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
-          <p className="text-zinc-500 text-sm">Nenhum anuncio ativo no momento</p>
-          <p className="text-zinc-400 text-xs mt-1">Os anuncios expiram em 48h</p>
+          <ShoppingBag className="mx-auto mb-3 h-10 w-10 text-zinc-300 dark:text-zinc-600" />
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm">Nenhum anuncio ativo no momento</p>
+          <p className="text-zinc-400 dark:text-zinc-500 text-xs mt-1">Os anuncios expiram em 48h</p>
         </div>
       ) : (
         <div className="mx-auto max-w-6xl px-0 py-0">
@@ -385,11 +385,10 @@ export function VitrineGrid() {
                   })()}
                   {getCatConfig(selectedPost.category).label}
                 </span>
-                <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                  getHoursRemaining(selectedPost.expires_at) <= 6 
-                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
+                <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${getHoursRemaining(selectedPost.expires_at) <= 6
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                     : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
-                }`}>
+                  }`}>
                   <Clock className="h-3 w-3" />
                   Expira em {getHoursRemaining(selectedPost.expires_at)}h
                 </div>

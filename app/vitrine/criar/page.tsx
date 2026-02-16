@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Store, Camera, Phone, User, Tag, FileText, DollarSign, CheckCircle, Upload, X } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import Link from 'next/link'
+import { PaymentModal } from '@/components/PaymentModal'
 
 const CATEGORIES = [
   { value: 'produto', label: 'Produto', description: 'Itens à venda', color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' },
@@ -32,6 +33,8 @@ export default function CriarPostPage() {
   const [uploading, setUploading] = useState(false)
   const [images, setImages] = useState<{ preview: string; url: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentInfo, setPaymentInfo] = useState<{ category: string; price: number; postData: Record<string, any> } | null>(null)
 
   const [form, setForm] = useState({
     title: '',
@@ -43,14 +46,12 @@ export default function CriarPostPage() {
   })
 
   // Preencher telefone salvo se existir
-  useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('jacupemba_lojista_phone')
-      if (saved) {
-        setForm(prev => ({ ...prev, contact_phone: saved }))
-      }
+  useEffect(() => {
+    const saved = localStorage.getItem('jacupemba_lojista_phone')
+    if (saved) {
+      setForm(prev => ({ ...prev, contact_phone: saved }))
     }
-  })
+  }, [])
 
   const updateField = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -170,7 +171,13 @@ export default function CriarPostPage() {
       const data = await response.json()
 
       if (data.requires_payment) {
-        toast.info(`Esta categoria custa R$ ${data.category_price.toFixed(2)}. Pagamento será implementado em breve.`)
+        // Abrir modal de pagamento com os dados do post
+        setPaymentInfo({
+          category: data.category,
+          price: data.category_price,
+          postData: data.post_data,
+        })
+        setShowPaymentModal(true)
         return
       }
 
@@ -269,11 +276,10 @@ export default function CriarPostPage() {
                   key={cat.value}
                   type="button"
                   onClick={() => updateField('category', cat.value)}
-                  className={`rounded-xl border-2 p-3 text-left transition-all ${
-                    form.category === cat.value
-                      ? `${cat.color} border-current ring-2 ring-current/20`
-                      : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700'
-                  }`}
+                  className={`rounded-xl border-2 p-3 text-left transition-all ${form.category === cat.value
+                    ? `${cat.color} border-current ring-2 ring-current/20`
+                    : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700'
+                    }`}
                 >
                   <span className="text-sm font-semibold">{cat.label}</span>
                   <p className="text-xs opacity-70 mt-0.5">{cat.description}</p>
@@ -472,6 +478,23 @@ export default function CriarPostPage() {
           </button>
         </form>
       </main>
+
+      {/* Payment Modal */}
+      {paymentInfo && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false)
+            setPaymentInfo(null)
+          }}
+          category={paymentInfo.category}
+          amount={paymentInfo.price}
+          postData={paymentInfo.postData}
+          onSuccess={(paymentId) => {
+            console.log('[Vitrine] Pagamento criado:', paymentId)
+          }}
+        />
+      )}
     </div>
   )
 }

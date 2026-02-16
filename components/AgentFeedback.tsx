@@ -72,29 +72,29 @@ export function AgentFeedback({ messageId, onFeedbackSubmitted }: AgentFeedbackP
 
   return (
     <div className="flex items-center gap-1">
-      <span className="text-xs text-zinc-500">Essa resposta foi útil?</span>
+      <span className="text-xs text-zinc-400 dark:text-zinc-500">Essa resposta foi útil?</span>
       <button
         onClick={() => handleFeedback('positive')}
         disabled={isSubmitting}
-        className="rounded p-1 hover:bg-zinc-800 dark:hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+        className="rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
         title="Resposta útil"
       >
         {isSubmitting && feedback === 'positive' ? (
           <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
         ) : (
-          <ThumbsUp className="h-4 w-4 text-zinc-600 hover:text-green-600 transition-colors" />
+          <ThumbsUp className="h-4 w-4 text-zinc-400 hover:text-green-600 transition-colors" />
         )}
       </button>
       <button
         onClick={() => handleFeedback('negative')}
         disabled={isSubmitting}
-        className="rounded p-1 hover:bg-zinc-800 dark:hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+        className="rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
         title="Resposta não útil"
       >
         {isSubmitting && feedback === 'negative' ? (
           <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
         ) : (
-          <ThumbsDown className="h-4 w-4 text-zinc-600 hover:text-red-600 transition-colors" />
+          <ThumbsDown className="h-4 w-4 text-zinc-400 hover:text-red-600 transition-colors" />
         )}
       </button>
     </div>

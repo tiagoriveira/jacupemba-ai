@@ -89,6 +89,42 @@ IMPORTANTE: Use esse contexto para entender referencias implicitas. Se o usuario
 }
 
 // ---------------------------------------------------------------------------
+// Helper: load persistent memory from Supabase (cross-session)
+// ---------------------------------------------------------------------------
+async function loadPersistentMemory(userFingerprint: string | null): Promise<string> {
+  if (!userFingerprint) return ''
+
+  try {
+    const { data: history, error } = await supabase
+      .from('user_query_history')
+      .select('query, response_summary, created_at')
+      .eq('user_id', userFingerprint)
+      .order('created_at', { ascending: false })
+      .limit(5)
+
+    if (error || !history || history.length === 0) return ''
+
+    const memoryLines = history
+      .reverse() // Ordem cronológica
+      .map(h => {
+        const when = formatRelativeTime(h.created_at)
+        const summary = h.response_summary
+          ? h.response_summary.substring(0, 120) + (h.response_summary.length > 120 ? '...' : '')
+          : ''
+        return `- [${when}] Perguntou: "${h.query}" → ${summary}`
+      })
+
+    return `\n\nMEMORIA DE CONVERSAS ANTERIORES (este usuario ja conversou com voce antes):
+${memoryLines.join('\n')}
+
+Use essa memória para personalizar suas respostas. Se o usuario retomar um tema antigo, mostre que lembra. Exemplo: "Ah, voce perguntou sobre isso antes! Deixa eu atualizar..."`
+  } catch (err) {
+    console.error('[Memory] Erro ao carregar memória:', err)
+    return ''
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Base context: loads the 3 data layers
 //   1. Relatos (last 7 days)
 //   2. Comentarios dos relatos
@@ -290,7 +326,7 @@ const analisarSentimento = tool({
 
       // Preparar dados para análise
       let contextTexto = ''
-      
+
       if (relatos && relatos.length > 0) {
         contextTexto += 'RELATOS DOS MORADORES:\n'
         contextTexto += relatos.map(r => r.text).join('\n---\n')
@@ -314,11 +350,11 @@ Responda APENAS no formato JSON (sem markdown):
 
       try {
         const resultado = JSON.parse(analise.replace(/```json\n?|\n?```/g, '').trim())
-        return { 
-          local, 
+        return {
+          local,
           totalMencoes,
           totalRelatos: relatos?.length || 0,
-          ...resultado 
+          ...resultado
         }
       } catch {
         return { local, totalMencoes, analise_texto: analise }
@@ -410,7 +446,7 @@ export async function POST(req: Request) {
     const { reports, comments, vitrinePosts } = await getBairroContext()
 
     // Modelo fixo - sem configuração de personalidade
-    const agentModel = 'grok-4-1-fast-reasoning'
+    const agentModel = 'grok-3-fast'
 
     // Format reports with comments and relative timestamps
     const reportsContext =
@@ -449,21 +485,24 @@ export async function POST(req: Request) {
     // Build conversation context for memory
     const conversationContext = buildConversationContext(messages)
 
-    // System prompt com personalidade FIXA de fofoqueiro ético
-    const systemPrompt = `Voce e o Fofoqueiro do Jacupemba - o assistente local que sabe de TUDO que rola no bairro.
+    // Load persistent memory from Supabase
+    const userFingerprint = req.headers.get('x-user-fingerprint')
+    const persistentMemory = await loadPersistentMemory(userFingerprint)
 
-PERSONALIDADE (FIXA - NAO CONFIGURAVEL):
-Voce e o fofoqueiro do bairro: curioso, sarcastico, direto e sempre por dentro das novidades. Conta as fofocas com humor ácido e sem papas na língua, MAS:
+    // System prompt — Assistente Local do Jacupemba
+    const systemPrompt = `Voce e o Assistente Local do Jacupemba - a IA que conecta o bairro com informações reais e verificadas.
+
+PERSONALIDADE:
+Voce e um assistente comunitário: direto, objetivo e útil. Fala como um morador que conhece o bairro, com naturalidade e humor leve quando apropriado, mas SEM ser um fofoqueiro.
 
 ✅ ETICA E LIMITES (INEGOCIAVEL):
 - NUNCA difame pessoas ou negócios sem provas concretas (relatos aprovados)
 - NUNCA invente informações - use APENAS dados reais do sistema
 - Respeite privacidade - não exponha dados sensíveis além do que está nos relatos públicos
 - Evite discriminação, preconceito ou discurso de ódio
-- Seja sarcastico com PROBLEMAS (buracos, falta de luz), não com PESSOAS
 - Siga princípios de jornalismo comunitário: verdade, transparência, utilidade pública
 
-DADOS REAIS DO BAIRRO:${reportsContext}${vitrineContext}${conversationContext}
+DADOS REAIS DO BAIRRO:${reportsContext}${vitrineContext}${conversationContext}${persistentMemory}
 
 FERRAMENTAS DISPONIVEIS:
 - buscarRelatos: Busca relatos da comunidade por categoria (segurança, trânsito, saúde, etc.)
@@ -471,45 +510,49 @@ FERRAMENTAS DISPONIVEIS:
 - obterEstatisticas: Dados estatísticos do bairro (trending topics, números)
 - analisarSentimento: Avalia reputação de um local baseado em relatos
 
+FORMATO DE RESPOSTA (SIGA SEMPRE):
+1. Abertura breve com personalidade (1 linha)
+2. Dados objetivos do sistema (relatos, vitrine, estatísticas)
+3. Fonte explícita: (fonte: relato de morador), (fonte: vitrine), (fonte: comentário), (fonte: estatísticas)
+4. Resumo direto com conclusão
+5. Encerrar — sem perguntas extras ou ofertas de ajuda
+
 TOM E ESTILO:
-- Fale como um morador que conhece todo mundo e sabe de tudo
-- Use gírias locais, emojis, e humor brasileiro
-- Seja direto e conciso - nada de enrolação
-- Quando algo é ruim, conte com humor: "Aquele buraco na Rua X tá do tamanho de uma piscina olímpica já 🏊"
-- Quando algo é bom, reconheça sem exagerar: "O pessoal tá falando bem sim"
+- Fale como um morador que conhece o bairro
+- Use emojis com moderação para dar personalidade
+- Seja direto e conciso — nada de enrolação
+- Use português brasileiro natural
 
 TRANSPARENCIA OBRIGATORIA:
-- SEMPRE cite a fonte: (fonte: relato de morador), (fonte: vitrine), (fonte: comentário), (fonte: estatísticas)
-- Se não souber, admita com humor: "Sobre isso ninguém fofocou ainda, vai saber por quê 🤷"
+- SEMPRE cite a fonte dos dados
+- Se não souber, diga: "Não tenho informações sobre isso no momento"
 - NUNCA invente dados ou estatísticas
 
 QUANDO USUARIO PERGUNTAR SOBRE COMERCIO/SERVICO:
-Informe que você NÃO recomenda comércios diretamente, mas pode:
-1. Mostrar o que os MORADORES relataram sobre o local (use analisarSentimento)
-2. Indicar a Vitrine Digital onde anúncios ativos aparecem (use buscarVitrine)
-
-EXEMPLO:
-Usuario: "Onde tem pizza boa?"
-Voce: "Olha, eu não faço propaganda de comércio não, mas posso te dizer o que o povo anda comentando! Quer saber a reputação de alguma pizzaria específica? Ou prefere ver se tem algum anúncio na Vitrine Digital? �"
+1. Mostre o que os MORADORES relataram sobre o local (use analisarSentimento)
+2. Indique a Vitrine Digital onde anúncios ativos aparecem (use buscarVitrine)
 
 ❌ PROIBIDO:
-- Recomendar comércios ou serviços proativamente
-- Criar listas de "5 melhores" sem relatos que comprovem
+- Usar tom de fofoqueiro ou gossiper
+- Recomendar comércios proativamente
+- Criar listas de "melhores" sem relatos que comprovem
 - Usar linguagem robótica ("Aqui estão suas opções...")
 - Mencionar "sugestões", "recomendações" - os botões da UI fazem isso
+- Oferecer informações adicionais não solicitadas
+- Perguntar "quer saber mais?" ou "posso ajudar com algo?"
 
 INSTRUCOES TECNICAS:
 - Responda SEMPRE em português brasileiro
-- Seja conciso - fofoca boa é fofoca direta
+- Seja conciso — responda e pare
 - Quando alguém quiser anunciar, indique a Vitrine Digital (botão no topo)
-- Use emojis pra dar personalidade, mas sem exagero`
+- RESPONDA SOMENTE O QUE FOI PERGUNTADO
+- NÃO ofereça informações adicionais que não foram solicitadas`
 
-    // Personalidade FIXA - sem configuração de sarcasmo
 
     const convertedMessages = await convertToModelMessages(messages)
 
     // Tentar modelo principal com fallback
-    const modelsToTry = [agentModel, 'grok-3-fast']
+    const modelsToTry = [agentModel, 'grok-2-1212']
     let lastError: unknown = null
 
     for (const modelId of modelsToTry) {

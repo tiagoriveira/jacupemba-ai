@@ -1,13 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Shield, Eye, EyeOff, Lock, User } from 'lucide-react'
+import { Shield, Eye, EyeOff, Lock, User, Loader2 } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 
 interface AdminLoginProps {
   onLogin: () => void
 }
 
+const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || ''
+
 export function AdminLogin({ onLogin }: AdminLoginProps) {
+  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -19,18 +23,23 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setError('')
     setIsLoading(true)
 
-    // Autenticacao via env vars - configurar no .env.local
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@jacupemba.com'
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123'
-    
-    setTimeout(() => {
-      if (email === adminEmail && password === adminPassword) {
-        onLogin()
-      } else {
-        setError('Email ou senha incorretos')
+    try {
+      await signIn(email, password)
+
+      // Verify super admin
+      if (SUPER_ADMIN_EMAIL && email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+        setError('Acesso restrito. Apenas administradores podem acessar este painel.')
+        setIsLoading(false)
+        return
       }
+
+      onLogin()
+    } catch (err: unknown) {
+      const error = err as Error
+      setError(error.message || 'Email ou senha incorretos')
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -54,8 +63,8 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
-              <label 
-                htmlFor="email" 
+              <label
+                htmlFor="email"
                 className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
               >
                 Email
@@ -76,8 +85,8 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
 
             {/* Senha */}
             <div>
-              <label 
-                htmlFor="password" 
+              <label
+                htmlFor="password"
                 className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
               >
                 Senha
@@ -118,13 +127,19 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-lg bg-zinc-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                'Entrar'
+              )}
             </button>
           </form>
 
-          {/* Credenciais configuráveis via env vars */}
           <div className="mt-6 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
             <p className="text-xs text-zinc-600 dark:text-zinc-400">
               Acesso restrito aos administradores do sistema.

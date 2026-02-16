@@ -112,7 +112,7 @@ export function FeedRelatos() {
           const createdAtB = new Date(b.created_at).getTime()
           return createdAtB - createdAtA
         })
-        
+
         setReports(sortedData)
 
         const counts: Record<string, number> = {}
@@ -446,15 +446,15 @@ export function FeedRelatos() {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Pulso do Bairro</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Pulso do Bairro</h2>
           <div className="flex gap-2">
             {periods.map(p => (
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${period === p.value
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50'
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700'
                   }`}
               >
                 {p.label}
@@ -473,12 +473,12 @@ export function FeedRelatos() {
                   setCategoryModalData({ category: key, categoryLabel: info.label })
                   setCategoryModalOpen(true)
                 }}
-                className={`p-4 rounded-xl border-2 transition-all duration-200 border-zinc-200 bg-white hover:border-zinc-400 hover:shadow-md`}
+                className={`p-4 rounded-xl border-2 transition-all duration-200 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-md`}
               >
                 <div className="text-center">
                   <Icon className="h-7 w-7 mx-auto mb-2" />
-                  <div className="text-xs font-semibold mb-2">{info.label}</div>
-                  <div className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700">
+                  <div className="text-xs font-semibold mb-2 text-zinc-900 dark:text-zinc-100">{info.label}</div>
+                  <div className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                     {categoryCounts[key] || 0}
                   </div>
                 </div>

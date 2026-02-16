@@ -271,7 +271,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                 )}
 
                 <label className="absolute bottom-4 left-1/2 -translate-x-1/2 cursor-pointer">
-                  <div className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-zinc-900 shadow-lg transition-colors hover:bg-zinc-50">
+                  <div className="flex items-center gap-2 rounded-lg bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-900 dark:text-zinc-100 shadow-lg transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-700">
                     <Upload className="h-4 w-4" />
                     {imagePreview ? 'Trocar Imagem' : 'Selecionar Imagem'}
                   </div>

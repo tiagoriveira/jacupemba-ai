@@ -260,11 +260,11 @@ export function RelatosSection() {
   return (
     <div className="h-full">
       {/* Page Header with Stats */}
-      <div className="border-b border-zinc-200 bg-white px-8 py-6">
+      <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-8 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900">Relatos</h1>
-            <p className="mt-1 text-sm text-zinc-600">
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Relatos</h1>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               Modere relatos de problemas do bairro
             </p>
           </div>
@@ -394,9 +394,9 @@ export function RelatosSection() {
         {/* Relatos List */}
         <div className="space-y-3">
           {filteredRelatos.length === 0 ? (
-            <div className="rounded-lg border border-zinc-200 bg-white p-8 text-center">
-              <AlertTriangle className="mx-auto h-12 w-12 text-zinc-400" />
-              <p className="mt-2 text-zinc-500">Nenhum relato encontrado</p>
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
+              <AlertTriangle className="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600" />
+              <p className="mt-2 text-zinc-500 dark:text-zinc-400">Nenhum relato encontrado</p>
             </div>
           ) : (
             filteredRelatos.map((relato) => {
@@ -445,17 +445,17 @@ export function RelatosSection() {
                       </div>
 
                       {/* Texto do relato */}
-                      <p className="text-sm text-zinc-900">{relato.text}</p>
+                      <p className="text-sm text-zinc-900 dark:text-zinc-100">{relato.text}</p>
 
                       {/* Alertas de triagem (apenas para pendentes) */}
                       {relato.status === 'pendente' && relato.triagem.alertas.length > 0 && (
-                        <div className="rounded-lg bg-zinc-50 p-3 space-y-1">
-                          <div className="flex items-center gap-2 text-xs font-medium text-zinc-700">
+                        <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-3 space-y-1">
+                          <div className="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             <AlertCircle className="h-3 w-3" />
                             Análise Automática:
                           </div>
                           {relato.triagem.alertas.map((alerta, idx) => (
-                            <p key={idx} className="text-xs text-zinc-600 ml-5">• {alerta}</p>
+                            <p key={idx} className="text-xs text-zinc-600 dark:text-zinc-400 ml-5">• {alerta}</p>
                           ))}
                         </div>
                       )}
