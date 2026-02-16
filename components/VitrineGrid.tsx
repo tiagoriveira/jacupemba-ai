@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play, ChevronLeft, ChevronRight, Camera, Search } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { ProductStoriesView } from './ProductStoriesView'
 
 interface VitrinePost {
   id: string
@@ -47,6 +48,8 @@ export function VitrineGrid() {
   const [filter, setFilter] = useState<'todos' | CategoryType>('todos')
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
+  const [storiesMode, setStoriesMode] = useState(false)
+  const [storiesStartIndex, setStoriesStartIndex] = useState(0)
 
   useEffect(() => {
     async function fetchPosts() {
@@ -121,7 +124,8 @@ export function VitrineGrid() {
             <div className="flex items-center gap-4">
               <Link
                 href="/"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95"
+                aria-label="Voltar para página inicial"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="hidden sm:inline">Voltar</span>
@@ -133,11 +137,12 @@ export function VitrineGrid() {
             </div>
             <Link
               href="/painel-lojista"
-              className="flex items-center gap-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 px-4 py-2 text-sm font-semibold text-white dark:text-zinc-900 transition-all hover:bg-zinc-800 dark:hover:bg-zinc-200 active:scale-[0.98]"
+              className="flex items-center gap-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 px-4 py-2 text-sm font-semibold text-white dark:text-zinc-900 shadow-sm transition-all hover:bg-zinc-800 hover:shadow-md dark:hover:bg-zinc-200 active:scale-95"
+              aria-label="Acessar painel do anunciante"
             >
               <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Anunciar Aqui</span>
-              <span className="sm:hidden">Anunciar</span>
+              <span className="hidden sm:inline">Acessar Painel</span>
+              <span className="sm:hidden">Painel</span>
             </Link>
           </div>
 
@@ -150,7 +155,7 @@ export function VitrineGrid() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar anúncios..."
-              className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 py-2.5 pl-10 pr-4 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none transition-colors focus:border-zinc-400 dark:focus:border-zinc-600 focus:bg-white dark:focus:bg-zinc-800"
+              className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 py-2.5 pl-10 pr-4 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none transition-all duration-200 focus:border-zinc-400 dark:focus:border-zinc-600 focus:bg-white dark:focus:bg-zinc-800 focus:shadow-sm"
             />
           </div>
 
@@ -166,10 +171,12 @@ export function VitrineGrid() {
               <button
                 key={tab.value}
                 onClick={() => setFilter(tab.value)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${filter === tab.value
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700'
+                className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-95 ${filter === tab.value
+                  ? 'bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:shadow-sm dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700'
                   }`}
+                aria-label={`Filtrar por ${tab.label.toLowerCase()}`}
+                aria-pressed={filter === tab.value}
               >
                 {tab.label}
               </button>
@@ -209,10 +216,12 @@ export function VitrineGrid() {
                 <button
                   key={post.id}
                   onClick={() => {
-                    setSelectedPost(post)
-                    setCurrentImageIndex(0)
+                    const postIndex = filteredPosts.findIndex(p => p.id === post.id)
+                    setStoriesStartIndex(postIndex)
+                    setStoriesMode(true)
                   }}
-                  className="group relative mb-0 w-full break-inside-avoid overflow-hidden transition-all duration-200 hover:opacity-90"
+                  className="group relative mb-0 w-full break-inside-avoid overflow-hidden transition-all duration-300 hover:brightness-95 active:scale-[0.98]"
+                  aria-label={`Ver detalhes de ${post.title}`}
                 >
                   {/* Price badge */}
                   <div className="absolute bottom-2 left-2 z-[2] rounded-full bg-black/70 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">
@@ -248,6 +257,14 @@ export function VitrineGrid() {
                         loading="lazy"
                         className={`w-full object-cover ${isVertical ? 'aspect-[9/16]' : 'aspect-square'}`}
                       />
+                      {/* Overlay com título no hover */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <p className="text-sm font-semibold text-white line-clamp-2 leading-tight">
+                            {post.title}
+                          </p>
+                        </div>
+                      </div>
                       {hasMultipleImages && (
                         <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 backdrop-blur-sm">
                           <Camera className="h-3 w-3 text-white" />
@@ -267,194 +284,16 @@ export function VitrineGrid() {
         </div>
       )}
 
-      {/* Detail Modal */}
-      {selectedPost && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-md sm:items-center sm:p-4 animate-in fade-in-0 duration-200"
-          onClick={() => setSelectedPost(null)}
-        >
-          <div
-            className="relative w-full max-w-lg overflow-hidden rounded-t-2xl bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close */}
-            <button
-              onClick={() => setSelectedPost(null)}
-              className="absolute right-4 top-4 z-10 rounded-full bg-white/90 dark:bg-zinc-800/90 p-2 text-zinc-900 dark:text-zinc-100 backdrop-blur-sm transition-all hover:bg-white dark:hover:bg-zinc-800 shadow-lg"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            {/* Image / Video / Gradient */}
-            {selectedPost.video_url ? (
-              <div className="relative aspect-square">
-                <video
-                  src={selectedPost.video_url}
-                  className="h-full w-full object-cover"
-                  controls
-                  playsInline
-                />
-              </div>
-            ) : (() => {
-              const modalImages = selectedPost.images && selectedPost.images.length > 0
-                ? selectedPost.images
-                : (selectedPost.image_url ? [selectedPost.image_url] : [])
-
-              if (modalImages.length === 0) {
-                return (
-                  <div className={`relative flex aspect-[16/9] items-center justify-center bg-gradient-to-br ${getCatConfig(selectedPost.category).bg}`}>
-                    {(() => {
-                      const Icon = getCatConfig(selectedPost.category).icon
-                      return <Icon className="h-20 w-20 text-white/15" />
-                    })()}
-                  </div>
-                )
-              }
-
-              const hasMultiple = modalImages.length > 1
-              const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % modalImages.length)
-              const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + modalImages.length) % modalImages.length)
-
-              return (
-                <div className="relative aspect-square bg-zinc-900">
-                  <img
-                    src={modalImages[currentImageIndex]}
-                    alt={`${selectedPost.title} - ${currentImageIndex + 1}`}
-                    className="h-full w-full object-contain"
-                  />
-
-                  {hasMultiple && (
-                    <>
-                      {/* Navigation Arrows */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          prevImage()
-                        }}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm transition-all hover:bg-black/80"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          nextImage()
-                        }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm transition-all hover:bg-black/80"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
-
-                      {/* Dots Indicator */}
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                        {modalImages.map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setCurrentImageIndex(idx)
-                            }}
-                            className={`h-2 rounded-full transition-all ${idx === currentImageIndex
-                              ? 'w-6 bg-white'
-                              : 'w-2 bg-white/50 hover:bg-white/75'
-                              }`}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Counter */}
-                      <div className="absolute top-4 right-4 rounded-full bg-black/60 px-3 py-1 backdrop-blur-sm">
-                        <span className="text-sm font-medium text-white">
-                          {currentImageIndex + 1}/{modalImages.length}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )
-            })()}
-
-            {/* Content */}
-            <div className="p-6 space-y-5">
-              {/* Category Badge & Expiration */}
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  {(() => {
-                    const Icon = getCatConfig(selectedPost.category).icon
-                    return <Icon className="h-3.5 w-3.5" />
-                  })()}
-                  {getCatConfig(selectedPost.category).label}
-                </span>
-                <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${getHoursRemaining(selectedPost.expires_at) <= 6
-                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
-                  }`}>
-                  <Clock className="h-3 w-3" />
-                  Expira em {getHoursRemaining(selectedPost.expires_at)}h
-                </div>
-              </div>
-
-              {/* Title */}
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-tight">
-                {selectedPost.title}
-              </h2>
-
-              {/* Price */}
-              {(selectedPost.price && selectedPost.price > 0) ? (
-                <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-                  R$ {Number(selectedPost.price).toFixed(2).replace('.', ',')}
-                </div>
-              ) : (
-                <div className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">
-                  Preço a combinar
-                </div>
-              )}
-
-              {/* Description */}
-              {selectedPost.description && (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  {selectedPost.description}
-                </p>
-              )}
-
-              {/* Divider */}
-              <div className="border-t border-zinc-200 dark:border-zinc-800" />
-
-              {/* Seller Info */}
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-                  <User className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    {selectedPost.contact_name || 'Anunciante'}
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    📞 {selectedPost.contact_phone || 'Sem telefone'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleWhatsAppClick(selectedPost)}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3.5 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-[0.98] shadow-lg shadow-green-600/20"
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  Contato via WhatsApp
-                </button>
-                <button
-                  onClick={(e) => handleShare(selectedPost, e)}
-                  className="flex items-center justify-center rounded-2xl border-2 border-zinc-200 dark:border-zinc-700 px-4 py-3.5 text-zinc-700 dark:text-zinc-300 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.98]"
-                  title="Compartilhar"
-                >
-                  <Share2 className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Stories Mode - Instagram Style Fullscreen */}
+      {storiesMode && (
+        <ProductStoriesView
+          posts={filteredPosts}
+          initialIndex={storiesStartIndex}
+          onClose={() => setStoriesMode(false)}
+          onWhatsAppClick={handleWhatsAppClick}
+          onShare={handleShare}
+          getCatConfig={getCatConfig}
+        />
       )}
     </div>
   )

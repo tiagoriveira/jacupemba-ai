@@ -203,7 +203,7 @@ export default function PainelLojistaPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
+                placeholder="Email"
                 className="input-grok w-full pl-12 py-3.5 text-base"
                 required
               />
@@ -214,7 +214,7 @@ export default function PainelLojistaPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Sua senha"
+                placeholder="Senha"
                 className="input-grok w-full pl-12 pr-12 py-3.5 text-base"
                 required
                 minLength={6}
@@ -273,7 +273,7 @@ export default function PainelLojistaPage() {
 
           <Link
             href="/vitrine/criar"
-            className="mt-6 flex items-center gap-2 rounded-xl border-2 border-zinc-200 px-6 py-3 font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
+            className="mt-6 flex items-center gap-2 rounded-xl bg-zinc-900 px-6 py-3 font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             <Plus className="h-5 w-5" />
             Criar Novo Anúncio
