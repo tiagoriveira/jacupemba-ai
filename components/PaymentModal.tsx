@@ -225,7 +225,7 @@ export function PaymentModal({ isOpen, onClose, category, amount, postData, onSu
                     value={customerData.name}
                     onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
                     className="mt-1 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2.5 text-sm focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors"
-                    placeholder="Seu nome completo"
+                    placeholder="Nome completo"
                   />
                 </div>
                 <div>
@@ -237,7 +237,7 @@ export function PaymentModal({ isOpen, onClose, category, amount, postData, onSu
                     value={customerData.email}
                     onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
                     className="mt-1 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2.5 text-sm focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors"
-                    placeholder="seu@email.com"
+                    placeholder="Email"
                   />
                 </div>
               </div>
@@ -339,23 +339,14 @@ export function PaymentModal({ isOpen, onClose, category, amount, postData, onSu
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
                     Após efetuar o pagamento, clique abaixo para enviar seu anúncio:
                   </p>
-                  <button
-                    onClick={handleCreatePostAfterPayment}
-                    disabled={isProcessing}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3.5 text-sm font-semibold text-white transition-all hover:bg-green-700 disabled:opacity-50 active:scale-[0.98]"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingBag className="h-4 w-4" />
-                        Enviar Anúncio para Aprovação
-                      </>
-                    )}
-                  </button>
+              <button
+                onClick={handleWhatsAppContact}
+                disabled={!payment.payment_url}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 px-4 py-3.5 text-sm font-semibold text-white dark:text-zinc-900 shadow-sm transition-all hover:bg-zinc-800 dark:hover:bg-zinc-200 hover:shadow-md disabled:opacity-50 active:scale-95"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Contato via WhatsApp
+              </button>
                 </div>
               </div>
             </>

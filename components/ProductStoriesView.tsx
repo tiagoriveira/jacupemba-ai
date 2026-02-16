@@ -254,7 +254,7 @@ export function ProductStoriesView({
           <div className="flex gap-3">
             <button
               onClick={() => onWhatsAppClick(currentPost)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3.5 font-semibold text-white shadow-lg transition-all hover:bg-green-700 hover:shadow-xl active:scale-95"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 font-semibold text-zinc-900 shadow-lg transition-all hover:bg-white/90 hover:shadow-xl active:scale-95"
               aria-label="Iniciar conversa no WhatsApp"
             >
               <MessageCircle className="h-5 w-5" />
@@ -262,7 +262,7 @@ export function ProductStoriesView({
             </button>
             <button
               onClick={() => onShare(currentPost)}
-              className="flex items-center justify-center rounded-xl bg-white/20 p-3.5 text-white backdrop-blur-sm transition-all hover:bg-white/30 active:scale-95"
+              className="flex items-center justify-center rounded-xl border-2 border-white/30 p-3.5 text-white backdrop-blur-sm transition-all hover:border-white/50 hover:bg-white/10 active:scale-95"
               aria-label="Compartilhar anúncio"
             >
               <Share2 className="h-5 w-5" />

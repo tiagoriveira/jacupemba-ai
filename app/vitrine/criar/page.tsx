@@ -300,7 +300,7 @@ export default function CriarPostPage() {
                     type="text"
                     value={form.contact_name}
                     onChange={(e) => updateField('contact_name', e.target.value)}
-                    placeholder="Seu nome"
+                    placeholder="Nome completo"
                     className="input-grok w-full pl-10"
                     required
                   />
@@ -314,7 +314,7 @@ export default function CriarPostPage() {
                     type="tel"
                     value={form.contact_phone}
                     onChange={(e) => updateField('contact_phone', formatPhone(e.target.value))}
-                    placeholder="WhatsApp"
+                    placeholder="Número do WhatsApp"
                     className="input-grok w-full pl-10"
                     required
                   />
