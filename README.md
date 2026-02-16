@@ -53,7 +53,7 @@ Jacupemba AI conecta moradores do bairro através de dois pilares:
 - **Sem necessidade de login**
 
 ### 🏪 Vitrine Digital (Lojistas)
-- **Painel do Lojista** (requer autenticação)
+- **Painel do Anunciante** (identificação por telefone, sem login)
 - Criação de posts com imagens/vídeos
 - **Validade de 48 horas** para todos os posts
 - **Republicação controlada**:

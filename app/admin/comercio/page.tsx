@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Suspense, useState, useEffect } from 'react'
 import { Store, Settings, Package, ArrowLeft, LogOut, Loader2, Save, Upload, Plus, Trash2, Sparkles, TrendingUp, Users, Eye, Star, Lock, AlertCircle } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
@@ -47,11 +47,20 @@ interface VitrinePost {
 
 function MerchantPageContent() {
     const router = useRouter()
-    const searchParams = useSearchParams()
-    const token = searchParams.get('token')
 
-    const [loading, setLoading] = useState(true)
-    const [business, setBusiness] = useState<Business | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [business, setBusiness] = useState<Business>({
+        id: 'demo',
+        name: 'Meu Negócio',
+        category: 'Comércio Local',
+        description: '',
+        phone: '',
+        address: '',
+        hours: '',
+        access_token: '',
+        is_subscribed: false,
+        verified: false
+    })
     const [activeTab, setActiveTab] = useState<'info' | 'vitrine' | 'inventory' | 'analytics'>('info')
     const [leadStats, setLeadStats] = useState<LeadStats | null>(null)
     const [statsLoading, setStatsLoading] = useState(false)
@@ -67,35 +76,6 @@ function MerchantPageContent() {
     // Inventory AI
     const [inventoryText, setInventoryText] = useState('')
     const [processingAI, setProcessingAI] = useState(false)
-
-    useEffect(() => {
-        if (!token) {
-            setLoading(false)
-            return
-        }
-        verifyToken()
-    }, [token])
-
-    const verifyToken = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('local_businesses')
-                .select('*')
-                .eq('access_token', token)
-                .single()
-
-            if (error || !data) throw new Error('Token inválido')
-
-            setBusiness(data)
-            fetchBusinessPosts(data.id)
-            fetchLeadStats(data.id)
-        } catch (error) {
-            console.error('Auth error:', error)
-            toast.error('Acesso negado. Token inválido.')
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const fetchLeadStats = async (businessId: string) => {
         try {
@@ -195,29 +175,6 @@ function MerchantPageContent() {
         }, 2000)
     }
 
-    if (loading) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-zinc-50">
-                <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-            </div>
-        )
-    }
-
-    if (!business) {
-        return (
-            <div className="flex h-screen flex-col items-center justify-center bg-zinc-50 p-4 text-center">
-                <div className="rounded-full bg-red-100 p-4">
-                    <LogOut className="h-8 w-8 text-red-600" />
-                </div>
-                <h1 className="mt-4 text-xl font-bold text-zinc-900">Acesso Negado</h1>
-                <p className="mt-2 text-zinc-600">Token de acesso inválido ou expirado.</p>
-                <Link href="/" className="mt-6 flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">
-                    <ArrowLeft className="h-4 w-4" />
-                    Voltar ao início
-                </Link>
-            </div>
-        )
-    }
 
     return (
         <>

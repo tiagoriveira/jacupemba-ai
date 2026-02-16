@@ -4,19 +4,22 @@ import { supabase } from '@/lib/supabase'
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const user_id = searchParams.get('user_id')
+    const phone = searchParams.get('phone')
 
-    if (!user_id) {
+    if (!phone) {
       return NextResponse.json(
-        { error: 'user_id é obrigatório' },
+        { error: 'phone é obrigatório' },
         { status: 400 }
       )
     }
 
+    // Buscar por contact_phone usando LIKE para match parcial (com ou sem DDD formatado)
+    const digits = phone.replace(/\D/g, '')
+
     const { data: posts, error } = await supabase
       .from('vitrine_posts')
       .select('*')
-      .eq('user_id', user_id)
+      .like('contact_phone', `%${digits.slice(-9)}%`)
       .order('created_at', { ascending: false })
 
     if (error) {

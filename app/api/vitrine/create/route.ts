@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
-      user_id,
       title,
       description,
       price,
@@ -28,9 +27,9 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validações básicas
-    if (!user_id || !title || !category) {
+    if (!title || !category || !contact_name || !contact_phone) {
       return NextResponse.json(
-        { error: 'Campos obrigatórios: user_id, title, category' },
+        { error: 'Campos obrigatórios: title, category, contact_name, contact_phone' },
         { status: 400 }
       )
     }
@@ -64,13 +63,12 @@ export async function POST(request: NextRequest) {
     const { data: newPost, error } = await supabase
       .from('vitrine_posts')
       .insert({
-        user_id,
         title,
         description: description || null,
         price: price || null,
         category,
-        contact_name: contact_name || null,
-        contact_phone: contact_phone || null,
+        contact_name,
+        contact_phone,
         image_url: image_url || null,
         images: images || [],
         video_url: video_url || null,
