@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
+import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play, ChevronLeft, ChevronRight, Camera, Search } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -46,6 +46,7 @@ export function VitrineGrid() {
   const [selectedPost, setSelectedPost] = useState<VitrinePost | null>(null)
   const [filter, setFilter] = useState<'todos' | CategoryType>('todos')
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     async function fetchPosts() {
@@ -77,7 +78,13 @@ export function VitrineGrid() {
     fetchPosts()
   }, [])
 
-  const filteredPosts = filter === 'todos' ? posts : posts.filter(p => p.category === filter)
+  const filteredPosts = posts.filter(p => {
+    const matchesFilter = filter === 'todos' || p.category === filter
+    const matchesSearch = !searchTerm.trim() || 
+      p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    return matchesFilter && matchesSearch
+  })
 
   function handleWhatsAppClick(post: VitrinePost, e?: React.MouseEvent) {
     e?.stopPropagation()
@@ -135,7 +142,19 @@ export function VitrineGrid() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          {/* Search */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar anúncios..."
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+            />
+          </div>
+
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             {([
               { value: 'todos', label: 'Todos' },
               { value: 'vaga', label: 'Vagas' },
@@ -161,8 +180,14 @@ export function VitrineGrid() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+        <div className="mx-auto max-w-6xl px-0 py-0">
+          <div className="columns-2 gap-0 sm:columns-3 lg:columns-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="mb-0 w-full break-inside-avoid">
+                <div className={`animate-pulse bg-zinc-200 ${i % 3 === 0 ? 'aspect-[9/16]' : 'aspect-square'}`} />
+              </div>
+            ))}
+          </div>
         </div>
       ) : filteredPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center px-4">
@@ -189,6 +214,18 @@ export function VitrineGrid() {
                   }}
                   className="group relative mb-0 w-full break-inside-avoid overflow-hidden transition-all duration-200 hover:opacity-90"
                 >
+                  {/* Price badge */}
+                  <div className="absolute bottom-2 left-2 z-[2] rounded-full bg-black/70 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">
+                    {formatPrice(post.price)}
+                  </div>
+
+                  {/* Expiry badge */}
+                  {getHoursRemaining(post.expires_at) <= 12 && (
+                    <div className="absolute bottom-2 right-2 z-[2] flex items-center gap-1 rounded-full bg-red-500/90 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                      <Clock className="h-3 w-3" />
+                      {getHoursRemaining(post.expires_at)}h
+                    </div>
+                  )}
                   {post.video_url ? (
                     <div className="relative w-full">
                       <video
@@ -208,6 +245,7 @@ export function VitrineGrid() {
                       <img
                         src={postImages[0]}
                         alt={post.title}
+                        loading="lazy"
                         className={`w-full object-cover ${isVertical ? 'aspect-[9/16]' : 'aspect-square'}`}
                       />
                       {hasMultipleImages && (

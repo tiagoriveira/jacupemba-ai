@@ -21,12 +21,16 @@ function formatPhone(value: string) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
 }
 
+const MAX_IMAGES = 5
+const MAX_TITLE = 80
+const MAX_DESC = 300
+
 export default function CriarPostPage() {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [images, setImages] = useState<{ preview: string; url: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
@@ -36,7 +40,6 @@ export default function CriarPostPage() {
     category: '',
     contact_name: '',
     contact_phone: '',
-    image_url: '',
   })
 
   // Preencher telefone salvo se existir
@@ -54,64 +57,68 @@ export default function CriarPostPage() {
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
 
-    // Validar tipo
+    const remaining = MAX_IMAGES - images.length
+    if (remaining <= 0) {
+      toast.error(`Máximo de ${MAX_IMAGES} imagens`)
+      return
+    }
+
+    const filesToUpload = files.slice(0, remaining)
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
-    if (!validTypes.includes(file.type)) {
-      toast.error('Formato inválido. Use JPG, PNG, WEBP ou GIF')
-      return
-    }
 
-    // Validar tamanho (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Imagem muito grande. Máximo: 5MB')
-      return
-    }
-
-    try {
-      setUploading(true)
-
-      // Preview local
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
+    for (const file of filesToUpload) {
+      if (!validTypes.includes(file.type)) {
+        toast.error(`${file.name}: formato inválido`)
+        continue
       }
-      reader.readAsDataURL(file)
-
-      // Upload
-      const formData = new FormData()
-      formData.append('image', file)
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        updateField('image_url', data.imageUrl)
-        toast.success('Imagem enviada!')
-      } else {
-        throw new Error(data.error)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name}: máximo 5MB`)
+        continue
       }
-    } catch (error) {
-      console.error('Erro no upload:', error)
-      toast.error('Erro ao enviar imagem')
-      setImagePreview(null)
-    } finally {
-      setUploading(false)
+
+      try {
+        setUploading(true)
+
+        // Preview local
+        const preview = await new Promise<string>((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.readAsDataURL(file)
+        })
+
+        // Upload para Supabase Storage
+        const formData = new FormData()
+        formData.append('image', file)
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          setImages(prev => [...prev, { preview, url: data.imageUrl }])
+        } else {
+          throw new Error(data.error)
+        }
+      } catch (error) {
+        console.error('Erro no upload:', error)
+        toast.error(`Erro ao enviar ${file.name}`)
+      } finally {
+        setUploading(false)
+      }
     }
+
+    // Limpar input para permitir re-upload do mesmo arquivo
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const removeImage = () => {
-    setImagePreview(null)
-    updateField('image_url', '')
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,14 +129,26 @@ export default function CriarPostPage() {
       return
     }
 
+    if (!form.title.trim()) {
+      toast.error('Informe o título do anúncio')
+      return
+    }
+
+    if (!form.contact_name.trim()) {
+      toast.error('Informe seu nome')
+      return
+    }
+
     const phoneDigits = form.contact_phone.replace(/\D/g, '')
-    if (phoneDigits.length < 10) {
-      toast.error('Informe um telefone válido com DDD')
+    if (phoneDigits.length !== 11) {
+      toast.error('Telefone deve ter 11 dígitos: (XX) 9XXXX-XXXX')
       return
     }
 
     try {
       setSubmitting(true)
+
+      const imageUrls = images.map(img => img.url)
 
       const payload = {
         title: form.title.trim(),
@@ -138,9 +157,8 @@ export default function CriarPostPage() {
         category: form.category,
         contact_name: form.contact_name.trim(),
         contact_phone: phoneDigits,
-        image_url: form.image_url.trim() || null,
-        images: form.image_url.trim() ? [form.image_url.trim()] : [],
-        aspect_ratio: 'square',
+        image_url: imageUrls[0] || null,
+        images: imageUrls,
       }
 
       const response = await fetch('/api/vitrine/create', {
@@ -195,7 +213,8 @@ export default function CriarPostPage() {
           <button
             onClick={() => {
               setSuccess(false)
-              setForm(prev => ({ ...prev, title: '', description: '', price: '', image_url: '' }))
+              setForm(prev => ({ ...prev, title: '', description: '', price: '' }))
+              setImages([])
             }}
             className="flex items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 px-6 py-3 font-semibold text-zinc-700 transition-all hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
@@ -309,13 +328,14 @@ export default function CriarPostPage() {
                 <input
                   type="text"
                   value={form.title}
-                  onChange={(e) => updateField('title', e.target.value)}
+                  onChange={(e) => updateField('title', e.target.value.slice(0, MAX_TITLE))}
                   placeholder="Ex: Marmitex caseiro, Corte de cabelo..."
                   className="input-grok w-full pl-10"
-                  maxLength={100}
+                  maxLength={MAX_TITLE}
                   required
                 />
               </div>
+              <p className={`text-xs ${form.title.length >= MAX_TITLE ? 'text-red-500' : 'text-zinc-400'}`}>{form.title.length}/{MAX_TITLE}</p>
             </div>
 
             <div className="space-y-1.5">
@@ -324,13 +344,13 @@ export default function CriarPostPage() {
                 <FileText className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
                 <textarea
                   value={form.description}
-                  onChange={(e) => updateField('description', e.target.value)}
+                  onChange={(e) => updateField('description', e.target.value.slice(0, MAX_DESC))}
                   placeholder="Descreva seu produto/serviço em detalhes..."
                   className="input-grok w-full pl-10 min-h-[100px] resize-none"
-                  maxLength={500}
+                  maxLength={MAX_DESC}
                 />
               </div>
-              <p className="text-xs text-zinc-400">{form.description.length}/500</p>
+              <p className={`text-xs ${form.description.length >= MAX_DESC ? 'text-red-500' : 'text-zinc-400'}`}>{form.description.length}/{MAX_DESC}</p>
             </div>
 
             <div className="space-y-1.5">
@@ -350,24 +370,56 @@ export default function CriarPostPage() {
             </div>
           </div>
 
-          {/* Imagem */}
+          {/* Imagens */}
           <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Imagem</h3>
-            
-            {!imagePreview ? (
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Imagens</h3>
+              <span className="text-xs text-zinc-400">{images.length}/{MAX_IMAGES}</span>
+            </div>
+
+            {/* Preview grid */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {images.map((img, index) => (
+                  <div key={index} className="relative group">
+                    <div className="aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                      <img
+                        src={img.preview}
+                        alt={`Imagem ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    {index === 0 && (
+                      <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">Capa</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload button */}
+            {images.length < MAX_IMAGES && (
               <div>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                   onChange={handleImageUpload}
+                  multiple
                   className="hidden"
                 />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-6 py-8 text-sm font-medium text-zinc-600 transition-colors hover:border-zinc-400 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-6 py-6 text-sm font-medium text-zinc-600 transition-colors hover:border-zinc-400 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
                 >
                   {uploading ? (
                     <>
@@ -377,28 +429,11 @@ export default function CriarPostPage() {
                   ) : (
                     <>
                       <Upload className="h-5 w-5" />
-                      Clique para enviar imagem
+                      {images.length === 0 ? 'Enviar imagens' : 'Adicionar mais'}
                     </>
                   )}
                 </button>
-                <p className="mt-2 text-xs text-zinc-400 text-center">JPG, PNG, WEBP ou GIF • Máx 5MB • Qualquer tamanho</p>
-              </div>
-            ) : (
-              <div className="relative">
-                <div className="relative w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-auto object-contain max-h-96"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-transform hover:scale-110 hover:bg-red-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <p className="mt-2 text-xs text-zinc-400 text-center">JPG, PNG, WEBP ou GIF • Máx 5MB cada • Até {MAX_IMAGES} imagens</p>
               </div>
             )}
           </div>

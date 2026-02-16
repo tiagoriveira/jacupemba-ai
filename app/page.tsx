@@ -4,8 +4,7 @@ import React from "react"
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai'
-import { Loader2, AlertTriangle, TrendingUp, MapPin, Store, X, History, ShoppingBag, MessageSquare, ArrowUp, ImagePlus } from 'lucide-react'
+import { Loader2, AlertTriangle, TrendingUp, MapPin, Store, X, History, ShoppingBag, MessageSquare, ArrowUp } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getUserFingerprint } from '@/lib/fingerprint'

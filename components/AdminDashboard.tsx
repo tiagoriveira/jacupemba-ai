@@ -1,17 +1,53 @@
 'use client'
 
-import { useState } from 'react'
-import { AlertTriangle, Store, ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertTriangle, Store, ChevronDown, BarChart3, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { Toaster } from 'sonner'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 import { RelatosSection } from './admin/RelatosSection'
 import { VitrineSection } from './admin/VitrineSection'
 
 type Section = 'relatos' | 'vitrine'
 
+interface Metrics {
+  relatosPendentes: number
+  relatosAprovados: number
+  relatosRejeitados: number
+  vitrinePendentes: number
+  vitrineAprovados: number
+  vitrineExpirados: number
+}
+
 export function AdminDashboard() {
   const [activeSection, setActiveSection] = useState<Section>('relatos')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [metrics, setMetrics] = useState<Metrics | null>(null)
+
+  useEffect(() => {
+    async function fetchMetrics() {
+      try {
+        const [rp, ra, rr, vp, va] = await Promise.all([
+          supabase.from('anonymous_reports').select('id', { count: 'exact', head: true }).eq('status', 'pendente'),
+          supabase.from('anonymous_reports').select('id', { count: 'exact', head: true }).eq('status', 'aprovado'),
+          supabase.from('anonymous_reports').select('id', { count: 'exact', head: true }).eq('status', 'rejeitado'),
+          supabase.from('vitrine_posts').select('id', { count: 'exact', head: true }).eq('status', 'pendente'),
+          supabase.from('vitrine_posts').select('id', { count: 'exact', head: true }).eq('status', 'aprovado').gte('expires_at', new Date().toISOString()),
+        ])
+        setMetrics({
+          relatosPendentes: rp.count || 0,
+          relatosAprovados: ra.count || 0,
+          relatosRejeitados: rr.count || 0,
+          vitrinePendentes: vp.count || 0,
+          vitrineAprovados: va.count || 0,
+          vitrineExpirados: 0,
+        })
+      } catch {
+        // silently fail
+      }
+    }
+    fetchMetrics()
+  }, [activeSection])
 
   const sections = [
     {
@@ -77,6 +113,56 @@ export function AdminDashboard() {
             </div>
           )}
         </header>
+
+        {/* Metrics Bar */}
+        {metrics && (
+          <div className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="grid grid-cols-2 gap-2 px-4 py-3 sm:grid-cols-4 md:grid-cols-6 md:px-6">
+              <div className="flex items-center gap-2 rounded-lg bg-yellow-50 px-3 py-2 dark:bg-yellow-900/20">
+                <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <div>
+                  <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{metrics.relatosPendentes}</p>
+                  <p className="text-[10px] text-yellow-600/80 dark:text-yellow-400/80">Relatos pendentes</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 dark:bg-green-900/20">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <div>
+                  <p className="text-lg font-bold text-green-700 dark:text-green-300">{metrics.relatosAprovados}</p>
+                  <p className="text-[10px] text-green-600/80 dark:text-green-400/80">Relatos aprovados</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 dark:bg-red-900/20">
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <div>
+                  <p className="text-lg font-bold text-red-700 dark:text-red-300">{metrics.relatosRejeitados}</p>
+                  <p className="text-[10px] text-red-600/80 dark:text-red-400/80">Relatos rejeitados</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2 dark:bg-orange-900/20">
+                <Store className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                <div>
+                  <p className="text-lg font-bold text-orange-700 dark:text-orange-300">{metrics.vitrinePendentes}</p>
+                  <p className="text-[10px] text-orange-600/80 dark:text-orange-400/80">Vitrine pendentes</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 dark:bg-blue-900/20">
+                <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{metrics.vitrineAprovados}</p>
+                  <p className="text-[10px] text-blue-600/80 dark:text-blue-400/80">Vitrine ativos</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg bg-zinc-100 px-3 py-2 dark:bg-zinc-800">
+                <AlertTriangle className="h-4 w-4 text-zinc-500" />
+                <div>
+                  <p className="text-lg font-bold text-zinc-700 dark:text-zinc-300">{metrics.relatosPendentes + metrics.vitrinePendentes}</p>
+                  <p className="text-[10px] text-zinc-500">Total pendente</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
