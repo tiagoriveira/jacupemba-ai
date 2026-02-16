@@ -15,15 +15,17 @@ Jacupemba AI conecta moradores do bairro através de dois pilares:
 
 ### 1. **Chat de Fofocas** (Gratuito)
 - Relatos anônimos da comunidade (segurança, trânsito, eventos, etc.)
-- Agente IA sarcástico que responde perguntas sobre o bairro
+- **Agente IA "Fofoqueiro Ético"** - personalidade fixa, sarcastico mas dentro de limites éticos e legais
+- **NÃO recomenda comércios** - apenas relata o que os moradores dizem
 - Sistema de likes e comentários
 - Moderação pelo Super Admin
 
 ### 2. **Vitrine Digital** (Monetizado)
 - **Posts de 48h** em categorias pagas (Produto R$ 15, Serviço R$ 15, Comunicado R$ 20) ou grátis (Vagas/Informativos)
 - **Sistema de Republicação**: Posts pagos podem ser republicados infinitamente mediante pagamento; posts grátis têm limite de 3 republicações
+- **Upload de imagens** (JPG, PNG, WEBP, GIF) - qualquer aspect ratio
+- **Identificação por telefone** (sem necessidade de login)
 - **Pagamentos via Asaas** (PIX/Boleto/Cartão)
-- **Autenticação obrigatória** (Google OAuth ou Email/Senha) para anunciar
 
 ---
 
@@ -46,28 +48,34 @@ Jacupemba AI conecta moradores do bairro através de dois pilares:
 ## ✨ Funcionalidades Principais
 
 ### 💬 Chat de Fofocas (Usuário Final)
-- Agente IA **sarcástico** com personalidade local
-- Busca em relatos comunitários via ferramentas (tools)
+- **Agente IA Fofoqueiro Ético** - personalidade FIXA (não configurável)
+- Sarcástico e direto, mas respeita ética jornalística:
+  - ✅ Conta fofocas baseadas em relatos reais
+  - ✅ Transparência total com fontes
+  - ❌ NÃO difama sem provas
+  - ❌ NÃO recomenda comércios proativamente
+  - ❌ NÃO inventa informações
+- 4 ferramentas: buscarRelatos, buscarVitrine, obterEstatísticas, analisarSentimento
 - Histórico de conversas salvo
-- Sugestões contextuais inteligentes
 - **Sem necessidade de login**
 
 ### 🏪 Vitrine Digital (Lojistas)
-- **Painel do Anunciante** (identificação por telefone, sem login)
-- Criação de posts com imagens/vídeos
+- **Painel do Anunciante** (identificação por telefone via localStorage)
+- **Upload de imagens** - aceita qualquer formato e aspect ratio (JPG, PNG, WEBP, GIF)
+- Criação de posts sem necessidade de login
 - **Validade de 48 horas** para todos os posts
 - **Republicação controlada**:
   - Posts Pagos: Republicação infinita (R$ 15-20 por republicação)
   - Posts Grátis: Máximo 3 republicações, depois novo post
 - Status em tempo real: Ativo/Expirado/Pendente Aprovação
-- Integração com checkout Asaas
+- Integração com checkout Asaas (a implementar)
 
 ### 🛡️ Painel Super Admin
 - **Moderação de Relatos**: Aprovar/Rejeitar/Deletar em massa
 - **Moderação de Vitrine**: Aprovar posts antes de irem ao ar
-- **Configurações do Agente IA**: Modelo, nível de sarcasmo, instruções
 - Sistema de triagem automática (alto/médio/baixo risco)
 - Moderação obrigatória antes de publicação
+- **Personalidade do Agente FIXA** - sem configuração (ética garantida)
 
 ### 3. Vitrine Digital (Explorar)
 

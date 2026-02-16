@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Store, Camera, Phone, User, Tag, FileText, DollarSign, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, Store, Camera, Phone, User, Tag, FileText, DollarSign, CheckCircle, Upload, X } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import Link from 'next/link'
 
@@ -25,6 +25,9 @@ export default function CriarPostPage() {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
     title: '',
@@ -48,6 +51,67 @@ export default function CriarPostPage() {
 
   const updateField = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!validTypes.includes(file.type)) {
+      toast.error('Formato inválido. Use JPG, PNG, WEBP ou GIF')
+      return
+    }
+
+    // Validar tamanho (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem muito grande. Máximo: 5MB')
+      return
+    }
+
+    try {
+      setUploading(true)
+
+      // Preview local
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      // Upload
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        updateField('image_url', data.imageUrl)
+        toast.success('Imagem enviada!')
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error('Erro no upload:', error)
+      toast.error('Erro ao enviar imagem')
+      setImagePreview(null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeImage = () => {
+    setImagePreview(null)
+    updateField('image_url', '')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -289,31 +353,52 @@ export default function CriarPostPage() {
           {/* Imagem */}
           <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Imagem</h3>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">URL da Imagem</label>
-              <div className="relative">
-                <Camera className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            
+            {!imagePreview ? (
+              <div>
                 <input
-                  type="url"
-                  value={form.image_url}
-                  onChange={(e) => updateField('image_url', e.target.value)}
-                  placeholder="https://..."
-                  className="input-grok w-full pl-10"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleImageUpload}
+                  className="hidden"
                 />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-6 py-8 text-sm font-medium text-zinc-600 transition-colors hover:border-zinc-400 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-5 w-5" />
+                      Clique para enviar imagem
+                    </>
+                  )}
+                </button>
+                <p className="mt-2 text-xs text-zinc-400 text-center">JPG, PNG, WEBP ou GIF • Máx 5MB • Qualquer tamanho</p>
               </div>
-              <p className="text-xs text-zinc-400">Cole o link de uma imagem do seu produto/serviço</p>
-            </div>
-
-            {form.image_url && (
-              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                <img
-                  src={form.image_url}
-                  alt="Preview"
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
+            ) : (
+              <div className="relative">
+                <div className="relative w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-auto object-contain max-h-96"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-transform hover:scale-110 hover:bg-red-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             )}
           </div>

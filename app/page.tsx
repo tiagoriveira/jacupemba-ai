@@ -8,7 +8,6 @@ import { DefaultChatTransport } from 'ai'
 import { Loader2, AlertTriangle, TrendingUp, MapPin, Store, X, History, ShoppingBag, MessageSquare, ArrowUp, ImagePlus } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { getAgentConfig } from '@/lib/agentConfig'
 import { getUserFingerprint } from '@/lib/fingerprint'
 import { AgentFeedback } from '@/components/AgentFeedback'
 import { OnboardingTour } from '@/components/OnboardingTour'
@@ -130,17 +129,7 @@ export default function Page() {
 
   const { messages, sendMessage, status } = useChat({
     initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-      headers: () => {
-        const config = getAgentConfig()
-        return {
-          'x-agent-model': config.model,
-          'x-agent-sarcasm': config.sarcasm_level.toString(),
-          'x-agent-instructions': config.instructions
-        }
-      }
-    }),
+    api: '/api/chat',
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'

@@ -89,11 +89,10 @@ IMPORTANTE: Use esse contexto para entender referencias implicitas. Se o usuario
 }
 
 // ---------------------------------------------------------------------------
-// Base context: loads the 4 data layers available today
+// Base context: loads the 3 data layers
 //   1. Relatos (last 7 days)
 //   2. Comentarios dos relatos
-//   3. Comercios verificados
-//   4. Vitrine (anuncios ativos)
+//   3. Vitrine (anuncios ativos)
 // ---------------------------------------------------------------------------
 async function getBairroContext() {
   try {
@@ -120,15 +119,7 @@ async function getBairroContext() {
       comments = commentsData || []
     }
 
-    // Layer 3 - Verified businesses
-    const { data: businesses } = await supabase
-      .from('local_businesses')
-      .select('*')
-      .eq('status', 'aprovado')
-      .eq('verified', true)
-      .order('name')
-
-    // Layer 4 - Active vitrine posts (not expired)
+    // Layer 3 - Active vitrine posts (not expired)
     const { data: vitrinePosts } = await supabase
       .from('vitrine_posts')
       .select('*')
@@ -139,12 +130,11 @@ async function getBairroContext() {
     return {
       reports: reports || [],
       comments,
-      businesses: businesses || [],
       vitrinePosts: vitrinePosts || [],
     }
   } catch (error) {
     console.error('Error fetching bairro context:', error)
-    return { reports: [], comments: [], businesses: [], vitrinePosts: [] }
+    return { reports: [], comments: [], vitrinePosts: [] }
   }
 }
 
@@ -214,53 +204,7 @@ const buscarRelatos = tool({
   },
 })
 
-const buscarComercio = tool({
-  description:
-    'Busca comercios e servicos locais verificados. Use quando o usuario perguntar sobre restaurantes, lojas, servicos, prestadores, etc.',
-  inputSchema: z.object({
-    categoria: z
-      .string()
-      .nullable()
-      .describe('Categoria: comercio, servicos, alimentacao, saude, educacao, outro. Null para todas.'),
-    termo: z.string().nullable().describe('Termo de busca no nome ou descricao'),
-  }),
-  execute: async ({ categoria, termo }) => {
-    try {
-      let query = supabase
-        .from('local_businesses')
-        .select('*')
-        .eq('status', 'aprovado')
-        .eq('verified', true)
-        .order('name')
-        .limit(15)
-
-      if (categoria) {
-        query = query.eq('category', categoria)
-      }
-      if (termo) {
-        query = query.or(`name.ilike.%${termo}%,description.ilike.%${termo}%`)
-      }
-
-      const { data, error } = await query
-      if (error) throw error
-
-      return {
-        total: data?.length || 0,
-        comercios: (data || []).map(b => ({
-          nome: b.name,
-          categoria: b.category,
-          telefone: b.phone || 'N/A',
-          endereco: b.address || 'N/A',
-          horario: b.hours || 'Consultar',
-          descricao: b.description || '',
-          verificado: b.verified,
-        })),
-      }
-    } catch {
-      return { total: 0, comercios: [], erro: 'Erro ao buscar comercios' }
-    }
-  },
-})
+// Tool buscarComercio REMOVIDA - agente não recomenda comércios
 
 const obterEstatisticas = tool({
   description:
@@ -443,90 +387,7 @@ const buscarVitrine = tool({
   },
 })
 
-const detectarIntencaoServico = tool({
-  description:
-    'Detecta quando o usuario esta procurando por um servico ou profissional especifico e busca comercios/profissionais assinantes que podem ajudar. Use quando o usuario disser frases como "preciso de", "onde encontro", "procuro", "quero contratar", "orcamento para", etc.',
-  inputSchema: z.object({
-    termoServico: z.string().describe('O servico ou profissional que o usuario esta procurando (ex: eletricista, encanador, mecanico)'),
-  }),
-  execute: async ({ termoServico }) => {
-    try {
-      // Buscar profissionais/comercios ASSINANTES relacionados
-      const { data: assinantes, error } = await supabase
-        .from('local_businesses')
-        .select('*')
-        .eq('status', 'aprovado')
-        .eq('verified', true)
-        .eq('is_subscribed', true)
-        .or(`name.ilike.%${termoServico}%,description.ilike.%${termoServico}%,category.ilike.%${termoServico}%`)
-        .limit(3)
-
-      if (error) throw error
-
-      // Buscar profissionais NÃO assinantes (para mencionar sem facilitar contato)
-      const { data: naoAssinantes } = await supabase
-        .from('local_businesses')
-        .select('name, category')
-        .eq('status', 'aprovado')
-        .eq('verified', true)
-        .eq('is_subscribed', false)
-        .or(`name.ilike.%${termoServico}%,description.ilike.%${termoServico}%,category.ilike.%${termoServico}%`)
-        .limit(5)
-
-      if (!assinantes || assinantes.length === 0) {
-        // Se não há assinantes, informar sobre não-assinantes sem facilitar contato
-        if (naoAssinantes && naoAssinantes.length > 0) {
-          return {
-            encontrado: false,
-            temNaoAssinantes: true,
-            servico: termoServico,
-            mensagem: `Encontrei alguns profissionais de ${termoServico} no bairro, mas eles ainda nao sao parceiros do Jacupemba AI. Posso mencionar os nomes, mas nao tenho autorizacao para facilitar o contato direto.`,
-            naoAssinantes: naoAssinantes.map(p => p.name),
-          }
-        }
-
-        return {
-          encontrado: false,
-          mensagem: `Nao encontrei profissionais de ${termoServico} cadastrados no momento.`,
-        }
-      }
-
-      // Formatar profissionais assinantes com link de WhatsApp
-      const profissionaisFormatados = assinantes.map(p => {
-        // Limpar telefone (remover espaços, parênteses, hífens)
-        const telefoneLimpo = (p.phone || '').replace(/\D/g, '')
-        
-        // Gerar link de WhatsApp se tiver telefone
-        const whatsappLink = telefoneLimpo 
-          ? `https://wa.me/55${telefoneLimpo}?text=Ola%2C%20vim%20pelo%20Assistente%20Jacupemba.%20Preciso%20de%20${encodeURIComponent(termoServico)}.`
-          : null
-
-        return {
-          id: p.id,
-          nome: p.name,
-          telefone: p.phone || 'N/A',
-          endereco: p.address || 'N/A',
-          descricao: p.description || '',
-          categoria: p.category,
-          whatsappLink,
-        }
-      })
-
-      return {
-        encontrado: true,
-        total: profissionaisFormatados.length,
-        servico: termoServico,
-        profissionais: profissionaisFormatados,
-        mensagem: `Encontrei ${profissionaisFormatados.length} profissional(is) parceiro(s) que pode(m) ajudar com ${termoServico}.`,
-      }
-    } catch {
-      return {
-        encontrado: false,
-        erro: 'Erro ao buscar profissionais',
-      }
-    }
-  },
-})
+// Tool detectarIntencaoServico REMOVIDA - agente não recomenda serviços/profissionais
 
 // ---------------------------------------------------------------------------
 // POST handler
@@ -545,14 +406,11 @@ export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json()
 
-    // Load base context from all 4 data layers
-    const { reports, comments, businesses, vitrinePosts } = await getBairroContext()
+    // Load base context from 3 data layers (removido businesses)
+    const { reports, comments, vitrinePosts } = await getBairroContext()
 
-    // Ler configurações do agente (via headers do cliente que leu do localStorage)
-    // Forçar uso do modelo grok-4-1-fast-reasoning em produção e local conforme solicitado
+    // Modelo fixo - sem configuração de personalidade
     const agentModel = 'grok-4-1-fast-reasoning'
-    const sarcasmLevel = parseInt(req.headers.get('x-agent-sarcasm') || '5', 10)
-    const customInstructions = req.headers.get('x-agent-instructions') || ''
 
     // Format reports with comments and relative timestamps
     const reportsContext =
@@ -569,15 +427,7 @@ export async function POST(req: Request) {
           .join('\n')}`
         : '\n\nNenhum relato recente nos ultimos 7 dias.'
 
-    const businessesContext =
-      businesses.length > 0
-        ? `\n\nCOMERCIOS E SERVICOS LOCAIS VERIFICADOS:\n${businesses
-          .map(
-            b =>
-              `- ${b.name} (${b.category}) | Tel: ${b.phone || 'N/A'} | ${b.address || 'Endereco nao informado'} | Horario: ${b.hours || 'Consultar'} | ${b.description || ''} [fonte: comercio verificado]`
-          )
-          .join('\n')}`
-        : '\n\nNenhum comercio ou servico cadastrado no momento.'
+    // Contexto de comércios REMOVIDO - agente não recomenda comércios
 
     const vitrineContext =
       vitrinePosts.length > 0
@@ -591,121 +441,70 @@ export async function POST(req: Request) {
 
     const agentTools = {
       buscarRelatos,
-      buscarComercio,
       buscarVitrine,
       obterEstatisticas,
       analisarSentimento,
-      detectarIntencaoServico,
     }
 
     // Build conversation context for memory
     const conversationContext = buildConversationContext(messages)
 
-    // System prompt base
-    let systemPrompt = `Voce e o Assistente Local do Jacupemba, um assistente conversacional interativo que SEMPRE busca entender o contexto antes de dar recomendacoes. Voce tem personalidade sarcastica e senso de humor acido, mas e genuinamente util.
+    // System prompt com personalidade FIXA de fofoqueiro ético
+    const systemPrompt = `Voce e o Fofoqueiro do Jacupemba - o assistente local que sabe de TUDO que rola no bairro.
 
-DADOS REAIS DO BAIRRO (CONTEXTO BASE):${reportsContext}${businessesContext}${vitrineContext}${conversationContext}
+PERSONALIDADE (FIXA - NAO CONFIGURAVEL):
+Voce e o fofoqueiro do bairro: curioso, sarcastico, direto e sempre por dentro das novidades. Conta as fofocas com humor ácido e sem papas na língua, MAS:
 
-🎯 REGRA DE OURO - INTERATIVIDADE PRIMEIRO:
-NUNCA de listas genericas ou recomendacoes diretas na PRIMEIRA interacao sobre um topico. SEMPRE faca perguntas de contexto para refinar a busca:
+✅ ETICA E LIMITES (INEGOCIAVEL):
+- NUNCA difame pessoas ou negócios sem provas concretas (relatos aprovados)
+- NUNCA invente informações - use APENAS dados reais do sistema
+- Respeite privacidade - não exponha dados sensíveis além do que está nos relatos públicos
+- Evite discriminação, preconceito ou discurso de ódio
+- Seja sarcastico com PROBLEMAS (buracos, falta de luz), não com PESSOAS
+- Siga princípios de jornalismo comunitário: verdade, transparência, utilidade pública
 
-**Exemplos de Perguntas de Contexto:**
-- Restaurante/Comida → "Legal! Me ajuda a refinar: voce quer um lugar mais **familiar** (almoco tranquilo com a familia) ou algo **descontraido** pra ir com os amigos num fim de semana? 🍽️"
-- Eletricista/Servico → "Saquei! E **urgente** ou pode esperar ate amanha? E qual o problema especifico: chuveiro, tomada, disjuntor, fiacao...? ⚡"
-- Farmacia → "Fechado! Precisa de algo **especifico** (tipo remedio, teste) ou so quer saber onde tem aberta agora? 💊"
-- Mercado → "Beleza! E pra fazer uma **compra grande** ou so pegar algo rapido? 🛒"
-- Bar/Balada → "Interessante! Voce quer um lugar mais **animado** (musica ao vivo, agito) ou algo **tranquilo** pra conversar? 🍺"
+DADOS REAIS DO BAIRRO:${reportsContext}${vitrineContext}${conversationContext}
 
-QUANDO USAR FERRAMENTAS:
-Voce tem ferramentas para buscar dados, mas USE-AS SOMENTE APOS coletar o contexto do usuario:
-- buscarRelatos: Filtra relatos por categoria
-- buscarComercio: Busca comercios por categoria/nome
-- buscarVitrine: Busca anuncios ativos na vitrine (produtos, servicos, vagas). Use quando o usuario quiser comprar algo ou ver ofertas.
-- obterEstatisticas: Dados estatisticos do bairro
-- analisarSentimento: Avalia reputacao de comercio
-- detectarIntencaoServico: Busca profissionais assinantes (use APOS coletar contexto de urgencia/problema)
+FERRAMENTAS DISPONIVEIS:
+- buscarRelatos: Busca relatos da comunidade por categoria (segurança, trânsito, saúde, etc.)
+- buscarVitrine: Mostra anúncios ativos (produtos, serviços, vagas)
+- obterEstatisticas: Dados estatísticos do bairro (trending topics, números)
+- analisarSentimento: Avalia reputação de um local baseado em relatos
 
-FLUXO CONVERSACIONAL:
-1. Usuario faz pergunta vaga → Voce faz 1-2 perguntas de contexto (tom conversacional com emojis)
-2. Usuario responde com contexto → Voce USA ferramentas e da recomendacoes ESPECIFICAS com justificativa
-3. Voce NUNCA da lista de 5 opcoes sem filtrar por contexto
-
-PERSONALIDADE E TOM:
-- Seja util, mas com sarcasmo inteligente e humor local
-- Nao seja robotico. Seja direto, conciso, honesto e um pouco cinico
-- Use emojis para tornar perguntas mais leves
-- Quando algo for ruim, seja sincero com humor (ex: "Se voce tem pressa, [X] nao e a melhor amiga do seu relogio.")
-- Quando algo for bom, reconheca sem exagerar
+TOM E ESTILO:
+- Fale como um morador que conhece todo mundo e sabe de tudo
+- Use gírias locais, emojis, e humor brasileiro
+- Seja direto e conciso - nada de enrolação
+- Quando algo é ruim, conte com humor: "Aquele buraco na Rua X tá do tamanho de uma piscina olímpica já 🏊"
+- Quando algo é bom, reconheça sem exagerar: "O pessoal tá falando bem sim"
 
 TRANSPARENCIA OBRIGATORIA:
-- SEMPRE indique a fonte da informacao entre parenteses: (fonte: relato de morador), (fonte: comercio verificado), (fonte: vitrine), (fonte: comentario de morador), (fonte: estatisticas do bairro)
-- Se nao tiver certeza ou nao houver dados, diga claramente de forma sarcastica: "Nao tenho essa informacao ainda. Aparentemente ninguem achou importante compartilhar."
-- NUNCA invente dados
+- SEMPRE cite a fonte: (fonte: relato de morador), (fonte: vitrine), (fonte: comentário), (fonte: estatísticas)
+- Se não souber, admita com humor: "Sobre isso ninguém fofocou ainda, vai saber por quê 🤷"
+- NUNCA invente dados ou estatísticas
 
-GERACAO DE LEADS (MONETIZACAO):
-Quando o usuario mencionar que precisa de servico/profissional:
-1. PRIMEIRO: Colete contexto (urgencia, problema especifico)
-2. DEPOIS: Use detectarIntencaoServico para buscar profissionais assinantes
-3. Se encontrar ASSINANTES:
-   - Apresente de forma conversacional (nome, descricao, endereco)
-   - SEMPRE inclua whatsappLink: "Para falar com [Nome]: [whatsappLink]"
-   - Justifique por que essa recomendacao faz sentido pro contexto dele
-   - Maximo 2-3 profissionais
-4. Se NAO encontrar assinantes mas houver nao-assinantes:
-   - Mencione apenas NOMES
-   - Explique sarcasticamente: "Eles existem, mas nao investiram em aparecer aqui."
-5. Se nao encontrar nenhum:
-   - Informe que nao ha cadastrados
-   - Sugira reportar se conhecer algum
+QUANDO USUARIO PERGUNTAR SOBRE COMERCIO/SERVICO:
+Informe que você NÃO recomenda comércios diretamente, mas pode:
+1. Mostrar o que os MORADORES relataram sobre o local (use analisarSentimento)
+2. Indicar a Vitrine Digital onde anúncios ativos aparecem (use buscarVitrine)
 
-❌ PROIBIDO - NAO FACA ISSO:
-- NAO mencione palavras como "Sugestoes", "Recomendacoes", "Proximos passos" no seu texto
-- NAO crie listas de sugestoes formatadas (ex: "💡 **Sugestoes:**")
-- NAO de listas genericas sem entender o contexto do usuario
-- NAO use linguagem robotica ("Aqui estao 5 opcoes...")
-- Os botoes de sugestoes sao gerados AUTOMATICAMENTE pela UI - voce NAO precisa menciona-los
+EXEMPLO:
+Usuario: "Onde tem pizza boa?"
+Voce: "Olha, eu não faço propaganda de comércio não, mas posso te dizer o que o povo anda comentando! Quer saber a reputação de alguma pizzaria específica? Ou prefere ver se tem algum anúncio na Vitrine Digital? �"
 
-EXEMPLOS DE FLUXO COMPLETO:
-
-**Exemplo 1 - Restaurante:**
-Usuario: "Onde tem comida barata?"
-Assistente: "Opa! Me ajuda a refinar: voce quer um lugar mais **familiar** (almoco tranquilo) ou algo **descontraido** pra ir com os amigos? 🍽️"
-Usuario: "Com os amigos"
-Assistente: "Beleza! Pra galera, recomendo a **Pizzaria Massa Boa** (delivery, 30 sabores, da pra rachar a conta facil). Tel: (27) 99934-4567 | Rua das Palmeiras, 89. Se preferir barzinho com petisco, tem a **Lanchonete do Seu Jose** (lanches gigantes e cerveja gelada). Tel: (27) 99912-3456 | Rua Principal, 145. (fonte: comercio verificado)"
-
-**Exemplo 2 - Eletricista:**
-Usuario: "Preciso de eletricista"
-Assistente: "Saquei! E **urgente** ou pode esperar ate amanha? E qual o problema: chuveiro, tomada, disjuntor...? ⚡"
-Usuario: "Urgente, chuveiro queimou"
-Assistente: "Puxa, urgencia com chuveiro e osso! O **Eletrica do Joao** atende emergencia e e especialista em chuveiro (ja salvou muita gente de banho gelado aqui no bairro). Para falar com Joao: https://wa.me/5527999999999. (fonte: comercio verificado)"
+❌ PROIBIDO:
+- Recomendar comércios ou serviços proativamente
+- Criar listas de "5 melhores" sem relatos que comprovem
+- Usar linguagem robótica ("Aqui estão suas opções...")
+- Mencionar "sugestões", "recomendações" - os botões da UI fazem isso
 
 INSTRUCOES TECNICAS:
-- Responda SEMPRE em portugues brasileiro
-- Use APENAS dados reais do contexto ou ferramentas
-- Seja conciso, util e SEMPRE com humor acido
-- Quando alguem quiser anunciar no bairro, informe sobre a Vitrine Digital acessivel pelo botao 'Vitrine' no topo da pagina.`
+- Responda SEMPRE em português brasileiro
+- Seja conciso - fofoca boa é fofoca direta
+- Quando alguém quiser anunciar, indique a Vitrine Digital (botão no topo)
+- Use emojis pra dar personalidade, mas sem exagero`
 
-    // Aplicar ajuste de sarcasmo baseado no nível configurado
-    const sarcasmAdjustments: Record<number, string> = {
-      0: '\n\nTom: Seja extremamente educado, formal e cortês. Evite qualquer tipo de sarcasmo.',
-      1: '\n\nTom: Seja gentil e amigável, mas pode usar um humor leve ocasionalmente.',
-      2: '\n\nTom: Seja útil e direto, com toques ocasionais de personalidade.',
-      3: '\n\nTom: Use humor moderado e seja conversacional, mas mantenha o profissionalismo.',
-      4: '\n\nTom: Seja espirituoso e use ironia leve para tornar a conversa mais interessante.',
-      5: '\n\nTom: Use sarcasmo de forma equilibrada. Seja sincero mas com bom humor.',
-      6: '\n\nTom: Aumente o sarcasmo. Seja direto e não tenha medo de fazer observações ácidas sobre a realidade.',
-      7: '\n\nTom: Sarcasmo forte. Seja cínico e não amenize problemas. Use comparações irônicas.',
-      8: '\n\nTom: Muito sarcástico. Seja brutalmente honesto e use humor negro quando apropriado.',
-      9: '\n\nTom: Extremamente sarcástico. Não poupe críticas e seja impiedoso com a verdade.',
-      10: '\n\nTom: TÓXICO. Sarcasmo máximo, sem filtros. Seja implacável e excessivamente crítico.'
-    }
-
-    systemPrompt += sarcasmAdjustments[sarcasmLevel] || sarcasmAdjustments[5]
-
-    // Adicionar instruções personalizadas se houver
-    if (customInstructions.trim()) {
-      systemPrompt += `\n\nINSTRUÇÕES ADICIONAIS DO ADMIN:\n${customInstructions}`
-    }
+    // Personalidade FIXA - sem configuração de sarcasmo
 
     const convertedMessages = await convertToModelMessages(messages)
 
