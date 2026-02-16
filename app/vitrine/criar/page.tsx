@@ -314,7 +314,7 @@ export default function CriarPostPage() {
                     type="tel"
                     value={form.contact_phone}
                     onChange={(e) => updateField('contact_phone', formatPhone(e.target.value))}
-                    placeholder="(27) 99999-9999"
+                    placeholder="WhatsApp"
                     className="input-grok w-full pl-10"
                     required
                   />
@@ -335,7 +335,7 @@ export default function CriarPostPage() {
                   type="text"
                   value={form.title}
                   onChange={(e) => updateField('title', e.target.value.slice(0, MAX_TITLE))}
-                  placeholder="Ex: Marmitex caseiro, Corte de cabelo..."
+                  placeholder="Título do anúncio"
                   className="input-grok w-full pl-10"
                   maxLength={MAX_TITLE}
                   required
@@ -351,7 +351,7 @@ export default function CriarPostPage() {
                 <textarea
                   value={form.description}
                   onChange={(e) => updateField('description', e.target.value.slice(0, MAX_DESC))}
-                  placeholder="Descreva seu produto/serviço em detalhes..."
+                  placeholder="Descrição"
                   className="input-grok w-full pl-10 min-h-[100px] resize-none"
                   maxLength={MAX_DESC}
                 />
@@ -369,7 +369,7 @@ export default function CriarPostPage() {
                   min="0"
                   value={form.price}
                   onChange={(e) => updateField('price', e.target.value)}
-                  placeholder="0,00 (deixe vazio para 'a combinar')"
+                  placeholder="Preço (opcional)"
                   className="input-grok w-full pl-10"
                 />
               </div>
