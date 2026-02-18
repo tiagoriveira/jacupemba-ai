@@ -121,6 +121,7 @@ export type VitrinePost = {
   id: string
   contact_name: string
   contact_phone: string
+  contact_email: string | null
   title: string
   description: string | null
   price: number | null
