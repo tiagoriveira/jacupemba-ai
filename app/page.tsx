@@ -127,7 +127,7 @@ export default function Page() {
   }
 
   const { messages, sendMessage, status } = useChat({
-    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
+    messages: initialMessages.length > 0 ? initialMessages : undefined,
     api: '/api/chat',
     headers: {
       'x-user-fingerprint': typeof window !== 'undefined' ? getUserFingerprint() : '',

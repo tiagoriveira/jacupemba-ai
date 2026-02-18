@@ -53,6 +53,8 @@ export function ProductStoriesView({
     ? currentPost.images
     : (currentPost.image_url ? [currentPost.image_url] : [])
 
+  const hasMultipleImages = postImages.length > 1
+
   const allMedia = [...postImages]
   if (currentPost.video_url) {
     allMedia.push(currentPost.video_url) // Vídeo como último slide
