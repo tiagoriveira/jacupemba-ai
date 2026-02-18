@@ -44,60 +44,53 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Lógica de republicação baseada na categoria
-    const isPaidCategory = ['produto', 'servico', 'comunicado'].includes(post.category)
-    
-    if (isPaidCategory) {
-      // Posts pagos: exigem novo pagamento
+    // Posts pagos (is_paid=true): sempre exigem novo pagamento via Stripe (R$ 30)
+    if (post.is_paid) {
       return NextResponse.json({
         success: false,
         requires_payment: true,
-        message: 'Este post requer pagamento para republicação',
-        category: post.category,
-        post_id: post.id
-      })
-    } else {
-      // Posts grátis: verificar limite de republicações
-      if (post.repost_count >= post.max_reposts) {
-        return NextResponse.json({
-          success: false,
-          error: 'Limite de republicações atingido. Crie um novo post.',
-          repost_count: post.repost_count,
-          max_reposts: post.max_reposts
-        }, { status: 400 })
-      }
-
-      // Republicar post grátis
-      const newExpiresAt = new Date()
-      newExpiresAt.setHours(newExpiresAt.getHours() + 48)
-
-      const { data: updatedPost, error: updateError } = await supabase
-        .from('vitrine_posts')
-        .update({
-          repost_count: post.repost_count + 1,
-          expires_at: newExpiresAt.toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', post_id)
-        .select()
-        .single()
-
-      if (updateError) {
-        return NextResponse.json(
-          { error: 'Erro ao republicar post' },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: 'Post republicado com sucesso!',
-        post: updatedPost,
-        repost_count: updatedPost.repost_count,
-        max_reposts: updatedPost.max_reposts,
-        expires_at: updatedPost.expires_at
+        price: 30.00,
+        message: 'Republicação requer pagamento de R$ 30,00',
+        post_id: post.id,
       })
     }
+
+    // Posts grátis (primeiro post): verificar limite de republicações
+    if (post.repost_count >= post.max_reposts) {
+      return NextResponse.json({
+        success: false,
+        error: 'Limite de republicações atingido. Crie um novo post (R$ 30,00).',
+        repost_count: post.repost_count,
+        max_reposts: post.max_reposts,
+      }, { status: 400 })
+    }
+
+    // Republicar post grátis (status volta para pendente, admin aprova e define expires_at)
+    const { data: updatedPost, error: updateError } = await supabase
+      .from('vitrine_posts')
+      .update({
+        repost_count: post.repost_count + 1,
+        status: 'pendente',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', post_id)
+      .select()
+      .single()
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: 'Erro ao republicar post' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Post republicado e enviado para aprovação!',
+      post: updatedPost,
+      repost_count: updatedPost.repost_count,
+      max_reposts: updatedPost.max_reposts,
+    })
   } catch (error) {
     console.error('Erro ao republicar post:', error)
     return NextResponse.json(

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Loader2, RefreshCw, Edit } from 'lucide-react'
+import { Store, Search, Check, X, Trash2, Clock, AlertTriangle, Plus, Loader2, RefreshCw, Edit, ChevronLeft, ChevronRight, Play, Phone, User, Eye } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { VitrinePost } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -17,6 +17,7 @@ export function VitrineSection() {
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [selectedPosts, setSelectedPosts] = useState<string[]>([])
   const [processingBatch, setProcessingBatch] = useState(false)
+  const [previewPost, setPreviewPost] = useState<VitrinePost | null>(null)
 
   useEffect(() => {
     fetchPosts()
@@ -45,16 +46,27 @@ export function VitrineSection() {
   const updateStatus = async (id: string, status: 'aprovado' | 'rejeitado' | 'pendente') => {
     try {
       setLoadingId(id)
+
+      const updateData: Record<string, any> = { status, updated_at: new Date().toISOString() }
+
+      // 48h a partir da aprovação do admin
+      if (status === 'aprovado') {
+        const approvedAt = new Date()
+        const expiresAt = new Date(approvedAt.getTime() + 48 * 60 * 60 * 1000)
+        updateData.approved_at = approvedAt.toISOString()
+        updateData.expires_at = expiresAt.toISOString()
+      }
+
       const { error } = await supabase
         .from('vitrine_posts')
-        .update({ status })
+        .update(updateData)
         .eq('id', id)
 
       if (error) throw error
 
       toast.success(
         status === 'aprovado'
-          ? 'Post aprovado com sucesso!'
+          ? 'Post aprovado! Expira em 48h.'
           : 'Post rejeitado com sucesso!'
       )
 
@@ -94,14 +106,24 @@ export function VitrineSection() {
 
     try {
       setProcessingBatch(true)
+
+      const updateData: Record<string, any> = { status: action, updated_at: new Date().toISOString() }
+
+      if (action === 'aprovado') {
+        const approvedAt = new Date()
+        const expiresAt = new Date(approvedAt.getTime() + 48 * 60 * 60 * 1000)
+        updateData.approved_at = approvedAt.toISOString()
+        updateData.expires_at = expiresAt.toISOString()
+      }
+
       const { error } = await supabase
         .from('vitrine_posts')
-        .update({ status: action })
+        .update(updateData)
         .in('id', selectedPosts)
 
       if (error) throw error
 
-      toast.success(`${selectedPosts.length} posts ${action === 'aprovado' ? 'aprovados' : 'rejeitados'}!`)
+      toast.success(`${selectedPosts.length} posts ${action === 'aprovado' ? 'aprovados (48h)' : 'rejeitados'}!`)
       setSelectedPosts([])
       await fetchPosts()
     } catch (error) {
@@ -144,6 +166,37 @@ export function VitrineSection() {
     setIsModalOpen(true)
   }
 
+  const handleEditSuccess = async () => {
+    if (editingPost) {
+      const originalStatus = editingPost.status
+      let newStatus = originalStatus
+
+      if (originalStatus === 'aprovado') {
+        newStatus = 'pendente'
+      }
+      // rejeitado → stays rejeitado, pendente → stays pendente
+
+      if (newStatus !== 'pendente') {
+        // VitrineUploadModal already sets 'pendente', so we override back
+        const { error } = await supabase
+          .from('vitrine_posts')
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq('id', editingPost.id)
+
+        if (error) {
+          logger.error('Error updating post status after edit:', error)
+        }
+      }
+
+      if (originalStatus === 'aprovado') {
+        toast.info('Post editado — requer re-aprovação')
+      } else if (originalStatus === 'rejeitado') {
+        toast.info('Post editado — aguardando nova revisão')
+      }
+    }
+    await fetchPosts()
+  }
+
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingPost(null)
@@ -178,7 +231,7 @@ export function VitrineSection() {
       <VitrineUploadModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSuccess={fetchPosts}
+        onSuccess={editingPost ? handleEditSuccess : fetchPosts}
         editPost={editingPost}
       />
 
@@ -304,7 +357,11 @@ export function VitrineSection() {
                   />
                 </div>
 
-                <div className="relative aspect-square bg-zinc-100 dark:bg-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setPreviewPost(post)}
+                  className="relative aspect-square bg-zinc-100 dark:bg-zinc-800 w-full cursor-pointer"
+                >
                   {post.image_url ? (
                     <img
                       src={post.image_url}
@@ -321,13 +378,13 @@ export function VitrineSection() {
                       {post.status}
                     </span>
                   </div>
-                </div>
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+                    <Eye className="h-8 w-8 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                </button>
 
                 <div className="p-4">
                   <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{post.title}</h3>
-                  <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mt-1">
-                    R$ {Number(post.price).toFixed(2)}
-                  </p>
 
                   <div className="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
                     <div className="flex items-center gap-2">
@@ -409,6 +466,198 @@ export function VitrineSection() {
               </div>
             ))
           )}
+        </div>
+      </div>
+      {/* Preview Modal */}
+      {previewPost && (
+        <PostPreviewModal
+          post={previewPost}
+          onClose={() => setPreviewPost(null)}
+          onApprove={(id) => { setPreviewPost(null); updateStatus(id, 'aprovado') }}
+          onReject={(id) => { setPreviewPost(null); updateStatus(id, 'rejeitado') }}
+          onEdit={(post) => { setPreviewPost(null); handleEditPost(post) }}
+          getStatusColor={getStatusColor}
+          getTimeRemaining={getTimeRemaining}
+        />
+      )}
+    </div>
+  )
+}
+
+// --- Admin Preview Modal ---
+function PostPreviewModal({
+  post,
+  onClose,
+  onApprove,
+  onReject,
+  onEdit,
+  getStatusColor,
+  getTimeRemaining,
+}: {
+  post: VitrinePost
+  onClose: () => void
+  onApprove: (id: string) => void
+  onReject: (id: string) => void
+  onEdit: (post: VitrinePost) => void
+  getStatusColor: (status: string) => string
+  getTimeRemaining: (exp: string) => string
+}) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  const allImages = post.images && post.images.length > 0
+    ? post.images
+    : (post.image_url ? [post.image_url] : [])
+
+  const hasMultipleImages = allImages.length > 1
+
+  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
+  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in-0 duration-200">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Preview do Post</h2>
+            <span className={`badge-grok ${getStatusColor(post.status)}`}>
+              {post.status}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Media Section */}
+        <div className="relative">
+          {/* Video */}
+          {post.video_url && (
+            <div className="border-b border-zinc-200 dark:border-zinc-800">
+              <video
+                src={post.video_url}
+                className="w-full max-h-[400px] object-contain bg-black"
+                controls
+                playsInline
+              />
+            </div>
+          )}
+
+          {/* Image Gallery */}
+          {allImages.length > 0 && (
+            <div className="relative bg-zinc-100 dark:bg-zinc-800">
+              <img
+                src={allImages[currentImageIndex]}
+                alt={`${post.title} - ${currentImageIndex + 1}`}
+                className="w-full max-h-[400px] object-contain"
+              />
+
+              {hasMultipleImages && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm hover:bg-black/80"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm hover:bg-black/80"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {allImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={`h-2 w-2 rounded-full transition-all ${
+                          idx === currentImageIndex
+                            ? 'bg-white scale-125'
+                            : 'bg-white/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* No media */}
+          {allImages.length === 0 && !post.video_url && (
+            <div className="flex h-48 items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+              <Store className="h-16 w-16 text-zinc-300 dark:text-zinc-600" />
+            </div>
+          )}
+        </div>
+
+        {/* Post Details */}
+        <div className="p-6 space-y-4">
+          <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{post.title}</h3>
+
+          {post.description && (
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{post.description}</p>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex items-center gap-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-3">
+              <User className="h-5 w-5 text-zinc-400" />
+              <div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Anunciante</p>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{post.contact_name || 'Sem nome'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-3">
+              <Phone className="h-5 w-5 text-zinc-400" />
+              <div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Telefone</p>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{post.contact_phone || 'N/A'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-3">
+              <Store className="h-5 w-5 text-zinc-400" />
+              <div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Categoria</p>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 capitalize">{post.category || 'N/A'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-3">
+              <Clock className="h-5 w-5 text-zinc-400" />
+              <div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Tempo</p>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{getTimeRemaining(post.expires_at)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="sticky bottom-0 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex gap-3">
+          <button
+            onClick={() => onApprove(post.id)}
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition-all hover:bg-green-700 active:scale-[0.98]"
+          >
+            <Check className="h-4 w-4" />
+            Aprovar
+          </button>
+          <button
+            onClick={() => onReject(post.id)}
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white transition-all hover:bg-red-700 active:scale-[0.98]"
+          >
+            <X className="h-4 w-4" />
+            Rejeitar
+          </button>
+          <button
+            onClick={() => onEdit(post)}
+            className="flex items-center justify-center gap-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-[0.98]"
+          >
+            <Edit className="h-4 w-4" />
+            Editar
+          </button>
         </div>
       </div>
     </div>

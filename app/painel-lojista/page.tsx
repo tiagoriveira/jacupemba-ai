@@ -265,19 +265,6 @@ export default function PainelLojistaPage() {
             {authMode === 'login' ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
           </button>
 
-          <div className="mt-6 flex items-center gap-2">
-            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-            <span className="text-xs text-zinc-400">ou</span>
-            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-          </div>
-
-          <Link
-            href="/vitrine/criar"
-            className="mt-6 flex items-center gap-2 rounded-xl bg-zinc-900 px-6 py-3 font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            <Plus className="h-5 w-5" />
-            Criar Novo Anúncio
-          </Link>
         </main>
       </div>
     )

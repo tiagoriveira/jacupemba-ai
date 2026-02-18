@@ -2,17 +2,17 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Store, Camera, Phone, User, Tag, FileText, DollarSign, CheckCircle, Upload, X } from 'lucide-react'
+import { ArrowLeft, Loader2, Store, Camera, Phone, User, Tag, FileText, CheckCircle, Upload, X, Sparkles, Gift } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import Link from 'next/link'
 import { PaymentModal } from '@/components/PaymentModal'
 
 const CATEGORIES = [
-  { value: 'produto', label: 'Produto', description: 'Itens à venda', color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' },
-  { value: 'servico', label: 'Serviço', description: 'Serviços oferecidos', color: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800' },
-  { value: 'vaga', label: 'Vaga', description: 'Oportunidades de trabalho', color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800' },
-  { value: 'informativo', label: 'Informativo', description: 'Avisos gerais', color: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800' },
-  { value: 'comunicado', label: 'Comunicado', description: 'Comunicados importantes', color: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' },
+  { value: 'produto', label: 'Produto', description: 'Itens à venda' },
+  { value: 'servico', label: 'Serviço', description: 'Serviços oferecidos' },
+  { value: 'vaga', label: 'Vaga', description: 'Oportunidades de trabalho' },
+  { value: 'informativo', label: 'Informativo', description: 'Avisos gerais' },
+  { value: 'comunicado', label: 'Comunicado', description: 'Comunicados importantes' },
 ]
 
 function formatPhone(value: string) {
@@ -23,6 +23,7 @@ function formatPhone(value: string) {
 }
 
 const MAX_IMAGES = 5
+const MAX_VIDEOS = 1
 const MAX_TITLE = 80
 const MAX_DESC = 300
 
@@ -32,29 +33,54 @@ export default function CriarPostPage() {
   const [success, setSuccess] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [images, setImages] = useState<{ preview: string; url: string }[]>([])
+  const [video, setVideo] = useState<{ preview: string; url: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [paymentInfo, setPaymentInfo] = useState<{ category: string; price: number; postData: Record<string, any> } | null>(null)
+  const [paymentPostData, setPaymentPostData] = useState<Record<string, any> | null>(null)
+  const [isFirstPost, setIsFirstPost] = useState<boolean | null>(null)
+  const [checkingFirstPost, setCheckingFirstPost] = useState(false)
 
   const [form, setForm] = useState({
     title: '',
     description: '',
-    price: '',
     category: '',
     contact_name: '',
     contact_phone: '',
   })
 
-  // Preencher telefone salvo se existir
+  // Preencher telefone salvo + verificar primeiro post
   useEffect(() => {
     const saved = localStorage.getItem('jacupemba_lojista_phone')
     if (saved) {
       setForm(prev => ({ ...prev, contact_phone: saved }))
+      checkFirstPost(saved)
     }
   }, [])
 
+
+  const checkFirstPost = async (phone: string) => {
+    setCheckingFirstPost(true)
+    try {
+      const res = await fetch(`/api/vitrine/check-first-post?phone=${encodeURIComponent(phone)}`)
+      const data = await res.json()
+      setIsFirstPost(data.is_first_post)
+    } catch {
+      setIsFirstPost(null)
+    } finally {
+      setCheckingFirstPost(false)
+    }
+  }
+
   const updateField = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
+    // Re-verificar primeiro post quando telefone muda (11 dígitos completos)
+    if (field === 'contact_phone') {
+      const digits = value.replace(/\D/g, '')
+      if (digits.length === 11) {
+        checkFirstPost(digits)
+      }
+    }
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,6 +148,61 @@ export default function CriarPostPage() {
     setImages(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime']
+    if (!validTypes.includes(file.type)) {
+      toast.error('Formato inválido. Use: MP4, WebM ou MOV')
+      return
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Vídeo muito grande. Máximo: 50MB')
+      return
+    }
+
+    try {
+      setUploading(true)
+
+      // Preview local
+      const preview = URL.createObjectURL(file)
+
+      // Upload para Supabase Storage
+      const formData = new FormData()
+      formData.append('video', file)
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setVideo({ preview, url: data.videoUrl })
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error('Erro no upload do vídeo:', error)
+      toast.error('Erro ao enviar vídeo')
+    } finally {
+      setUploading(false)
+    }
+
+    // Limpar input
+    if (videoInputRef.current) videoInputRef.current.value = ''
+  }
+
+  const removeVideo = () => {
+    if (video?.preview) {
+      URL.revokeObjectURL(video.preview)
+    }
+    setVideo(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -154,12 +235,13 @@ export default function CriarPostPage() {
       const payload = {
         title: form.title.trim(),
         description: form.description.trim() || null,
-        price: form.price ? parseFloat(form.price) : null,
+        price: null,
         category: form.category,
         contact_name: form.contact_name.trim(),
         contact_phone: phoneDigits,
         image_url: imageUrls[0] || null,
         images: imageUrls,
+        video_url: video?.url || null,
       }
 
       const response = await fetch('/api/vitrine/create', {
@@ -171,12 +253,8 @@ export default function CriarPostPage() {
       const data = await response.json()
 
       if (data.requires_payment) {
-        // Abrir modal de pagamento com os dados do post
-        setPaymentInfo({
-          category: data.category,
-          price: data.category_price,
-          postData: data.post_data,
-        })
+        // Abrir modal de pagamento Stripe com os dados do post
+        setPaymentPostData(data.post_data)
         setShowPaymentModal(true)
         return
       }
@@ -185,6 +263,9 @@ export default function CriarPostPage() {
         // Salvar telefone no localStorage para o painel
         localStorage.setItem('jacupemba_lojista_phone', form.contact_phone)
         setSuccess(true)
+        if (data.is_first_post) {
+          toast.success('Primeiro anúncio grátis!')
+        }
       } else {
         toast.error(data.error || 'Erro ao criar post')
       }
@@ -220,8 +301,9 @@ export default function CriarPostPage() {
           <button
             onClick={() => {
               setSuccess(false)
-              setForm(prev => ({ ...prev, title: '', description: '', price: '' }))
+              setForm(prev => ({ ...prev, title: '', description: '' }))
               setImages([])
+              setVideo(null)
             }}
             className="flex items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 px-6 py-3 font-semibold text-zinc-700 transition-all hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
@@ -276,11 +358,16 @@ export default function CriarPostPage() {
                   key={cat.value}
                   type="button"
                   onClick={() => updateField('category', cat.value)}
-                  className={`rounded-xl border-2 p-3 text-left transition-all ${form.category === cat.value
-                    ? `${cat.color} border-current ring-2 ring-current/20`
+                  className={`rounded-xl border-2 p-3 text-left transition-all relative ${form.category === cat.value
+                    ? 'bg-zinc-900 text-white border-zinc-900 ring-4 ring-zinc-900/30 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 dark:ring-zinc-100/30'
                     : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700'
                     }`}
                 >
+                  {form.category === cat.value && (
+                    <div className="absolute -top-2 -right-2 bg-zinc-900 dark:bg-zinc-100 rounded-full p-1 shadow-lg">
+                      <CheckCircle className="h-4 w-4 text-white dark:text-zinc-900" />
+                    </div>
+                  )}
                   <span className="text-sm font-semibold">{cat.label}</span>
                   <p className="text-xs opacity-70 mt-0.5">{cat.description}</p>
                 </button>
@@ -301,7 +388,7 @@ export default function CriarPostPage() {
                     value={form.contact_name}
                     onChange={(e) => updateField('contact_name', e.target.value)}
                     placeholder="Nome completo"
-                    className="input-grok w-full pl-10"
+                    className="input-grok has-icon w-full"
                     required
                   />
                 </div>
@@ -315,7 +402,7 @@ export default function CriarPostPage() {
                     value={form.contact_phone}
                     onChange={(e) => updateField('contact_phone', formatPhone(e.target.value))}
                     placeholder="Número do WhatsApp"
-                    className="input-grok w-full pl-10"
+                    className="input-grok has-icon w-full"
                     required
                   />
                 </div>
@@ -336,7 +423,7 @@ export default function CriarPostPage() {
                   value={form.title}
                   onChange={(e) => updateField('title', e.target.value.slice(0, MAX_TITLE))}
                   placeholder="Título do anúncio"
-                  className="input-grok w-full pl-10"
+                  className="input-grok has-icon w-full"
                   maxLength={MAX_TITLE}
                   required
                 />
@@ -346,34 +433,17 @@ export default function CriarPostPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Descrição</label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
-                <textarea
-                  value={form.description}
-                  onChange={(e) => updateField('description', e.target.value.slice(0, MAX_DESC))}
-                  placeholder="Descrição"
-                  className="input-grok w-full pl-10 min-h-[100px] resize-none"
-                  maxLength={MAX_DESC}
-                />
-              </div>
+              <textarea
+                value={form.description}
+                onChange={(e) => updateField('description', e.target.value.slice(0, MAX_DESC))}
+                placeholder="Descreva seu anúncio (opcional)"
+                className="input-grok w-full min-h-[100px] resize-none"
+                maxLength={MAX_DESC}
+              />
               <p className={`text-xs ${form.description.length >= MAX_DESC ? 'text-red-500' : 'text-zinc-400'}`}>{form.description.length}/{MAX_DESC}</p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Preço (R$)</label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.price}
-                  onChange={(e) => updateField('price', e.target.value)}
-                  placeholder="Preço (opcional)"
-                  className="input-grok w-full pl-10"
-                />
-              </div>
-            </div>
+
           </div>
 
           {/* Imagens */}
@@ -444,17 +514,87 @@ export default function CriarPostPage() {
             )}
           </div>
 
+          {/* Vídeo */}
+          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Vídeo</h3>
+              <span className="text-xs text-zinc-400">{video ? '1' : '0'}/{MAX_VIDEOS}</span>
+            </div>
+
+            {/* Preview vídeo */}
+            {video && (
+              <div className="relative group">
+                <div className="aspect-video overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                  <video
+                    src={video.preview}
+                    className="h-full w-full object-cover"
+                    controls
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={removeVideo}
+                  className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+            {/* Upload button */}
+            {!video && (
+              <div>
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  onChange={handleVideoUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-6 py-6 text-sm font-medium text-zinc-600 transition-colors hover:border-zinc-400 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-5 w-5" />
+                      Enviar vídeo
+                    </>
+                  )}
+                </button>
+                <p className="mt-2 text-xs text-zinc-400 text-center">MP4, WebM ou MOV • Máx 50MB • Opcional</p>
+              </div>
+            )}
+          </div>
+
           {/* Info box */}
-          <div className="rounded-xl bg-zinc-100 p-4 dark:bg-zinc-900">
+          <div className="rounded-xl bg-zinc-100 p-4 dark:bg-zinc-900 space-y-2">
+            {isFirstPost === true && (
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-3 py-2">
+                <Gift className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                <p className="text-xs font-semibold text-green-700 dark:text-green-400">
+                  Seu primeiro anúncio é GRÁTIS!
+                </p>
+              </div>
+            )}
+            {isFirstPost === false && (
+              <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2">
+                <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  Valor do anúncio: R$ 30,00 (pagamento via Stripe)
+                </p>
+              </div>
+            )}
             <p className="text-xs text-zinc-600 dark:text-zinc-400">
               <strong>Como funciona:</strong> Seu anúncio será revisado pelo administrador antes de ir ao ar.
               Após aprovação, ele fica visível por <strong>48 horas</strong>.
-              {form.category && ['vaga', 'informativo'].includes(form.category)
-                ? ' Categorias gratuitas permitem até 3 republicações.'
-                : form.category
-                  ? ` A categoria "${CATEGORIES.find(c => c.value === form.category)?.label}" requer pagamento (R$ ${form.category === 'comunicado' ? '20,00' : '15,00'}).`
-                  : ''
-              }
             </p>
           </div>
 
@@ -479,19 +619,21 @@ export default function CriarPostPage() {
         </form>
       </main>
 
-      {/* Payment Modal */}
-      {paymentInfo && (
+      {/* Payment Modal - Stripe Embedded Checkout */}
+      {paymentPostData && (
         <PaymentModal
           isOpen={showPaymentModal}
           onClose={() => {
             setShowPaymentModal(false)
-            setPaymentInfo(null)
+            setPaymentPostData(null)
           }}
-          category={paymentInfo.category}
-          amount={paymentInfo.price}
-          postData={paymentInfo.postData}
-          onSuccess={(paymentId) => {
-            console.log('[Vitrine] Pagamento criado:', paymentId)
+          amount={30}
+          postData={paymentPostData}
+          onPaymentComplete={() => {
+            localStorage.setItem('jacupemba_lojista_phone', form.contact_phone)
+            setShowPaymentModal(false)
+            setPaymentPostData(null)
+            setSuccess(true)
           }}
         />
       )}

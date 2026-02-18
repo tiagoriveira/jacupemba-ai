@@ -12,7 +12,6 @@ interface VitrinePost {
   contact_phone: string
   title: string
   description: string
-  price: number
   category: string
   image_url: string
   images?: string[]
@@ -36,10 +35,7 @@ function getHoursRemaining(expiresAt: string) {
   return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
 }
 
-function formatPrice(price: number | null) {
-  if (!price || price === 0) return 'A combinar'
-  return `R$ ${Number(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-}
+
 
 export function VitrineGrid() {
   const [posts, setPosts] = useState<VitrinePost[]>([])
@@ -108,7 +104,7 @@ export function VitrineGrid() {
 
   function handleShare(post: VitrinePost, e?: React.MouseEvent) {
     e?.stopPropagation()
-    const text = `${post.title} - ${formatPrice(post.price)}\n${post.description || ''}\nContato: ${post.contact_name || ''} ${post.contact_phone || ''}`
+    const text = `${post.title}\n${post.description || ''}\nContato: ${post.contact_name || ''} ${post.contact_phone || ''}`
     const encoded = encodeURIComponent(text)
     window.open(`https://wa.me/?text=${encoded}`, '_blank')
   }
@@ -223,10 +219,7 @@ export function VitrineGrid() {
                   className="group relative mb-0 w-full break-inside-avoid overflow-hidden transition-all duration-300 hover:brightness-95 active:scale-[0.98]"
                   aria-label={`Ver detalhes de ${post.title}`}
                 >
-                  {/* Price badge */}
-                  <div className="absolute bottom-2 left-2 z-[2] rounded-full bg-black/70 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">
-                    {formatPrice(post.price)}
-                  </div>
+
 
                   {/* Expiry badge */}
                   {getHoursRemaining(post.expires_at) <= 12 && (

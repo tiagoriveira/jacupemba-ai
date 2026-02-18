@@ -32,7 +32,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
     contact_phone: editPost?.contact_phone || '',
     title: editPost?.title || '',
     description: editPost?.description || '',
-    price: editPost?.price?.toString() || '',
+
     category: editPost?.category || '',
     aspect_ratio: 'square' as 'square' | 'vertical'
   })
@@ -45,7 +45,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
     { value: 'comunicado', label: 'Comunicado', isCommercial: false }
   ]
 
-  const isCommercial = categories.find(c => c.value === formData.category)?.isCommercial ?? true
+
 
   // Placeholders dinâmicos por categoria
   const getPlaceholders = () => {
@@ -160,10 +160,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
       return
     }
 
-    if (isCommercial && !formData.price) {
-      toast.error('Preço é obrigatório para produtos/serviços')
-      return
-    }
+
 
     if (!editPost && !imageFile) {
       toast.error('Selecione uma imagem principal')
@@ -189,7 +186,7 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
         contact_phone: formData.contact_phone,
         title: formData.title,
         description: formData.description,
-        price: isCommercial ? parseFloat(formData.price) : 0,
+        price: null,
         category: formData.category,
         image_url: imageUrl,
         aspect_ratio: formData.aspect_ratio,
@@ -346,42 +343,23 @@ export function VitrineUploadModal({ isOpen, onClose, onSuccess, editPost }: Vit
                 />
               </div>
 
-              {/* Preço e Categoria */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    Categoria
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="input-grok mt-1 w-full"
-                  >
-                    <option value="">Selecione</option>
-                    {categories.map((cat) => (
-                      <option key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {isCommercial && (
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                      Preço (R$) *
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="input-grok mt-1 w-full"
-                      placeholder="0.00"
-                    />
-                  </div>
-                )}
+              {/* Categoria */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Categoria
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="input-grok mt-1 w-full"
+                >
+                  <option value="">Selecione</option>
+                  {categories.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Descrição */}

@@ -9,7 +9,6 @@ interface VitrinePost {
   contact_phone: string
   title: string
   description: string
-  price: number
   category: string
   image_url: string
   images?: string[]
@@ -32,10 +31,7 @@ function getHoursRemaining(expiresAt: string) {
   return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
 }
 
-function formatPrice(price: number | null) {
-  if (!price || price === 0) return 'A combinar'
-  return `R$ ${Number(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-}
+
 
 export function ProductStoriesView({
   posts,
@@ -51,10 +47,18 @@ export function ProductStoriesView({
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
   const currentPost = posts[currentPostIndex]
-  const postImages = currentPost.images && currentPost.images.length > 0 
-    ? currentPost.images 
+
+  // Combinar imagens + vídeo em um único array de mídia
+  const postImages = currentPost.images && currentPost.images.length > 0
+    ? currentPost.images
     : (currentPost.image_url ? [currentPost.image_url] : [])
-  const hasMultipleImages = postImages.length > 1
+
+  const allMedia = [...postImages]
+  if (currentPost.video_url) {
+    allMedia.push(currentPost.video_url) // Vídeo como último slide
+  }
+
+  const hasMultipleMedia = allMedia.length > 1
 
   // Navegação entre posts
   const goToNextPost = useCallback(() => {
@@ -71,9 +75,9 @@ export function ProductStoriesView({
     }
   }, [currentPostIndex])
 
-  // Navegação entre imagens
-  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % postImages.length)
-  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + postImages.length) % postImages.length)
+  // Navegação entre imagens/vídeos
+  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allMedia.length)
+  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + allMedia.length) % allMedia.length)
 
   // Touch handlers para swipe
   const minSwipeDistance = 50
@@ -89,7 +93,7 @@ export function ProductStoriesView({
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return
-    
+
     const distance = touchStart - touchEnd
     const isLeftSwipe = distance > minSwipeDistance
     const isRightSwipe = distance < -minSwipeDistance
@@ -118,7 +122,7 @@ export function ProductStoriesView({
   const Icon = config.icon
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[100] bg-black"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -165,13 +169,12 @@ export function ProductStoriesView({
             {posts.map((_, idx) => (
               <div
                 key={idx}
-                className={`h-0.5 flex-1 rounded-full transition-all ${
-                  idx === currentPostIndex
-                    ? 'bg-white'
-                    : idx < currentPostIndex
+                className={`h-0.5 flex-1 rounded-full transition-all ${idx === currentPostIndex
+                  ? 'bg-white'
+                  : idx < currentPostIndex
                     ? 'bg-white/50'
                     : 'bg-white/20'
-                }`}
+                  }`}
               />
             ))}
           </div>
@@ -238,10 +241,8 @@ export function ProductStoriesView({
           <h2 className="mb-2 text-2xl font-bold text-white leading-tight">
             {currentPost.title}
           </h2>
-          
-          <div className="mb-3 text-3xl font-bold text-white">
-            {formatPrice(currentPost.price)}
-          </div>
+
+
 
           {/* Descrição */}
           {currentPost.description && (

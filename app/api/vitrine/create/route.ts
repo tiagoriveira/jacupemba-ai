@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// Categorias e seus preços
-const CATEGORY_CONFIG = {
-  produto: { price: 15.00, is_paid: true },
-  servico: { price: 15.00, is_paid: true },
-  comunicado: { price: 20.00, is_paid: true },
-  vaga: { price: 0.00, is_paid: false },
-  informativo: { price: 0.00, is_paid: false },
-} as const
+const VALID_CATEGORIES = ['produto', 'servico', 'comunicado', 'vaga', 'informativo']
+const POST_PRICE = 30.00
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,32 +28,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG]) {
+    if (!VALID_CATEGORIES.includes(category)) {
       return NextResponse.json(
         { error: 'Categoria inválida' },
         { status: 400 }
       )
     }
 
-    const categoryConfig = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG]
+    // Verificar quantos posts o usuário já criou (por telefone)
+    const phoneDigits = contact_phone.replace(/\D/g, '')
+    const { count } = await supabase
+      .from('vitrine_posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('contact_phone', phoneDigits)
 
-    // Calcular data de expiração (48 horas)
-    const expiresAt = new Date()
-    expiresAt.setHours(expiresAt.getHours() + 48)
+    const isFirstPost = (count ?? 0) === 0
 
-    // Se for categoria paga e NÃO tem payment_id, retornar necessidade de pagamento
-    if (categoryConfig.is_paid && !body.payment_id) {
+    // Se NÃO é primeiro post e NÃO tem stripe_payment_id → exigir pagamento
+    if (!isFirstPost && !body.stripe_payment_id) {
       return NextResponse.json({
         success: false,
         requires_payment: true,
-        message: 'Esta categoria requer pagamento',
-        category_price: categoryConfig.price,
-        category,
-        post_data: body // Retornar dados para criar após pagamento
+        is_first_post: false,
+        price: POST_PRICE,
+        message: `Primeiro anúncio grátis. Próximos: R$ ${POST_PRICE.toFixed(2).replace('.', ',')}`,
+        post_data: body,
       })
     }
 
-    // Criar post (grátis ou pago com payment_id)
+    // Criar post (grátis se primeiro, ou pago com stripe_payment_id)
     const { data: newPost, error } = await supabase
       .from('vitrine_posts')
       .insert({
@@ -68,17 +65,16 @@ export async function POST(request: NextRequest) {
         price: price || null,
         category,
         contact_name,
-        contact_phone,
+        contact_phone: phoneDigits,
         image_url: image_url || null,
         images: images || [],
         video_url: video_url || null,
         aspect_ratio: aspect_ratio || 'square',
-        expires_at: expiresAt.toISOString(),
         status: 'pendente',
-        is_paid: categoryConfig.is_paid,
-        payment_id: body.payment_id || null,
+        is_paid: !isFirstPost,
+        stripe_payment_id: body.stripe_payment_id || null,
         repost_count: 0,
-        max_reposts: categoryConfig.is_paid ? 999 : 3
+        max_reposts: isFirstPost ? 3 : 999,
       })
       .select()
       .single()
@@ -93,8 +89,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Post criado e aguardando aprovação do administrador',
-      post: newPost
+      is_first_post: isFirstPost,
+      message: isFirstPost
+        ? 'Primeiro anúncio grátis! Enviado para aprovação.'
+        : 'Post criado e aguardando aprovação do administrador',
+      post: newPost,
     })
   } catch (error) {
     console.error('Erro ao processar requisição:', error)

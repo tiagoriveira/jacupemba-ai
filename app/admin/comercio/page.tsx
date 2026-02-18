@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Suspense, useState, useEffect } from 'react'
-import { Store, Settings, Package, ArrowLeft, LogOut, Loader2, Save, Upload, Plus, Trash2, Sparkles, TrendingUp, Users, Eye, Star, Lock, AlertCircle } from 'lucide-react'
+import { Store, Settings, Package, ArrowLeft, LogOut, Loader2, Save, Upload, Plus, Trash2, Sparkles, TrendingUp, Star, Lock, AlertCircle, CheckCircle, XCircle, Clock } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
@@ -25,21 +25,16 @@ interface Business {
     verified?: boolean
 }
 
-interface LeadStats {
-    totalLeads: number
-    byStatus: {
-        pending: number
-        contacted: number
-        converted: number
-        expired: number
-    }
-    period: string
+interface PostStats {
+    total: number
+    pendentes: number
+    aprovados: number
+    rejeitados: number
 }
 
 interface VitrinePost {
     id: string
     title: string
-    price: number
     status: 'pendente' | 'aprovado' | 'rejeitado'
     image_url: string
     created_at: string
@@ -62,7 +57,7 @@ function MerchantPageContent() {
         verified: false
     })
     const [activeTab, setActiveTab] = useState<'info' | 'vitrine' | 'inventory' | 'analytics'>('info')
-    const [leadStats, setLeadStats] = useState<LeadStats | null>(null)
+    const [postStats, setPostStats] = useState<PostStats | null>(null)
     const [statsLoading, setStatsLoading] = useState(false)
     const [posts, setPosts] = useState<VitrinePost[]>([])
 
@@ -77,21 +72,34 @@ function MerchantPageContent() {
     const [inventoryText, setInventoryText] = useState('')
     const [processingAI, setProcessingAI] = useState(false)
 
-    const fetchLeadStats = async (businessId: string) => {
+    // Fetch post stats when analytics tab is active
+    useEffect(() => {
+        if (activeTab === 'analytics') {
+            fetchPostStats()
+        }
+    }, [activeTab])
+
+    const fetchPostStats = async () => {
         try {
             setStatsLoading(true)
-            const response = await fetch(`/api/leads?business_id=${businessId}&days=30`)
-            const result = await response.json()
-            
-            if (result.success && result.data) {
-                setLeadStats({
-                    totalLeads: result.data.totalLeads,
-                    byStatus: result.data.byStatus,
-                    period: result.data.period
-                })
+            const { data, error } = await supabase
+                .from('vitrine_posts')
+                .select('status')
+
+            if (error) {
+                console.error('Error fetching post stats:', error)
+                return
             }
+
+            const posts = data || []
+            setPostStats({
+                total: posts.length,
+                pendentes: posts.filter(p => p.status === 'pendente').length,
+                aprovados: posts.filter(p => p.status === 'aprovado').length,
+                rejeitados: posts.filter(p => p.status === 'rejeitado').length,
+            })
         } catch (error) {
-            console.error('Error fetching lead stats:', error)
+            console.error('Error fetching post stats:', error)
         } finally {
             setStatsLoading(false)
         }
@@ -358,38 +366,40 @@ function MerchantPageContent() {
                     {activeTab === 'analytics' && (
                         <div className="space-y-6">
                             <div>
-                                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Desempenho do Negócio</h2>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Acompanhe o interesse dos clientes nos últimos 30 dias</p>
+                                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Desempenho da Vitrine</h2>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Acompanhe seus anúncios na plataforma</p>
                             </div>
 
                             {statsLoading ? (
                                 <div className="flex items-center justify-center py-12">
                                     <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
                                 </div>
-                            ) : leadStats ? (
+                            ) : postStats ? (
                                 <div className="space-y-6">
-                                    {/* Cards de Métricas Principais */}
-                                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                        <div className="card-grok p-6">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total de Leads</p>
-                                                    <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-2">{leadStats.totalLeads}</p>
-                                                </div>
-                                                <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                                    <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                                                </div>
+                                    {/* Card Principal - Total */}
+                                    <div className="card-grok p-8 bg-gradient-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-900">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm font-medium text-zinc-400">Total de Posts</p>
+                                                <p className="text-5xl font-bold text-white mt-2">{postStats.total}</p>
+                                                <p className="text-xs text-zinc-500 mt-2">Todos os anúncios criados</p>
+                                            </div>
+                                            <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center">
+                                                <Store className="h-8 w-8 text-white" />
                                             </div>
                                         </div>
+                                    </div>
 
+                                    {/* Cards de Status */}
+                                    <div className="grid gap-4 sm:grid-cols-3">
                                         <div className="card-grok p-6">
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Pendentes</p>
-                                                    <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-2">{leadStats.byStatus.pending}</p>
+                                                    <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-2">{postStats.pendentes}</p>
                                                 </div>
                                                 <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                                    <AlertCircle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                                                    <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
                                                 </div>
                                             </div>
                                         </div>
@@ -397,61 +407,54 @@ function MerchantPageContent() {
                                         <div className="card-grok p-6">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Contactados</p>
-                                                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">{leadStats.byStatus.contacted}</p>
-                                                </div>
-                                                <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                                    <Eye className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="card-grok p-6">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Convertidos</p>
-                                                    <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">{leadStats.byStatus.converted}</p>
+                                                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Aprovados</p>
+                                                    <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">{postStats.aprovados}</p>
                                                 </div>
                                                 <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                                    <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="card-grok p-6">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Rejeitados</p>
+                                                    <p className="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">{postStats.rejeitados}</p>
+                                                </div>
+                                                <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                                    <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Informação sobre Leads */}
-                                    <div className="card-grok p-6">
-                                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3">O que são Leads?</h3>
-                                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                                            Leads são potenciais clientes que demonstraram interesse no seu negócio ao clicar no botão do WhatsApp ou outros links de contato através do Jacupemba AI.
-                                        </p>
-                                        <div className="grid gap-3 sm:grid-cols-2">
-                                            <div className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
-                                                <div className="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
-                                                    <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Pendentes</p>
-                                                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">Clientes que clicaram mas ainda não foram atendidos</p>
-                                                </div>
+                                    {/* Barra de Aprovação */}
+                                    {postStats.total > 0 && (
+                                        <div className="card-grok p-6">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Taxa de Aprovação</h3>
+                                                <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                                                    {Math.round((postStats.aprovados / postStats.total) * 100)}%
+                                                </span>
                                             </div>
-                                            <div className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
-                                                <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                                                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Convertidos</p>
-                                                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">Leads que se tornaram clientes pagantes</p>
-                                                </div>
+                                            <div className="w-full h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-green-500 dark:bg-green-400 rounded-full transition-all duration-500"
+                                                    style={{ width: `${(postStats.aprovados / postStats.total) * 100}%` }}
+                                                />
                                             </div>
+                                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                                                {postStats.aprovados} de {postStats.total} posts aprovados
+                                            </p>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="card-grok p-12 text-center">
                                     <TrendingUp className="h-12 w-12 mx-auto text-zinc-300 dark:text-zinc-700 mb-3" />
-                                    <p className="text-zinc-600 dark:text-zinc-400 font-medium">Nenhum lead registrado ainda</p>
-                                    <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">Quando clientes clicarem no seu WhatsApp, as métricas aparecerão aqui.</p>
+                                    <p className="text-zinc-600 dark:text-zinc-400 font-medium">Nenhum post encontrado</p>
+                                    <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">Crie seu primeiro anúncio para ver as métricas aqui.</p>
                                 </div>
                             )}
                         </div>
@@ -495,51 +498,49 @@ function MerchantPageContent() {
                                         onSuccess={() => fetchBusinessPosts(business.id)}
                                     />
 
-                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                {posts.length === 0 ? (
-                                    <div className="col-span-full py-12 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl">
-                                        <Store className="h-12 w-12 mx-auto text-zinc-300 dark:text-zinc-700 mb-3" />
-                                        <p className="text-zinc-500 dark:text-zinc-400 font-medium">Nenhum post ativo</p>
-                                        <p className="text-sm text-zinc-400 dark:text-zinc-500">Crie seu primeiro anúncio para aparecer na vitrine!</p>
-                                    </div>
-                                ) : (
-                                    posts.map(post => (
-                                        <div key={post.id} className="card-grok overflow-hidden flex flex-col">
-                                            <div className="aspect-video bg-zinc-100 dark:bg-zinc-800 relative">
-                                                {post.image_url ? (
-                                                    <img src={post.image_url} alt={post.title} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="flex items-center justify-center h-full text-zinc-300 dark:text-zinc-600">
-                                                        <Store className="h-8 w-8" />
+                                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                        {posts.length === 0 ? (
+                                            <div className="col-span-full py-12 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl">
+                                                <Store className="h-12 w-12 mx-auto text-zinc-300 dark:text-zinc-700 mb-3" />
+                                                <p className="text-zinc-500 dark:text-zinc-400 font-medium">Nenhum post ativo</p>
+                                                <p className="text-sm text-zinc-400 dark:text-zinc-500">Crie seu primeiro anúncio para aparecer na vitrine!</p>
+                                            </div>
+                                        ) : (
+                                            posts.map(post => (
+                                                <div key={post.id} className="card-grok overflow-hidden flex flex-col">
+                                                    <div className="aspect-video bg-zinc-100 dark:bg-zinc-800 relative">
+                                                        {post.image_url ? (
+                                                            <img src={post.image_url} alt={post.title} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="flex items-center justify-center h-full text-zinc-300 dark:text-zinc-600">
+                                                                <Store className="h-8 w-8" />
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute top-2 right-2">
+                                                            <span className={`badge-grok ${post.status === 'aprovado' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                                post.status === 'rejeitado' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                                }`}>
+                                                                {post.status.toUpperCase()}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                )}
-                                                <div className="absolute top-2 right-2">
-                                                    <span className={`badge-grok ${post.status === 'aprovado' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                        post.status === 'rejeitado' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                                        }`}>
-                                                        {post.status.toUpperCase()}
-                                                    </span>
+                                                    <div className="p-4 flex-1">
+                                                        <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{post.title}</h3>
+
+                                                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
+                                                            Criado em {new Date(post.created_at).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                    <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end">
+                                                        <button onClick={() => handleDeletePost(post.id)} className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors" title="Excluir">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="p-4 flex-1">
-                                                <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{post.title}</h3>
-                                                <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
-                                                    R$ {Number(post.price).toFixed(2)}
-                                                </p>
-                                                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
-                                                    Criado em {new Date(post.created_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end">
-                                                <button onClick={() => handleDeletePost(post.id)} className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors" title="Excluir">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
+                                            ))
+                                        )}
+                                    </div>
                                 </>
                             )}
                         </div>

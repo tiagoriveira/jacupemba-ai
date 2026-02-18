@@ -130,6 +130,7 @@ export type VitrinePost = {
   video_url: string | null
   aspect_ratio: 'square' | 'vertical'
   expires_at: string
+  approved_at: string | null
   status: Status
   created_at: string
   updated_at: string
@@ -138,5 +139,5 @@ export type VitrinePost = {
   max_reposts: number
   is_paid: boolean
   user_id: string | null
-  payment_id: string | null
+  stripe_payment_id: string | null
 }
