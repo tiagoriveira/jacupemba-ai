@@ -2,7 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 const VALID_CATEGORIES = ['produto', 'servico', 'comunicado', 'vaga', 'informativo']
-const POST_PRICE = 30.00
+
+// Preços por categoria (primeiro post sempre grátis)
+const CATEGORY_PRICES: Record<string, number> = {
+  produto: 15.00,
+  servico: 15.00,
+  comunicado: 20.00,
+  vaga: 0,
+  informativo: 0,
+}
+
+function getCategoryPrice(category: string): number {
+  return CATEGORY_PRICES[category] || 15.00
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +26,7 @@ export async function POST(request: NextRequest) {
       category,
       contact_name,
       contact_phone,
+      contact_email,
       image_url,
       images,
       video_url,
@@ -26,6 +39,14 @@ export async function POST(request: NextRequest) {
         { error: 'Campos obrigatórios: title, category, contact_name, contact_phone' },
         { status: 400 }
       )
+    }
+
+    // Buscar user_id se autenticado
+    let user_id: string | null = null
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) {
+      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+      user_id = user?.id || null
     }
 
     if (!VALID_CATEGORIES.includes(category)) {
@@ -44,14 +65,17 @@ export async function POST(request: NextRequest) {
 
     const isFirstPost = (count ?? 0) === 0
 
-    // Se NÃO é primeiro post e NÃO tem stripe_payment_id → exigir pagamento
-    if (!isFirstPost && !body.stripe_payment_id) {
+    // Se NÃO é primeiro post e NÃO tem stripe_payment_id → exigir pagamento (apenas categorias pagas)
+    const categoryPrice = getCategoryPrice(category)
+    const requiresPayment = !isFirstPost && categoryPrice > 0 && !body.stripe_payment_id
+    
+    if (requiresPayment) {
       return NextResponse.json({
         success: false,
         requires_payment: true,
         is_first_post: false,
-        price: POST_PRICE,
-        message: `Primeiro anúncio grátis. Próximos: R$ ${POST_PRICE.toFixed(2).replace('.', ',')}`,
+        price: categoryPrice,
+        message: `Primeiro anúncio grátis. Próximos ${category}: R$ ${categoryPrice.toFixed(2).replace('.', ',')}`,
         post_data: body,
       })
     }
@@ -66,12 +90,14 @@ export async function POST(request: NextRequest) {
         category,
         contact_name,
         contact_phone: phoneDigits,
+        contact_email: contact_email || null,
         image_url: image_url || null,
         images: images || [],
         video_url: video_url || null,
         aspect_ratio: aspect_ratio || 'square',
         status: 'pendente',
         is_paid: !isFirstPost,
+        user_id,
         stripe_payment_id: body.stripe_payment_id || null,
         repost_count: 0,
         max_reposts: isFirstPost ? 3 : 999,
