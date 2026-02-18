@@ -72,9 +72,17 @@ export default function PainelLojistaPage() {
 
     try {
       if (authMode === 'login') {
-        await signIn(email, password)
+        const { error } = await signIn(email, password)
+        if (error) {
+          setAuthError('E-mail ou senha incorretos. Tente novamente.')
+          return
+        }
       } else {
-        await signUp(email, password)
+        const { error } = await signUp(email, password)
+        if (error) {
+          setAuthError(error.message || 'Erro ao criar conta. Tente novamente.')
+          return
+        }
         toast.success('Conta criada! Verifique seu email para confirmação.')
       }
     } catch (err: unknown) {

@@ -24,7 +24,13 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setIsLoading(true)
 
     try {
-      await signIn(email, password)
+      const { error: signInError } = await signIn(email, password)
+
+      if (signInError) {
+        setError('Email ou senha incorretos. Tente novamente.')
+        setIsLoading(false)
+        return
+      }
 
       // Verify super admin
       if (SUPER_ADMIN_EMAIL && email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {

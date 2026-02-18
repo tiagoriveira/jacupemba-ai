@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, MessageCircle, ArrowLeft, Loader2, Clock, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play, ChevronLeft, ChevronRight, Camera, Search } from 'lucide-react'
+import { X, MessageCircle, ArrowLeft, Loader2, Share2, Briefcase, Info, Wrench, ShoppingBag, Megaphone, User, Play, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ProductStoriesView } from './ProductStoriesView'
@@ -31,9 +31,6 @@ const CATEGORY_CONFIG: Record<CategoryType, { label: string; bg: string; icon: a
   comunicado: { label: 'Comunicado', bg: 'from-red-600 to-red-400', icon: Megaphone },
 }
 
-function getHoursRemaining(expiresAt: string) {
-  return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
-}
 
 
 
@@ -43,7 +40,6 @@ export function VitrineGrid() {
   const [selectedPost, setSelectedPost] = useState<VitrinePost | null>(null)
   const [filter, setFilter] = useState<'todos' | CategoryType>('todos')
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [searchTerm, setSearchTerm] = useState('')
   const [storiesMode, setStoriesMode] = useState(false)
   const [storiesStartIndex, setStoriesStartIndex] = useState(0)
 
@@ -78,11 +74,7 @@ export function VitrineGrid() {
   }, [])
 
   const filteredPosts = posts.filter(p => {
-    const matchesFilter = filter === 'todos' || p.category === filter
-    const matchesSearch = !searchTerm.trim() ||
-      p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    return matchesFilter && matchesSearch
+    return filter === 'todos' || p.category === filter
   })
 
   function handleWhatsAppClick(post: VitrinePost, e?: React.MouseEvent) {
@@ -143,18 +135,6 @@ export function VitrineGrid() {
           </div>
 
           {/* Filter Tabs */}
-          {/* Search */}
-          <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar anúncios..."
-              className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 py-2.5 pl-10 pr-4 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none transition-all duration-200 focus:border-zinc-400 dark:focus:border-zinc-600 focus:bg-white dark:focus:bg-zinc-800 focus:shadow-sm"
-            />
-          </div>
-
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             {([
               { value: 'todos', label: 'Todos' },
@@ -221,13 +201,6 @@ export function VitrineGrid() {
                 >
 
 
-                  {/* Expiry badge */}
-                  {getHoursRemaining(post.expires_at) <= 12 && (
-                    <div className="absolute bottom-2 right-2 z-[2] flex items-center gap-1 rounded-full bg-red-500/90 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                      <Clock className="h-3 w-3" />
-                      {getHoursRemaining(post.expires_at)}h
-                    </div>
-                  )}
                   {post.video_url ? (
                     <div className="relative w-full">
                       <video

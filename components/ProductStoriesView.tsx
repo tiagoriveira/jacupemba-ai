@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Clock, Camera } from 'lucide-react'
+import { X, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Camera } from 'lucide-react'
 
 interface VitrinePost {
   id: string
@@ -25,10 +25,6 @@ interface ProductStoriesViewProps {
   onWhatsAppClick: (post: VitrinePost) => void
   onShare: (post: VitrinePost) => void
   getCatConfig: (cat: string) => { label: string; bg: string; icon: any }
-}
-
-function getHoursRemaining(expiresAt: string) {
-  return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
 }
 
 
@@ -147,10 +143,6 @@ export function ProductStoriesView({
                   <Icon className="h-3 w-3" />
                   {config.label}
                 </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {getHoursRemaining(currentPost.expires_at)}h
-                </span>
               </div>
             </div>
           </div>
@@ -219,12 +211,16 @@ export function ProductStoriesView({
                   <ChevronRight className="h-6 w-6" />
                 </button>
 
-                {/* Indicador de imagens */}
-                <div className="absolute bottom-24 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 backdrop-blur-sm">
-                  <Camera className="h-4 w-4 text-white" />
-                  <span className="text-sm font-medium text-white">
-                    {currentImageIndex + 1}/{postImages.length}
-                  </span>
+                {/* Indicador de imagens - dots */}
+                <div className="absolute bottom-24 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/60 px-3 py-2 backdrop-blur-sm">
+                  {postImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx) }}
+                      className={`rounded-full transition-all ${idx === currentImageIndex ? 'h-2.5 w-2.5 bg-white' : 'h-2 w-2 bg-white/50'}`}
+                      aria-label={`Imagem ${idx + 1}`}
+                    />
+                  ))}
                 </div>
               </>
             )}

@@ -10,32 +10,11 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
 const IMAGE_BUCKET = 'vitrine-images'
 const VIDEO_BUCKET = 'vitrine-videos'
 
-// Rate limit simples: max 10 uploads por IP por minuto
-const uploadLimitMap = new Map<string, { count: number; resetAt: number }>()
-
-function checkUploadLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = uploadLimitMap.get(ip)
-  if (!entry || now > entry.resetAt) {
-    uploadLimitMap.set(ip, { count: 1, resetAt: now + 60_000 })
-    return true
-  }
-  if (entry.count >= 10) return false
-  entry.count++
-  return true
-}
+// Rate limiting em serverless não funciona com Map em memória.
+// Para produção real, usar Vercel KV, Upstash Redis ou Supabase.
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-    if (!checkUploadLimit(clientIp)) {
-      return NextResponse.json(
-        { error: 'Muitos uploads. Aguarde um minuto.' },
-        { status: 429 }
-      )
-    }
-
     const formData = await request.formData()
     const file = (formData.get('image') || formData.get('video')) as File | null
 

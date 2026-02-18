@@ -9,9 +9,9 @@ import {
   EmbeddedCheckout,
 } from '@stripe/react-stripe-js'
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-)
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null
 
 interface PaymentModalProps {
   isOpen: boolean
@@ -81,7 +81,25 @@ export function PaymentModal({ isOpen, onClose, amount, postData, onPaymentCompl
 
         {/* Content */}
         <div className="p-5">
-          {isComplete ? (
+          {!stripePromise ? (
+            <div className="py-8 text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <CreditCard className="h-8 w-8 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Pagamento indisponível</h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                  O sistema de pagamento não está configurado. Entre em contato com o suporte.
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-full rounded-xl bg-zinc-900 dark:bg-zinc-100 px-4 py-3 text-sm font-semibold text-white dark:text-zinc-900 transition-all hover:bg-zinc-800 dark:hover:bg-zinc-200 active:scale-[0.98]"
+              >
+                Fechar
+              </button>
+            </div>
+          ) : isComplete ? (
             <div className="py-8 text-center space-y-4">
               <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                 <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />

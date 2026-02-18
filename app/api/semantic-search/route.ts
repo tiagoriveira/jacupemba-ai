@@ -7,8 +7,12 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 const xai = createXai({
-  apiKey: process.env.XAI_API_KEY || 'placeholder'
+  apiKey: process.env.XAI_API_KEY!
 })
+
+function sanitizeForPostgrest(input: string): string {
+  return input.replace(/[%_\\(),.]/g, '').substring(0, 100).trim()
+}
 
 // TODO: Implementar embeddings quando xAI SDK suportar
 // Por enquanto, usar busca híbrida com Grok para expansão de consulta
@@ -47,18 +51,22 @@ export async function POST(req: NextRequest) {
 
     // Expandir query com termos relacionados usando Grok
     const searchTerms = await expandQuery(query)
-    const searchPattern = searchTerms.map(t => `%${t}%`).join('|')
+    const safeTerms = searchTerms.map(t => sanitizeForPostgrest(t)).filter(t => t.length >= 2)
 
     const results: any = {
       query,
-      expandedTerms: searchTerms,
+      expandedTerms: safeTerms,
       reports: [],
       businesses: []
     }
 
-    // Buscar em relatos usando termos expandidos
+    if (safeTerms.length === 0) {
+      return NextResponse.json({ success: true, data: results, totalResults: 0 })
+    }
+
+    // Buscar em relatos usando termos expandidos (sanitizados)
     if (target === 'reports' || target === 'all') {
-      const conditions = searchTerms.map(term => `text.ilike.%${term}%`).join(',')
+      const conditions = safeTerms.map(term => `text.ilike.%${term}%`).join(',')
       
       const { data: reportMatches, error: reportError } = await supabase
         .from('anonymous_reports')
@@ -73,9 +81,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Buscar em comércios usando termos expandidos
+    // Buscar em comércios usando termos expandidos (sanitizados)
     if (target === 'businesses' || target === 'all') {
-      const conditions = searchTerms.map(term => 
+      const conditions = safeTerms.map(term => 
         `name.ilike.%${term}%,description.ilike.%${term}%,category.ilike.%${term}%`
       ).join(',')
       

@@ -94,20 +94,36 @@ export function getChipText(topic: string): string {
 }
 
 /**
- * Carrega e analisa histórico do localStorage
+ * Carrega e analisa histórico do localStorage (novo formato conversation-store)
  */
 export function getHistoryFromLocalStorage(): HistoryItem[] {
   if (typeof window === 'undefined') return []
 
   try {
-    const savedHistory = localStorage.getItem('chat-history')
-    if (!savedHistory) return []
+    // Novo formato: conversation-store threads
+    const conversationsRaw = localStorage.getItem('jacupemba-conversations')
+    if (conversationsRaw) {
+      const conversations = JSON.parse(conversationsRaw)
+      if (Array.isArray(conversations) && conversations.length > 0) {
+        return conversations.slice(0, 10).map((conv: any) => {
+          const userMsg = conv.messages?.find((m: any) => m.role === 'user')
+          const assistantMsg = conv.messages?.find((m: any) => m.role === 'assistant')
+          return {
+            id: conv.id || '',
+            question: userMsg?.content || '',
+            answer: assistantMsg?.content || '',
+            timestamp: conv.created_at || new Date().toISOString(),
+          }
+        }).filter((item: HistoryItem) => item.question)
+      }
+    }
 
-    const parsed = JSON.parse(savedHistory)
-    // Retornar últimas 10 conversas
+    // Fallback: formato antigo (pré-migração)
+    const oldHistory = localStorage.getItem('chat-history')
+    if (!oldHistory) return []
+    const parsed = JSON.parse(oldHistory)
     return parsed.slice(-10)
   } catch (error) {
-    // Usar console.error aqui pois logger pode causar import circular
     console.error('Error parsing history:', error)
     return []
   }

@@ -221,9 +221,15 @@ export default function Page() {
   }, [])
 
 
-  // Salvar conversa como thread completa
+  // Salvar conversa como thread completa (com dedup via ref)
+  const savedMessageCountRef = useRef(0)
+
   useEffect(() => {
     if (messages.length >= 2 && !isLoading) {
+      // Dedup: só processar se houver mensagens novas
+      if (messages.length <= savedMessageCountRef.current) return
+      savedMessageCountRef.current = messages.length
+
       const lastUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0]
       const lastAssistantMessage = messages.filter(m => m.role === 'assistant').slice(-1)[0]
 

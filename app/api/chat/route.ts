@@ -7,45 +7,41 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const xai = createXai({
-  apiKey: process.env.XAI_API_KEY || 'placeholder'
+  apiKey: process.env.XAI_API_KEY!
 })
 
-// ---------------------------------------------------------------------------
-// Rate limiter simples em memória (30 req/min por IP)
-// ---------------------------------------------------------------------------
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT = 30
-const RATE_WINDOW_MS = 60_000
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS })
-    return true
-  }
-  if (entry.count >= RATE_LIMIT) return false
-  entry.count++
-  return true
+if (!process.env.XAI_API_KEY) {
+  console.error('[FATAL] XAI_API_KEY não configurada nas variáveis de ambiente')
 }
 
-// Limpar entradas expiradas a cada 5 min
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, val] of rateLimitMap) {
-    if (now > val.resetAt) rateLimitMap.delete(key)
-  }
-}, 300_000)
+// ---------------------------------------------------------------------------
+// Helper: sanitize user input for PostgREST queries
+// ---------------------------------------------------------------------------
+function sanitizeForPostgrest(input: string): string {
+  return input.replace(/[%_\\(),.]/g, '').substring(0, 100).trim()
+}
 
 // ---------------------------------------------------------------------------
 // Helper: format relative time for context readability
 // ---------------------------------------------------------------------------
 function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
+
+  // Datas futuras
+  if (diff < 0) {
+    const absDiff = Math.abs(diff)
+    const minutes = Math.floor(absDiff / 60000)
+    const hours = Math.floor(absDiff / 3600000)
+    const days = Math.floor(absDiff / 86400000)
+    if (minutes < 60) return `em ${minutes}min`
+    if (hours < 24) return `em ${hours}h`
+    return `em ${days}d`
+  }
+
+  // Datas passadas
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
-
   if (minutes < 60) return `${minutes}min atras`
   if (hours < 24) return `${hours}h atras`
   return `${days}d atras`
@@ -302,7 +298,7 @@ const analisarSentimento = tool({
         .from('anonymous_reports')
         .select('*')
         .eq('status', 'aprovado')
-        .or(`text.ilike.%${local}%`)
+        .ilike('text', `%${sanitizeForPostgrest(local)}%`)
         .order('created_at', { ascending: false })
         .limit(20)
 
@@ -311,7 +307,7 @@ const analisarSentimento = tool({
         .from('local_businesses')
         .select('id, name')
         .eq('status', 'aprovado')
-        .ilike('name', `%${local}%`)
+        .ilike('name', `%${sanitizeForPostgrest(local)}%`)
         .single()
 
       const totalMencoes = relatos?.length || 0
@@ -389,7 +385,8 @@ const buscarVitrine = tool({
         query = query.eq('category', categoria)
       }
       if (termo) {
-        query = query.or(`title.ilike.%${termo}%,description.ilike.%${termo}%`)
+        const safe = sanitizeForPostgrest(termo)
+        query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%`)
       }
 
       const { data, error } = await query
@@ -430,15 +427,6 @@ const buscarVitrine = tool({
 // ---------------------------------------------------------------------------
 
 export async function POST(req: Request) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-  if (!checkRateLimit(clientIp)) {
-    return new Response(
-      JSON.stringify({ error: 'Calma lá, muitas perguntas de uma vez! Espere um momento antes de continuar.' }),
-      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } }
-    )
-  }
-
   try {
     const { messages }: { messages: UIMessage[] } = await req.json()
 
@@ -492,7 +480,7 @@ export async function POST(req: Request) {
     // System prompt — Assistente Local do Jacupemba
     const systemPrompt = `Você é um morador do Jacupemba que sabe tudo do bairro. Fala direto, sem enrolação.
 
-DADOS DISPONÍVEIS:${reportsContext}${conversationContext}${persistentMemory}
+DADOS DISPONÍVEIS:${reportsContext}${vitrineContext}${conversationContext}${persistentMemory}
 
 FERRAMENTAS:
 - buscarRelatos: Busca relatos por categoria
@@ -547,56 +535,34 @@ ATENÇÃO (⚠️): Trânsito, Saneamento, Saúde, Iluminação
 INFORMATIVO (ℹ️): Eventos, Comércio, Convivência, Animais, Transporte, Outros
 
 � TOM:
-- Direto e natural
-- Sarcasmo leve quando caber
-- Sempre cite fonte: (relato de morador)
-- Se não sabe: "Não tem relato sobre isso ainda"
+- Direto, conciso e natural
+- Tom sacarstico e conciso ao responder
+- Sempre cite a fonte
+- Se não sabe diga que não tem fontes pra responder
 
 🔄 CONTINUIDADE:
 - Primeira mensagem: "E aí, o que cê quer saber do bairro?"
-- Próximas: responde direto, sem cumprimentar
+- Próximas: responde direto, continuando o contexto da conversa
 
 É simples: tem relato? Estrutura bonitinho. Não tem? Diz que não tem. Fim.`
 
 
     const convertedMessages = await convertToModelMessages(messages)
 
-    // Tentar modelo principal com fallback
-    const modelsToTry = [agentModel, 'grok-2-1212']
-    let lastError: unknown = null
+    // Stream com modelo principal — fallback tratado via onError do stream
+    const result = streamText({
+      model: xai(agentModel as any),
+      system: systemPrompt,
+      messages: convertedMessages,
+      tools: agentTools,
+      stopWhen: stepCountIs(5),
+      abortSignal: req.signal,
+    })
 
-    for (const modelId of modelsToTry) {
-      try {
-        const result = streamText({
-          model: xai(modelId as any),
-          system: systemPrompt,
-          messages: convertedMessages,
-          tools: agentTools,
-          stopWhen: stepCountIs(5),
-          abortSignal: req.signal,
-        })
-
-        return result.toUIMessageStreamResponse({
-          originalMessages: messages,
-          consumeSseStream: consumeStream,
-        })
-      } catch (modelError) {
-        console.error(`[Fallback] Modelo ${modelId} falhou:`, modelError)
-        lastError = modelError
-        continue
-      }
-    }
-
-    // Se todos os modelos falharem, retornar resposta graceful
-    console.error('Todos os modelos falharam:', lastError)
-    const fallbackMessage = `Eita, parece que estou com dificuldades técnicas no momento. 😅 Meu cérebro artificial está tirando uma folga não autorizada.\n\nEnquanto isso, você pode:\n- Acessar o **Feed do Bairro** para ver relatos recentes\n- Conferir a **Vitrine** para anúncios locais\n- Tentar novamente em alguns minutos\n\nSe o problema persistir, pode ser que o serviço de IA esteja temporariamente indisponível.`
-
-    return new Response(
-      JSON.stringify({
-        error: fallbackMessage,
-      }),
-      { status: 503, headers: { 'Content-Type': 'application/json' } }
-    )
+    return result.toUIMessageStreamResponse({
+      originalMessages: messages,
+      consumeSseStream: consumeStream,
+    })
   } catch (error) {
     console.error('Error in chat API:', error)
     return new Response(
