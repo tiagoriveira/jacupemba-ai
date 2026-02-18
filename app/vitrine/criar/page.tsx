@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Store, Camera, Phone, User, Tag, FileText, CheckCircle, Upload, X, Sparkles, Gift } from 'lucide-react'
+import { ArrowLeft, Loader2, Store, Camera, Phone, User, Tag, FileText, CheckCircle, Upload, X, Sparkles, Gift, Mail } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import Link from 'next/link'
 import { PaymentModal } from '@/components/PaymentModal'
+import { useAuth } from '@/lib/auth-context'
+import { supabase } from '@/lib/supabase'
 
 const CATEGORIES = [
   { value: 'produto', label: 'Produto', description: 'Itens à venda' },
@@ -29,6 +31,7 @@ const MAX_DESC = 300
 
 export default function CriarPostPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -47,16 +50,22 @@ export default function CriarPostPage() {
     category: '',
     contact_name: '',
     contact_phone: '',
+    contact_email: '',
   })
 
-  // Preencher telefone salvo + verificar primeiro post
+  // Preencher telefone salvo + email do usuário autenticado + verificar primeiro post
   useEffect(() => {
     const saved = localStorage.getItem('jacupemba_lojista_phone')
     if (saved) {
       setForm(prev => ({ ...prev, contact_phone: saved }))
       checkFirstPost(saved)
     }
-  }, [])
+    
+    // Auto-preencher email se usuário estiver autenticado
+    if (user?.email) {
+      setForm(prev => ({ ...prev, contact_email: user.email || '' }))
+    }
+  }, [user])
 
 
   const checkFirstPost = async (phone: string) => {
@@ -239,14 +248,22 @@ export default function CriarPostPage() {
         category: form.category,
         contact_name: form.contact_name.trim(),
         contact_phone: phoneDigits,
+        contact_email: form.contact_email.trim() || user?.email || null,
         image_url: imageUrls[0] || null,
         images: imageUrls,
         video_url: video?.url || null,
       }
 
+      // Buscar token de autenticação do Supabase
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
       const response = await fetch('/api/vitrine/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       })
 
