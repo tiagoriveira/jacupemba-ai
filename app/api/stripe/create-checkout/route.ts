@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe, STRIPE_CONFIG } from '@/lib/stripe'
+import { stripe, getStripePriceForCategory } from '@/lib/stripe'
 import { supabase } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { user_phone, post_data } = body
+    const { user_phone, post_data, category } = body
 
     if (!user_phone || !post_data) {
       return NextResponse.json(
@@ -16,12 +16,22 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
+    // Obter preço baseado na categoria
+    const priceConfig = getStripePriceForCategory(category || post_data.category || 'produto')
+
     // Criar Stripe Checkout Session (Embedded Mode)
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card', 'boleto'],
       line_items: [
         {
-          price: STRIPE_CONFIG.priceId,
+          price_data: {
+            currency: 'brl',
+            product_data: {
+              name: `Anúncio Jacupemba - ${category || 'Produto'}`,
+              description: post_data.title || 'Publicação na vitrine digital',
+            },
+            unit_amount: priceConfig.amount,
+          },
           quantity: 1,
         },
       ],
@@ -31,11 +41,13 @@ export async function POST(request: NextRequest) {
       metadata: {
         user_phone,
         post_data: JSON.stringify(post_data),
+        category: category || post_data.category || 'produto',
       },
       payment_intent_data: {
         metadata: {
           user_phone,
           type: 'vitrine_post',
+          category: category || post_data.category || 'produto',
         },
       },
     })
@@ -45,7 +57,7 @@ export async function POST(request: NextRequest) {
       user_phone,
       stripe_session_id: session.id,
       payment_status: 'pending',
-      amount: STRIPE_CONFIG.amount / 100,
+      amount: priceConfig.amount / 100,
     })
 
     return NextResponse.json({
