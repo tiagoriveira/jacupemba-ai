@@ -15,9 +15,6 @@ interface TopicSuggestion {
 
 // Palavras-chave para identificar tópicos
 const TOPIC_KEYWORDS: Record<string, string[]> = {
-  eletricista: ['eletricista', 'elétrica', 'eletrico', 'chuveiro', 'tomada', 'disjuntor', 'fiação'],
-  encanador: ['encanador', 'encanamento', 'cano', 'vazamento', 'agua', 'esgoto'],
-  mecanico: ['mecânico', 'mecanica', 'carro', 'moto', 'auto', 'oficina'],
   restaurante: ['restaurante', 'comida', 'comer', 'almoço', 'jantar', 'delivery', 'marmita'],
   farmacia: ['farmácia', 'remédio', 'medicamento', 'drogaria'],
   mercado: ['mercado', 'supermercado', 'padaria', 'açougue', 'feira'],
@@ -29,9 +26,6 @@ const TOPIC_KEYWORDS: Record<string, string[]> = {
 
 // Queries sugeridas por tópico
 const TOPIC_QUERIES: Record<string, string> = {
-  eletricista: 'Preciso de um eletricista',
-  encanador: 'Preciso de um encanador',
-  mecanico: 'Onde tem mecânico de confiança?',
   restaurante: 'Quais restaurantes tem no bairro?',
   farmacia: 'Onde tem farmácia aberta?',
   mercado: 'Onde tem mercado ou padaria?',
@@ -78,9 +72,6 @@ export function extractTopicsFromHistory(history: HistoryItem[]): TopicSuggestio
  */
 export function getChipText(topic: string): string {
   const texts: Record<string, string> = {
-    eletricista: 'Procurar eletricista novamente',
-    encanador: 'Ver encanadores disponíveis',
-    mecanico: 'Buscar mecânico',
     restaurante: 'Ver outros restaurantes',
     farmacia: 'Farmácias no bairro',
     mercado: 'Mercados e padarias',
@@ -134,7 +125,7 @@ export function getHistoryFromLocalStorage(): HistoryItem[] {
  */
 export function generatePersonalizedChips(): { text: string; query: string }[] {
   const history = getHistoryFromLocalStorage()
-  
+
   // Se não houver histórico, retornar array vazio
   if (history.length === 0) {
     return []

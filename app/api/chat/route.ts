@@ -329,7 +329,7 @@ const analisarSentimento = tool({
       }
 
       const { text: analise } = await generateText({
-        model: xai('grok-4-1-fast-reasoning'),
+        model: xai('grok-3-fast'),
         prompt: `Analise os seguintes dados sobre "${local}" e classifique o sentimento geral.
 
 ${contextTexto}
